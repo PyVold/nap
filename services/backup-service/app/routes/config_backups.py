@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
 
-from api.deps import get_db
+from shared.deps import get_db
 from db_models import DeviceDB, ConfigBackupDB, ConfigChangeEventDB
 from services.config_backup_service import ConfigBackupService
 from models.device import Device

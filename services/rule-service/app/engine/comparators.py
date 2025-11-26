@@ -7,7 +7,7 @@ import difflib
 from typing import Tuple, Dict
 from lxml import etree
 from models.enums import ComparisonType
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

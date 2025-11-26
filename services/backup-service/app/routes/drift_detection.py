@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 
-from api.deps import get_db
+from shared.deps import get_db
 from db_models import DeviceDB
 from models.device import Device
 from models.enums import VendorType

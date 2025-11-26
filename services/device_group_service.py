@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from models.device_group import DeviceGroup, DeviceGroupCreate, DeviceGroupUpdate
 from db_models import DeviceGroupDB, DeviceGroupMembershipDB, DeviceDB
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

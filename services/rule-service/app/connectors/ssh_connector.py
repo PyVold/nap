@@ -8,8 +8,8 @@ import time
 import re
 from models.device import Device
 from models.enums import VendorType
-from utils.logger import setup_logger
-from utils.exceptions import DeviceConnectionError
+from shared.logger import setup_logger
+from shared.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
 

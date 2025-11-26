@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 import base64
 
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

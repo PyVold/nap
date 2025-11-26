@@ -7,10 +7,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from api.deps import get_db, require_admin_or_operator, require_any_authenticated
+from shared.deps import get_db, require_admin_or_operator, require_any_authenticated
 from models.rule import AuditRule, AuditRuleCreate, AuditRuleUpdate
 from services.rule_service import RuleService
-from utils.exceptions import RuleNotFoundError
+from shared.exceptions import RuleNotFoundError
 
 router = APIRouter()
 

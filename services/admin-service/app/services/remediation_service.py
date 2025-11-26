@@ -10,7 +10,7 @@ from models.enums import VendorType
 from connectors.netconf_connector import NetconfConnector
 from connectors.nokia_sros_connector import NokiaSROSConnector
 from models.device import Device
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

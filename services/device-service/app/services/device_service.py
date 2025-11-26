@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 from models.device import Device, DeviceCreate, DeviceUpdate
 from models.enums import DeviceStatus
 from db_models import DeviceDB
-from utils.logger import setup_logger
-from utils.exceptions import DeviceNotFoundError
-from utils.validators import validate_hostname, validate_ip
-from utils.backoff import BackoffManager
+from shared.logger import setup_logger
+from shared.exceptions import DeviceNotFoundError
+from shared.validators import validate_hostname, validate_ip
+from shared.backoff import BackoffManager
 
 logger = setup_logger(__name__)
 

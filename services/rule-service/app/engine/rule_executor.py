@@ -10,8 +10,8 @@ from models.enums import AuditStatus, VendorType
 from connectors.netconf_connector import NetconfConnector
 from connectors.base_connector import BaseConnector
 from engine.comparators import ConfigComparator
-from utils.logger import setup_logger
-from utils.exceptions import RuleExecutionError
+from shared.logger import setup_logger
+from shared.exceptions import RuleExecutionError
 
 logger = setup_logger(__name__)
 

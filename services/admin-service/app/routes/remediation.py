@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 
-from api.deps import get_db, require_admin_or_operator
+from shared.deps import get_db, require_admin_or_operator
 from services.remediation_service import RemediationService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter(prefix="/remediation", tags=["Remediation"])
 logger = setup_logger(__name__)

@@ -8,7 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
-from api.deps import get_db
+from shared.deps import get_db
 from db_models import HardwareInventoryDB, DeviceDB
 from services.hardware_inventory_service import HardwareInventoryService
 

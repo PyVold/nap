@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
-from api.deps import get_db
+from shared.deps import get_db
 from db_models import RuleTemplateDB, AuditRuleDB
 from services.rule_template_service import RuleTemplateService
 

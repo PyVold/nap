@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models.discovery_group import DiscoveryGroup, DiscoveryGroupCreate, DiscoveryGroupUpdate
 from db_models import DiscoveryGroupDB
-from utils.logger import setup_logger
-from utils.crypto import encrypt_password, decrypt_password
+from shared.logger import setup_logger
+from shared.crypto import encrypt_password, decrypt_password
 
 logger = setup_logger(__name__)
 

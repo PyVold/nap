@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from db_models import DeviceDB
 from models.enums import VendorType, DeviceStatus
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 
