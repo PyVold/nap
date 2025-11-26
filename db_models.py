@@ -290,29 +290,6 @@ class NotificationHistoryDB(Base):
 
 
 # ============================================================================
-# Export & Reporting
-# ============================================================================
-
-class ExportTaskDB(Base):
-    """Tracks export/report generation tasks"""
-    __tablename__ = "export_tasks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    task_type = Column(String(50))  # pdf, csv, excel, json
-    export_type = Column(String(50))  # audit_results, device_inventory, compliance_report, config_backup
-    parameters = Column(JSON)  # Export parameters/filters
-    status = Column(String(50), default="pending")  # pending, processing, completed, failed
-    file_path = Column(String(512), nullable=True)
-    file_size_bytes = Column(Integer, nullable=True)
-    created_by = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime, nullable=True)
-    error_message = Column(Text, nullable=True)
-    download_count = Column(Integer, default=0)
-    expires_at = Column(DateTime, nullable=True)  # Auto-delete after expiration
-
-
-# ============================================================================
 # Rule Templates & Library
 # ============================================================================
 
@@ -514,91 +491,6 @@ class RemediationTaskDB(Base):
 
 
 # ============================================================================
-# Topology & Network Discovery
-# ============================================================================
-
-class TopologyLinkDB(Base):
-    """Network topology links discovered via LLDP/CDP"""
-    __tablename__ = "topology_links"
-
-    id = Column(Integer, primary_key=True, index=True)
-    source_device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'))
-    source_interface = Column(String(100))
-    target_device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=True)
-    target_device_name = Column(String(255))  # May not match DeviceDB
-    target_interface = Column(String(100), nullable=True)
-    link_type = Column(String(50))  # lldp, cdp, manual
-    discovered_at = Column(DateTime, default=datetime.utcnow)
-    last_seen = Column(DateTime, default=datetime.utcnow)
-    is_active = Column(Boolean, default=True)
-
-    source_device = relationship("DeviceDB", foreign_keys=[source_device_id])
-    target_device = relationship("DeviceDB", foreign_keys=[target_device_id])
-
-
-# ============================================================================
-# Audit Policy Orchestrator
-# ============================================================================
-
-class AuditPolicyDB(Base):
-    """Audit policy templates with protocol-aware validation"""
-    __tablename__ = "audit_policies"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), unique=True, nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    protocol = Column(String(50), nullable=False)  # bgp, isis, ospf, interface, etc.
-    template_content = Column(Text, nullable=False)  # YAML template with checks
-    default_variables = Column(JSON, nullable=True)  # Default variables for template
-    is_active = Column(Boolean, default=True)
-    created_by = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    device_variables = relationship("DeviceVariableDB", back_populates="policy", cascade="all, delete-orphan")
-
-
-class DeviceVariableDB(Base):
-    """Per-device variables for audit policies"""
-    __tablename__ = "device_variables"
-    __table_args__ = (
-        Index('ix_device_variables_policy_device', 'policy_id', 'device_id'),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    policy_id = Column(Integer, ForeignKey('audit_policies.id', ondelete='CASCADE'), nullable=False)
-    device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=False)
-    variables = Column(JSON, nullable=False)  # Device-specific variables
-    auto_collected = Column(Boolean, default=False)  # True if auto-collected from device
-    last_collected = Column(DateTime, nullable=True)  # Last auto-collection time
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    policy = relationship("AuditPolicyDB", back_populates="device_variables")
-    device = relationship("DeviceDB")
-
-
-class DeviceFactDB(Base):
-    """Collected device facts (BGP neighbors, ISIS adjacencies, etc.)"""
-    __tablename__ = "device_facts"
-    __table_args__ = (
-        Index('ix_device_facts_device_type', 'device_id', 'fact_type'),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=False)
-    fact_type = Column(String(50), nullable=False)  # bgp_neighbors, isis_adjacencies, ospf_neighbors, interfaces
-    fact_data = Column(JSON, nullable=False)  # Structured data
-    collected_at = Column(DateTime, default=datetime.utcnow)
-    is_current = Column(Boolean, default=True)  # False for historical data
-
-    # Relationships
-    device = relationship("DeviceDB")
-
-
-# ============================================================================
 # Workflow Manager
 # ============================================================================
 
@@ -685,21 +577,6 @@ class WorkflowScheduleDB(Base):
     # Relationships
     workflow = relationship("WorkflowDB", back_populates="schedules")
     device_group = relationship("DeviceGroupDB")
-
-
-class WorkflowTriggerDB(Base):
-    """Event-based workflow triggers"""
-    __tablename__ = "workflow_triggers"
-
-    id = Column(Integer, primary_key=True, index=True)
-    workflow_id = Column(Integer, ForeignKey('workflows.id', ondelete='CASCADE'), nullable=False)
-    trigger_event = Column(String(100), nullable=False)  # device_added, audit_failed, health_check_failed
-    condition = Column(JSON, nullable=True)  # Additional conditions
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    workflow = relationship("WorkflowDB")
 
 
 # ============================================================================
