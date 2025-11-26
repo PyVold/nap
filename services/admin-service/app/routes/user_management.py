@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from api.deps import (
+from shared.deps import (
     get_db, get_current_user_db,
     require_view_groups, require_create_groups, require_modify_groups, require_delete_groups,
     require_view_users, require_create_users, require_modify_users, require_delete_users
@@ -20,7 +20,7 @@ from models.user_group import (
     PermissionAssignment, ModuleAccessAssignment,
     GroupMemberUpdate, Permission
 )
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter()
 logger = setup_logger(__name__)

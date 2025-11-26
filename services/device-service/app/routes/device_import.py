@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
 
-from api.deps import get_db
+from shared.deps import get_db
 from services.device_import_service import DeviceImportService
 
 router = APIRouter(prefix="/device-import", tags=["device-import"])

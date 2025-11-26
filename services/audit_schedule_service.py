@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models.audit_schedule import AuditSchedule, AuditScheduleCreate, AuditScheduleUpdate
 from db_models import AuditScheduleDB
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

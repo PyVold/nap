@@ -8,7 +8,7 @@ from typing import List
 from database import get_db
 from models.device_group import DeviceGroup, DeviceGroupCreate, DeviceGroupUpdate
 from services.device_group_service import DeviceGroupService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter()
 logger = setup_logger(__name__)

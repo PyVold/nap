@@ -12,7 +12,7 @@ from sqlalchemy import select, and_
 from db_models import NotificationWebhookDB, NotificationHistoryDB, DeviceDB
 from models.audit import AuditResult
 from models.enums import AuditStatus
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

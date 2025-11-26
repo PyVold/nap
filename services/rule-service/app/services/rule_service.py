@@ -8,9 +8,9 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from models.rule import AuditRule, AuditRuleCreate, AuditRuleUpdate
 from db_models import AuditRuleDB
-from utils.logger import setup_logger
-from utils.exceptions import RuleNotFoundError
-from utils.validators import validate_xml, validate_xpath
+from shared.logger import setup_logger
+from shared.exceptions import RuleNotFoundError
+from shared.validators import validate_xml, validate_xpath
 
 logger = setup_logger(__name__)
 

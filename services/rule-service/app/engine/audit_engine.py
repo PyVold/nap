@@ -14,7 +14,7 @@ from connectors.netconf_connector import NetconfConnector
 from connectors.nokia_sros_connector import NokiaSROSConnector
 from engine.rule_executor import RuleExecutor
 from services.config_backup_service import ConfigBackupService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

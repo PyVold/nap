@@ -9,7 +9,7 @@ from typing import List
 from database import get_db, SessionLocal
 from services.health_service import HealthService
 from services.device_service import DeviceService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter(prefix="/health", tags=["health"])
 logger = setup_logger(__name__)

@@ -12,7 +12,7 @@ from models.device import Device
 from models.enums import VendorType
 from services.config_backup_service import ConfigBackupService
 from services.notification_service import NotificationService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

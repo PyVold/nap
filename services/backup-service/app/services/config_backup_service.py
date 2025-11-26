@@ -14,7 +14,7 @@ from db_models import ConfigBackupDB, ConfigChangeEventDB
 from connectors.netconf_connector import NetconfConnector
 from connectors.nokia_sros_connector import NokiaSROSConnector
 from models.enums import VendorType
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 import difflib
 
 logger = setup_logger(__name__)

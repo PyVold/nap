@@ -11,7 +11,7 @@ from services.device_service import DeviceService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
 from engine.audit_engine import AuditEngine
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter()
 logger = setup_logger(__name__)

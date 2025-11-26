@@ -16,7 +16,7 @@ from models.user_group import (
     UserGroup, UserGroupCreate, UserGroupUpdate,
     User, UserCreate, UserUpdate, Permission
 )
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

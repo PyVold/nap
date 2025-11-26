@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from db_models import RuleTemplateDB, AuditRuleDB
 from models.enums import VendorType, SeverityLevel
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

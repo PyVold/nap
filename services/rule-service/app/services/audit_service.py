@@ -14,7 +14,7 @@ from models.enums import AuditStatus, DeviceStatus
 from db_models import AuditResultDB, DeviceDB
 from engine.audit_engine import AuditEngine
 from services.notification_service import NotificationService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

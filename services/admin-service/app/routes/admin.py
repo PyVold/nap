@@ -8,16 +8,16 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
-from api.deps import get_db
+from shared.deps import get_db
 from db_models import UserDB, SystemModuleDB, AuditLogDB
-from utils.auth import (
+from shared.auth import (
     get_password_hash,
     verify_password,
     create_access_token,
     get_current_user,
     require_admin
 )
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 logger = setup_logger(__name__)

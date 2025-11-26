@@ -12,7 +12,7 @@ from services.device_service import DeviceService
 from services.device_group_service import DeviceGroupService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 router = APIRouter()
 logger = setup_logger(__name__)

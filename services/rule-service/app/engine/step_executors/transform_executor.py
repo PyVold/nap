@@ -6,7 +6,7 @@
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 

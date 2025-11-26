@@ -5,11 +5,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from api.deps import get_db, require_admin_or_operator
+from shared.deps import get_db, require_admin_or_operator
 from models.device import Device, DeviceCreate, DeviceUpdate, DiscoveryRequest
 from services.device_service import DeviceService
 from services.discovery_service import DiscoveryService
-from utils.exceptions import DeviceNotFoundError
+from shared.exceptions import DeviceNotFoundError
 
 router = APIRouter()
 
