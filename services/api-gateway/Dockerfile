@@ -2,12 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Install dependencies
+COPY services/api-gateway/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ../../../shared /app/shared
-COPY app /app
+# Copy shared libraries
+COPY shared /app/shared
 
+# Copy service code
+COPY services/api-gateway/app /app
+
+# Expose port
 EXPOSE 3000
 
+# Run the service
 CMD ["python", "main.py"]

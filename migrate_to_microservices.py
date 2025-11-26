@@ -278,19 +278,20 @@ def create_service_dockerfile(service_name, service_config):
     """Create Dockerfile for a microservice"""
     port = service_config['port']
 
+    # Build context is project root, so paths are relative to root
     dockerfile_content = f'''FROM python:3.11-slim
 
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY services/{service_name}/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared libraries
-COPY ../../../shared /app/shared
+COPY shared /app/shared
 
 # Copy service code
-COPY app /app
+COPY services/{service_name}/app /app
 
 # Expose port
 EXPOSE {port}
@@ -493,15 +494,16 @@ pydantic==2.5.0
     Path('services/api-gateway/requirements.txt').write_text(gateway_requirements)
 
     # Create Dockerfile for gateway
+    # Build context is project root, so paths are relative to root
     gateway_dockerfile = '''FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/api-gateway/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ../../../shared /app/shared
-COPY app /app
+COPY shared /app/shared
+COPY services/api-gateway/app /app
 
 EXPOSE 3000
 
