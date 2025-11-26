@@ -82,7 +82,7 @@ export default function Login() {
               Network Audit Platform
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Admin Panel Login
+              Login
             </Typography>
           </Box>
 
@@ -158,16 +158,19 @@ export default function Login() {
 
           <Box sx={{ mt: 3, p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
             <Typography variant="caption" display="block" gutterBottom>
-              <strong>Default Credentials:</strong>
+              <strong>Test Credentials:</strong>
             </Typography>
             <Typography variant="caption" display="block">
-              Username: admin
+              <strong>Admin:</strong> admin / admin
             </Typography>
             <Typography variant="caption" display="block">
-              Password: admin
+              <strong>Operator:</strong> operator / operator
+            </Typography>
+            <Typography variant="caption" display="block">
+              <strong>Viewer:</strong> viewer / viewer
             </Typography>
             <Typography variant="caption" color="error" display="block" sx={{ mt: 1 }}>
-              ⚠️ Change default password after first login!
+              ⚠️ Change passwords in production!
             </Typography>
           </Box>
         </Paper>
