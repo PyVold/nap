@@ -6,7 +6,6 @@ Port: 3003
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import sys
-sys.path.append('../../..')
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger

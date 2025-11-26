@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import httpx
 import sys
-sys.path.append('../../..')
 from shared.logger import setup_logger
 from typing import Dict, List
 

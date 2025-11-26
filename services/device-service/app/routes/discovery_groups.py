@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
+from shared.database import get_db
 from models.discovery_group import DiscoveryGroup, DiscoveryGroupCreate, DiscoveryGroupUpdate
 from services.discovery_group_service import DiscoveryGroupService
 from services.device_service import DeviceService
@@ -107,7 +107,7 @@ async def run_discovery_for_group(
 
     # Run discovery in background
     async def run_discovery_task():
-        from database import SessionLocal
+        from shared.database import SessionLocal
         task_db = SessionLocal()
         try:
             discovered = await discovery_service.discover_subnet(

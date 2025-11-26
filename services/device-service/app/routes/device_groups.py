@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
+from shared.database import get_db
 from models.device_group import DeviceGroup, DeviceGroupCreate, DeviceGroupUpdate
 from services.device_group_service import DeviceGroupService
 from shared.logger import setup_logger
