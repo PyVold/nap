@@ -6,7 +6,7 @@ import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
-from config import settings
+from shared.config import settings
 
 def setup_logger(name: str) -> logging.Logger:
     """Setup logger with consistent formatting and file output"""
