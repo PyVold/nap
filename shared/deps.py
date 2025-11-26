@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from shared.database import get_db as database_get_db, SessionLocal
 from shared.auth import SECRET_KEY, ALGORITHM
-import db_models
+from db_models import UserDB
 
 security = HTTPBearer(auto_error=False)
 
