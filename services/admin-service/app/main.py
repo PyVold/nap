@@ -23,10 +23,10 @@ app = FastAPI(
 init_db()
 logger.info("Database initialized")
 
-# Create default admin user on startup
+# Create default users on startup
 @app.on_event("startup")
 async def startup_event():
-    """Initialize admin user on startup"""
+    """Initialize default users for all roles on startup"""
     from passlib.context import CryptContext
     import db_models
 
@@ -34,30 +34,73 @@ async def startup_event():
     db = next(get_db())
 
     try:
-        # Check if admin user exists
+        # Create default admin user if not exists
         admin_user = db.query(db_models.UserDB).filter(
             db_models.UserDB.username == "admin"
         ).first()
 
         if not admin_user:
-            # Create admin user
             hashed_password = pwd_context.hash("admin")
             admin_user = db_models.UserDB(
                 username="admin",
                 email="admin@example.com",
                 full_name="System Administrator",
                 hashed_password=hashed_password,
+                role="admin",
                 is_active=True,
                 is_superuser=True
             )
             db.add(admin_user)
-            db.commit()
             logger.info("✅ Default admin user created (username: admin, password: admin)")
-            logger.warning("⚠️  Change default admin password immediately!")
         else:
             logger.info("✅ Admin user already exists")
+
+        # Create default operator user if not exists
+        operator_user = db.query(db_models.UserDB).filter(
+            db_models.UserDB.username == "operator"
+        ).first()
+
+        if not operator_user:
+            hashed_password = pwd_context.hash("operator")
+            operator_user = db_models.UserDB(
+                username="operator",
+                email="operator@example.com",
+                full_name="Network Operator",
+                hashed_password=hashed_password,
+                role="operator",
+                is_active=True,
+                is_superuser=False
+            )
+            db.add(operator_user)
+            logger.info("✅ Default operator user created (username: operator, password: operator)")
+        else:
+            logger.info("✅ Operator user already exists")
+
+        # Create default viewer user if not exists
+        viewer_user = db.query(db_models.UserDB).filter(
+            db_models.UserDB.username == "viewer"
+        ).first()
+
+        if not viewer_user:
+            hashed_password = pwd_context.hash("viewer")
+            viewer_user = db_models.UserDB(
+                username="viewer",
+                email="viewer@example.com",
+                full_name="Network Viewer",
+                hashed_password=hashed_password,
+                role="viewer",
+                is_active=True,
+                is_superuser=False
+            )
+            db.add(viewer_user)
+            logger.info("✅ Default viewer user created (username: viewer, password: viewer)")
+        else:
+            logger.info("✅ Viewer user already exists")
+
+        db.commit()
+        logger.warning("⚠️  Change default passwords immediately in production!")
     except Exception as e:
-        logger.error(f"❌ Error creating admin user: {e}")
+        logger.error(f"❌ Error creating default users: {e}")
         db.rollback()
     finally:
         db.close()
