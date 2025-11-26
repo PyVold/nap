@@ -24,6 +24,45 @@ app = FastAPI(
 init_db()
 logger.info("Database initialized")
 
+# Create default admin user on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize admin user on startup"""
+    from passlib.context import CryptContext
+    import db_models
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    db = next(get_db())
+
+    try:
+        # Check if admin user exists
+        admin_user = db.query(db_models.UserDB).filter(
+            db_models.UserDB.username == "admin"
+        ).first()
+
+        if not admin_user:
+            # Create admin user
+            hashed_password = pwd_context.hash("admin")
+            admin_user = db_models.UserDB(
+                username="admin",
+                email="admin@example.com",
+                full_name="System Administrator",
+                hashed_password=hashed_password,
+                is_active=True,
+                is_superuser=True
+            )
+            db.add(admin_user)
+            db.commit()
+            logger.info("✅ Default admin user created (username: admin, password: admin)")
+            logger.warning("⚠️  Change default admin password immediately!")
+        else:
+            logger.info("✅ Admin user already exists")
+    except Exception as e:
+        logger.error(f"❌ Error creating admin user: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
