@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+
+# Virtual environments
+venv
+env
+ENV
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in containers)
+*.md
+!README.md
+
+# Node modules (for frontend, but services don't need it)
+node_modules
+frontend/node_modules
+frontend/build
+
+# Logs
+*.log
+logs
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups
+*.bak
+*.backup
+
+# Migrations scripts (not needed in runtime)
+migrate_to_microservices.py
+
+# Original monolith files (keep for reference but not in containers)
+main.py
+api/
+models/
+connectors/
+engine/
+scheduler/
+utils/
+services/*.py
+config.py
+database.py
+db_models.py
+
+# Keep only what each service needs
+# Services will copy their specific files

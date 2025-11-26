@@ -3,14 +3,14 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY services/backup-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared libraries
-COPY ../../../shared /app/shared
+COPY shared /app/shared
 
 # Copy service code
-COPY app /app
+COPY services/backup-service/app /app
 
 # Expose port
 EXPOSE 3003
