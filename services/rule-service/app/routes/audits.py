@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
-from database import get_db, SessionLocal
+from shared.database import get_db, SessionLocal
 from models.audit import AuditRequest, AuditResult
 from services.device_service import DeviceService
 from services.rule_service import RuleService

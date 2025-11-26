@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Float, JSON, DateTime, Text, Enum as SQLEnum, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from database import Base
+from shared.database import Base
 from models.enums import VendorType, DeviceStatus, SeverityLevel, AuditStatus
 import enum
 

@@ -4,7 +4,7 @@ Supports NetBox, Git, Ansible, ServiceNow, and Prometheus integrations
 """
 from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Text, Enum
 from sqlalchemy.sql import func
-from database import Base
+from shared.database import Base
 import enum
 
 

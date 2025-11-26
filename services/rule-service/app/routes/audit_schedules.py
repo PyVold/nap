@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
+from shared.database import get_db
 from models.audit_schedule import AuditSchedule, AuditScheduleCreate, AuditScheduleUpdate
 from services.audit_schedule_service import AuditScheduleService
 from services.device_service import DeviceService
@@ -136,7 +136,7 @@ async def run_audit_schedule_now(
 
     # Run audit in background
     async def run_audit_task():
-        from database import SessionLocal
+        from shared.database import SessionLocal
         from engine.audit_engine import AuditEngine
         task_db = SessionLocal()
         try:

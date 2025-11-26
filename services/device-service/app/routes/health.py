@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db, SessionLocal
+from shared.database import get_db, SessionLocal
 from services.health_service import HealthService
 from services.device_service import DeviceService
 from shared.logger import setup_logger
