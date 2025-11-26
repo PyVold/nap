@@ -1,0 +1,214 @@
+# ============================================================================
+# TWAMP Session Audit & Deployment Workflow
+# ============================================================================
+# This workflow collects ISIS neighbors and interface data, generates TWAMP
+# configuration using a template, audits existing TWAMP sessions, and optionally
+# deploys the configuration if audit fails.
+#
+# Execution modes:
+#   - sequential: Steps run in order (mandatory for this workflow)
+#   - dag: Steps with dependencies can run in parallel where possible
+# ============================================================================
+
+name: "TWAMP Session Audit & Deployment"
+description: "Collect network topology, generate TWAMP config, audit and deploy"
+execution_mode: "sequential"  # Must be sequential for data dependencies
+
+# Global variables (can be overridden per device)
+variables:
+  twamp_dscp: 46
+  twamp_port: 862
+  probe_interval: 100  # milliseconds
+
+# Workflow steps
+steps:
+  # Step 1: Collect ISIS neighbor information
+  - name: collect_isis
+    type: query
+    description: "Collect ISIS neighbors to determine TWAMP targets"
+    command: "show isis neighbors"
+    parser: isis
+    output_var: isis_neighbors
+    on_error: fail  # Fail workflow if this step fails
+
+  # Step 2: Collect interface information
+  - name: collect_interfaces
+    type: query
+    description: "Get interface IPs for TWAMP source addresses"
+    command: "show ip interface brief"
+    parser: interface
+    output_var: interfaces
+    on_error: fail
+
+  # Step 3: Transform data - filter only UP ISIS neighbors
+  - name: filter_active_neighbors
+    type: transform
+    description: "Filter only active ISIS neighbors"
+    script: |
+      active = [n for n in isis_neighbors['neighbors'] if n['state'] == 'UP']
+      return {'active_neighbors': active, 'neighbor_count': len(active)}
+    output_var: active_isis
+
+  # Step 4: Generate TWAMP configuration from template
+  - name: generate_twamp_config
+    type: template
+    description: "Generate TWAMP configuration using Jinja2 template"
+    template: "twamp_sessions.j2"
+    template_vars:
+      - isis_neighbors: "{{ active_isis.active_neighbors }}"
+      - interfaces: "{{ interfaces.interfaces }}"
+      - dscp: "{{ twamp_dscp }}"
+      - port: "{{ twamp_port }}"
+      - interval: "{{ probe_interval }}"
+    output_var: expected_twamp_config
+    vendor_specific:
+      nokia:
+        template: "twamp_sessions_nokia.j2"
+        output_format: "xml"
+      cisco:
+        template: "twamp_sessions_cisco.j2"
+        output_format: "xml"
+
+  # Step 5: Query current TWAMP configuration
+  - name: query_current_twamp
+    type: query
+    description: "Get current TWAMP sessions configuration"
+    vendor_specific:
+      nokia:
+        command: "show service twamp"
+        method: "pysros"
+        xpath: "/nokia-conf:configure/service/twamp"
+      cisco:
+        command: "show run twamp"
+        method: "netconf"
+        filter: |
+          <twamp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-twamp-cfg">
+            <sessions/>
+          </twamp>
+    output_var: current_twamp_config
+    on_error: continue  # Continue even if TWAMP not configured
+
+  # Step 6: Audit - Compare expected vs actual
+  - name: audit_twamp_config
+    type: audit
+    description: "Compare expected TWAMP config with actual"
+    compare:
+      expected: "{{ expected_twamp_config }}"
+      actual: "{{ current_twamp_config }}"
+    diff_mode: true
+    diff_format: "unified"  # unified, context, side-by-side
+    output_var: audit_result
+    thresholds:
+      pass_threshold: 100  # 100% match required
+
+  # Step 7: Conditional remediation
+  - name: deploy_twamp_config
+    type: remediate
+    description: "Deploy TWAMP configuration if audit failed"
+    condition: "{{ audit_result.compliance < 100 }}"
+    config_source: "{{ expected_twamp_config }}"
+    vendor_specific:
+      nokia:
+        method: "pysros"
+        xpath_operations:
+          - action: "merge"
+            xpath: "/nokia-conf:configure/service/twamp"
+            config: "{{ expected_twamp_config }}"
+        commit: true
+        commit_comment: "TWAMP auto-deployment via workflow"
+      cisco:
+        method: "netconf"
+        edit_config:
+          target: "candidate"
+          config: "{{ expected_twamp_config }}"
+          operation: "merge"
+        commit: true
+    rollback_on_error: true
+    on_error: fail
+
+  # Step 8: Verify deployment (runs only if step 7 executed)
+  - name: verify_deployment
+    type: query
+    description: "Verify TWAMP sessions are operational"
+    depends_on: [deploy_twamp_config]
+    command: "show service twamp detail"
+    output_var: twamp_status
+    validation:
+      - assert: "twamp_status.sessions_up >= active_isis.neighbor_count"
+        message: "Not all TWAMP sessions are UP"
+        severity: "high"
+
+  # Step 9: Create ticket if deployment occurred
+  - name: create_servicenow_ticket
+    type: api_call
+    description: "Create ServiceNow ticket for TWAMP deployment"
+    condition: "{{ deploy_twamp_config.executed }}"
+    api_url: "https://instance.service-now.com/api/now/table/incident"
+    api_method: "POST"
+    api_headers:
+      Content-Type: "application/json"
+    api_auth:
+      type: "basic"
+      username: "{{ servicenow_user }}"
+      password: "{{ servicenow_password }}"
+    api_body:
+      short_description: "TWAMP configuration deployed on {{ device.hostname }}"
+      description: |
+        Automated TWAMP deployment via workflow
+        Device: {{ device.hostname }}
+        ISIS Neighbors: {{ active_isis.neighbor_count }}
+        TWAMP Sessions: {{ active_isis.neighbor_count }}
+      category: "Network"
+      subcategory: "Configuration Change"
+      impact: "3"
+      urgency: "3"
+    output_var: servicenow_ticket
+    on_error: continue
+
+  # Step 10: Query monitoring system
+  - name: query_monitoring_api
+    type: api_call
+    description: "Query monitoring system for device status"
+    api_url: "https://monitoring.example.com/api/v1/device/{{ device.hostname }}/status"
+    api_method: "GET"
+    api_headers:
+      Authorization: "Bearer {{ monitoring_api_token }}"
+    api_params:
+      include_metrics: "true"
+      time_range: "1h"
+    output_var: monitoring_status
+    on_error: continue
+
+  # Step 11: Send notification
+  - name: send_notification
+    type: notification
+    description: "Send workflow completion notification"
+    channels: ["email", "webhook"]
+    message_template: |
+      Workflow: {{ workflow.name }}
+      Device: {{ device.hostname }}
+      Status: {{ workflow.status }}
+      ISIS Neighbors: {{ active_isis.neighbor_count }}
+      TWAMP Sessions Expected: {{ active_isis.neighbor_count }}
+      Audit Result: {{ audit_result.compliance }}%
+      {% if deploy_twamp_config.executed %}
+      Configuration deployed: Yes
+      ServiceNow Ticket: {{ servicenow_ticket.number }}
+      {% endif %}
+      Monitoring Status: {{ monitoring_status.status }}
+    on_error: continue  # Don't fail workflow if notification fails
+
+# Workflow-level settings
+settings:
+  timeout: 600  # Maximum workflow execution time in seconds
+  retry_on_error: false
+  max_retries: 0
+  parallel_execution: false  # Run on devices sequentially
+
+# Success/failure criteria
+completion_criteria:
+  success:
+    - all_steps_passed: true
+  failure:
+    - any_step_failed: true
+    - timeout_exceeded: true
