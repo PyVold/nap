@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # Database
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: nap_db
+      POSTGRES_USER: nap_user
+      POSTGRES_PASSWORD: nap_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nap_user -d nap_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - device-service
+      - rule-service
+      - backup-service
+      - inventory-service
+      - admin-service
+    environment:
+      - LOG_LEVEL=info
+
+  # Device Service
+  device-service:
+    build:
+      context: .
+      dockerfile: services/device-service/Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3001
+      - LOG_LEVEL=info
+
+  # Rule Service
+  rule-service:
+    build:
+      context: .
+      dockerfile: services/rule-service/Dockerfile
+    ports:
+      - "3002:3002"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3002
+      - LOG_LEVEL=info
+
+  # Backup Service
+  backup-service:
+    build:
+      context: .
+      dockerfile: services/backup-service/Dockerfile
+    ports:
+      - "3003:3003"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3003
+      - DEVICE_SERVICE_URL=http://device-service:3001
+      - LOG_LEVEL=info
+
+  # Inventory Service
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    ports:
+      - "3004:3004"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3004
+      - DEVICE_SERVICE_URL=http://device-service:3001
+      - LOG_LEVEL=info
+
+  # Admin Service
+  admin-service:
+    build:
+      context: .
+      dockerfile: services/admin-service/Dockerfile
+    ports:
+      - "3005:3005"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3005
+      - JWT_SECRET=your-secret-key-change-in-production
+      - LOG_LEVEL=info
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: nap_network

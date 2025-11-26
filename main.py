@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import get_db, init_db
-from api.routes import devices, rules, audits, health, discovery_groups, device_groups, audit_schedules, config_backups, notifications, device_import, drift_detection, rule_templates, integrations, config_templates, admin, remediation, user_management, workflows, hardware_inventory
+from api.routes import devices, rules, audits, health, discovery_groups, device_groups, audit_schedules, config_backups, notifications, device_import, drift_detection, rule_templates, integrations, admin, remediation, user_management, hardware_inventory
 from config import settings
 from utils.logger import setup_logger
 from scheduler.background_scheduler import get_scheduler
@@ -54,8 +54,6 @@ async def startup_event():
                 {'module_name': 'health', 'display_name': 'Device Health', 'enabled': True},
                 {'module_name': 'hardware_inventory', 'display_name': 'Hardware Inventory', 'enabled': True},
                 {'module_name': 'integrations', 'display_name': 'Integration Hub', 'enabled': True},
-                {'module_name': 'config_templates', 'display_name': 'Config Templates', 'enabled': True},
-                {'module_name': 'workflows', 'display_name': 'Workflows', 'enabled': True},
             ]
 
             for module_data in default_modules:
@@ -108,16 +106,13 @@ app.include_router(drift_detection.router, tags=["Drift Detection"])
 app.include_router(rule_templates.router, tags=["Rule Templates"])
 # Advanced features
 app.include_router(integrations.router, tags=["Integrations"])
-app.include_router(config_templates.router, tags=["Config Templates"])
 # Admin panel
 app.include_router(admin.router, tags=["Admin"])
 # User Management
 app.include_router(user_management.router, prefix="/user-management", tags=["User Management"])
 # Remediation
 app.include_router(remediation.router, tags=["Remediation"])
-# Workflows
-app.include_router(workflows.router, prefix="/workflows", tags=["Workflows"])
-
+# Hardware Inventory
 app.include_router(hardware_inventory.router, tags=["Hardware Inventory"])
 
 # Mount frontend static files (if they exist)
@@ -152,8 +147,8 @@ async def root():
             "webhook notifications (Slack, Teams, Discord)",
             "bulk device import/export (CSV)",
             "integration hub (NetBox, Git, Ansible, ServiceNow, Prometheus)",
-            "configuration templates library",
-            "modular architecture",
+            "hardware inventory tracking",
+            "microservices architecture",
             "database persistence",
             "health monitoring",
             "ping and netconf checks",
