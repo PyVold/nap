@@ -20,7 +20,7 @@ router = APIRouter(prefix="/hardware", tags=["hardware"])
 # ============================================================================
 
 class HardwareComponent(BaseModel):
-    model_config = {"protected_namespaces": ()}
+    model_config = {"protected_namespaces": (), "from_attributes": True}
 
     id: int
     device_id: int
@@ -41,9 +41,6 @@ class HardwareComponent(BaseModel):
     is_fru: bool
     last_discovered: datetime
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class DeviceInventorySummary(BaseModel):
