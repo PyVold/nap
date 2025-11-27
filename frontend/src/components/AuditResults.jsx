@@ -276,18 +276,37 @@ const AuditResults = () => {
 
   const fetchResults = async () => {
     setLoading(true);
+    setError(null);
     try {
+      console.log('Fetching audit results data...');
+      
+      // Fetch all data in parallel with individual error handling
       const [resultsRes, devicesRes, rulesRes] = await Promise.all([
-        auditAPI.getResults(),
-        devicesAPI.getAll(),
-        rulesAPI.getAll(),
+        auditAPI.getResults().catch(err => {
+          console.error('Error fetching audit results:', err);
+          return { data: [] };
+        }),
+        devicesAPI.getAll().catch(err => {
+          console.error('Error fetching devices:', err);
+          return { data: [] };
+        }),
+        rulesAPI.getAll().catch(err => {
+          console.error('Error fetching rules:', err);
+          return { data: [] };
+        }),
       ]);
-      setResults(resultsRes.data || []);
-      setDevices(devicesRes.data || []);
-      setRules(rulesRes.data || []);
+      
+      console.log('Audit results fetched:', resultsRes.data?.length || 0);
+      console.log('Devices fetched:', devicesRes.data?.length || 0);
+      console.log('Rules fetched:', rulesRes.data?.length || 0);
+      
+      setResults(Array.isArray(resultsRes.data) ? resultsRes.data : []);
+      setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : []);
+      setRules(Array.isArray(rulesRes.data) ? rulesRes.data : []);
       setError(null);
+      console.log('Audit page loaded successfully');
     } catch (err) {
-      console.error('Error fetching audit results:', err);
+      console.error('Critical error in fetchResults:', err);
       setError(err.response?.data?.detail || err.message || 'Failed to fetch audit results');
       // Set empty arrays to prevent white page
       setResults([]);
@@ -299,8 +318,17 @@ const AuditResults = () => {
   };
 
   useEffect(() => {
+    console.log('AuditResults component mounted');
     fetchResults();
   }, []);
+  
+  useEffect(() => {
+    console.log('Results state updated:', results.length, 'results');
+  }, [results]);
+  
+  useEffect(() => {
+    console.log('Loading state updated:', loading);
+  }, [loading]);
 
   const handleRunAudit = async () => {
     setRunningAudit(true);
@@ -486,6 +514,20 @@ const AuditResults = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* Debug Info - Remove after testing */}
+      {process.env.NODE_ENV === 'development' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2">
+              Debug: {results.length} results, {devices.length} devices, {rules.length} rules. Loading: {loading ? 'Yes' : 'No'}
+            </Typography>
+            <Button size="small" variant="outlined" onClick={fetchResults}>
+              Refresh
+            </Button>
+          </Box>
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
