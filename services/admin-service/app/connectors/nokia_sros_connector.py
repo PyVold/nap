@@ -233,17 +233,29 @@ class NokiaSROSConnector(BaseConnector):
                 logger.info(f"Using xpath mode - XPath: {xpath}")
                 logger.info(f"Value: {config_data}")
 
-                # Parse the config value - it may be JSON serialized
+                # Parse the config value - it may be JSON serialized or already a dict
                 config_value = config_data
-                try:
-                    # Try to deserialize if it's JSON
-                    if config_data.strip().startswith('{') or config_data.strip().startswith('['):
-                        config_value = json.loads(config_data)
-                        logger.debug(f"Deserialized JSON config to: {config_value}")
-                except (json.JSONDecodeError, ValueError):
-                    # Keep as string if not valid JSON
-                    logger.debug(f"Using config as string value")
-                    pass
+                
+                # Check if config_data is already a dict
+                if isinstance(config_data, dict):
+                    logger.debug(f"Config is already a dict, using directly")
+                    config_value = config_data
+                elif isinstance(config_data, str):
+                    # Try to deserialize if it's a JSON string
+                    try:
+                        if config_data.strip().startswith('{') or config_data.strip().startswith('['):
+                            config_value = json.loads(config_data)
+                            logger.debug(f"Deserialized JSON config to: {config_value}")
+                        else:
+                            # Not JSON, but pysros expects dict for xpath mode
+                            logger.error(f"Config value is string but not JSON format - pysros requires dict for xpath mode")
+                            raise ValueError(f"Config must be a dict or JSON string for xpath mode, got: {config_data[:100]}")
+                    except (json.JSONDecodeError, ValueError) as e:
+                        logger.error(f"Failed to parse config as JSON: {e}")
+                        raise ValueError(f"Invalid JSON config for xpath mode: {str(e)}")
+                else:
+                    logger.error(f"Unexpected config type: {type(config_data)}")
+                    raise ValueError(f"Config must be dict or JSON string, got: {type(config_data)}")
 
                 def apply_xpath_config():
                     """Apply configuration using pysros candidate.set()"""
