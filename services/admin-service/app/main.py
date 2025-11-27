@@ -116,7 +116,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(admin.router, tags=["Admin"])
-app.include_router(user_management.router, tags=["User Management"])
+app.include_router(user_management.router, prefix="/user-management", tags=["User Management"])
 app.include_router(integrations.router, tags=["Integrations"])
 app.include_router(notifications.router, tags=["Notifications"])
 app.include_router(remediation.router, tags=["Remediation"])
