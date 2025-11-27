@@ -186,7 +186,8 @@ async def health_check():
 async def proxy_request(request: Request, path: str):
     """Proxy requests to appropriate microservice"""
 
-    # Strip trailing slashes to prevent 307 redirects from FastAPI services
+    # Normalize path - remove trailing slash if present
+    original_path = path
     path = path.rstrip('/')
 
     # Determine which service should handle this request
@@ -202,16 +203,30 @@ async def proxy_request(request: Request, path: str):
     if not target_service:
         raise HTTPException(status_code=404, detail=f"No service found for path: /{path}")
 
-    # Forward the request
-    url = f"{target_service['url']}/{path}"
+    # Build the forwarding URL
+    # Add trailing slash only for root collection endpoints (exact match to route prefix)
+    # Examples:
+    # - /devices → /devices/ (collection)
+    # - /devices/123 → /devices/123 (detail)
+    # - /devices/discover → /devices/discover (action)
+    # - /device-groups → /device-groups/ (collection)
+    
+    # Check if path exactly matches a route prefix (collection endpoint)
+    is_collection_endpoint = f"/{path}" in target_service["routes"]
+    
+    # Add trailing slash for collection endpoints or if original had it
+    if original_path.endswith('/') or is_collection_endpoint:
+        url = f"{target_service['url']}/{path}/"
+    else:
+        url = f"{target_service['url']}/{path}"
 
     # Preserve query string
     if request.url.query:
         url = f"{url}?{request.url.query}"
 
     try:
-        # Follow redirects automatically to handle any internal service redirects
-        async with httpx.AsyncClient(follow_redirects=True) as client:
+        # Don't follow redirects - we're sending the correct URL format
+        async with httpx.AsyncClient(follow_redirects=False) as client:
             # Forward request with same method, headers, and body
             response = await client.request(
                 method=request.method,
