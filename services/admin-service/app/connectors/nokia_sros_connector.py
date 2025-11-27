@@ -7,7 +7,7 @@ from typing import Optional
 from pysros.management import connect, sros
 from models.device import Device
 from connectors.base_connector import BaseConnector
-from utils.logger import setup_logger
+from shared.logger import setup_logger
 from utils.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
