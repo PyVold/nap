@@ -70,20 +70,41 @@ const RuleManagement = () => {
 
   const fetchRules = async () => {
     setLoading(true);
+    setError(null);
     try {
+      console.log('Fetching rules...');
       const response = await rulesAPI.getAll();
-      setRules(response.data);
+      console.log('Rules response:', response);
+      console.log('Rules data:', response.data);
+      
+      // Ensure we always set an array
+      const rulesData = Array.isArray(response.data) ? response.data : [];
+      setRules(rulesData);
+      console.log('Rules set successfully:', rulesData.length);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching rules:', err);
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch rules';
+      setError(errorMessage);
+      setRules([]); // Set empty array on error
     } finally {
       setLoading(false);
+      console.log('Fetch rules completed');
     }
   };
 
   useEffect(() => {
+    console.log('RuleManagement component mounted');
     fetchRules();
   }, []);
+  
+  useEffect(() => {
+    console.log('Rules state updated:', rules);
+  }, [rules]);
+  
+  useEffect(() => {
+    console.log('Loading state updated:', loading);
+  }, [loading]);
 
   const handleOpenDialog = (rule = null) => {
     if (rule) {
@@ -268,6 +289,20 @@ const RuleManagement = () => {
         )}
       </Box>
 
+      {/* Debug Info - Remove after testing */}
+      {process.env.NODE_ENV === 'development' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2">
+              Debug: Loaded {rules.length} rules. Loading: {loading ? 'Yes' : 'No'}
+            </Typography>
+            <Button size="small" variant="outlined" onClick={fetchRules}>
+              Refresh
+            </Button>
+          </Box>
+        </Alert>
+      )}
+
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
@@ -353,12 +388,22 @@ const RuleManagement = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {rules.length === 0 && (
+            {rules.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
-                  <Typography variant="body2" color="textSecondary">
-                    No rules found. Click "Add New Rule" to create one.
+                <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                    No audit rules found. Get started by creating your first rule or importing rule templates.
                   </Typography>
+                  {canModify && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<Add />}
+                      onClick={() => handleOpenDialog()}
+                      size="small"
+                    >
+                      Create First Rule
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             )}
