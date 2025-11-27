@@ -5,7 +5,7 @@ Handles service discovery and request routing
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import httpx
 import sys
 from shared.logger import setup_logger
@@ -55,7 +55,7 @@ SERVICES = {
         "url": "http://inventory-service:3004",
         "name": "Hardware Inventory",
         "enabled": True,
-        "routes": ["/hardware-inventory"],
+        "routes": ["/hardware", "/hardware-inventory"],
         "ui_routes": ["inventory"]
     },
     "admin-service": {
@@ -158,6 +158,9 @@ async def health_check():
 async def proxy_request(request: Request, path: str):
     """Proxy requests to appropriate microservice"""
 
+    # Strip trailing slashes to prevent 307 redirects from FastAPI services
+    path = path.rstrip('/')
+
     # Determine which service should handle this request
     target_service = None
     for service_id, service_info in SERVICES.items():
@@ -174,8 +177,13 @@ async def proxy_request(request: Request, path: str):
     # Forward the request
     url = f"{target_service['url']}/{path}"
 
+    # Preserve query string
+    if request.url.query:
+        url = f"{url}?{request.url.query}"
+
     try:
-        async with httpx.AsyncClient() as client:
+        # Follow redirects automatically to handle any internal service redirects
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             # Forward request with same method, headers, and body
             response = await client.request(
                 method=request.method,
@@ -185,11 +193,28 @@ async def proxy_request(request: Request, path: str):
                 timeout=30.0
             )
 
-            return JSONResponse(
-                content=response.json() if response.content else {},
-                status_code=response.status_code,
-                headers=dict(response.headers)
-            )
+            # Return the response with proper content type
+            if response.content:
+                try:
+                    # Try to parse as JSON
+                    content = response.json()
+                    return JSONResponse(
+                        content=content,
+                        status_code=response.status_code
+                    )
+                except:
+                    # If not JSON, return raw response
+                    return Response(
+                        content=response.content,
+                        status_code=response.status_code,
+                        headers=dict(response.headers),
+                        media_type=response.headers.get('content-type', 'application/octet-stream')
+                    )
+            else:
+                return JSONResponse(
+                    content={},
+                    status_code=response.status_code
+                )
     except Exception as e:
         logger.error(f"Error forwarding request to {url}: {e}")
         raise HTTPException(status_code=502, detail=f"Service unavailable: {str(e)}")
