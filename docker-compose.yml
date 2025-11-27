@@ -48,6 +48,8 @@ services:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3001
       - LOG_LEVEL=info
+      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Rule Service
   rule-service:
@@ -63,6 +65,8 @@ services:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3002
       - LOG_LEVEL=info
+      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Backup Service
   backup-service:
@@ -79,6 +83,8 @@ services:
       - SERVICE_PORT=3003
       - DEVICE_SERVICE_URL=http://device-service:3001
       - LOG_LEVEL=info
+      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Inventory Service
   inventory-service:
@@ -95,6 +101,8 @@ services:
       - SERVICE_PORT=3004
       - DEVICE_SERVICE_URL=http://device-service:3001
       - LOG_LEVEL=info
+      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Admin Service
   admin-service:
@@ -109,7 +117,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3005
-      - JWT_SECRET=your-secret-key-change-in-production
+      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
       - LOG_LEVEL=info
 
   # Frontend

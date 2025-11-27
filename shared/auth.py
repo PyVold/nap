@@ -2,6 +2,8 @@
 # utils/auth.py - Authentication utilities
 # ============================================================================
 
+import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from passlib.context import CryptContext
@@ -13,8 +15,21 @@ from sqlalchemy.orm import Session
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT settings
-SECRET_KEY = "your-secret-key-change-this-in-production"  # Change in production!
+# JWT settings - MUST be set via environment variable
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "JWT_SECRET environment variable is not set. "
+        "Generate a secure key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+    )
+
+# Warn if using insecure default
+if SECRET_KEY in ["your-secret-key-change-this-in-production", "change-me", "secret"]:
+    raise RuntimeError(
+        "JWT_SECRET is set to an insecure default value. "
+        "Generate a secure key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 
