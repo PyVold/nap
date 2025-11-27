@@ -34,6 +34,13 @@ api.interceptors.request.use(
   (config) => {
     activeRequests++;
     notifyApiActivity(true);
+    
+    // Ensure token is attached to every request
+    const token = localStorage.getItem('auth_token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     return config;
   },
   (error) => {
@@ -53,6 +60,14 @@ api.interceptors.response.use(
   (error) => {
     activeRequests--;
     notifyApiActivity(activeRequests > 0);
+    
+    // Handle authentication errors
+    if (error.response?.status === 401) {
+      console.error('Authentication failed:', error.response?.data?.detail || error.message);
+      // Optionally redirect to login page
+      // window.location.href = '/login';
+    }
+    
     return Promise.reject(error);
   }
 );

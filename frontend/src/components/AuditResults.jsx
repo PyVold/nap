@@ -282,12 +282,17 @@ const AuditResults = () => {
         devicesAPI.getAll(),
         rulesAPI.getAll(),
       ]);
-      setResults(resultsRes.data);
-      setDevices(devicesRes.data);
-      setRules(rulesRes.data);
+      setResults(resultsRes.data || []);
+      setDevices(devicesRes.data || []);
+      setRules(rulesRes.data || []);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching audit results:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch audit results');
+      // Set empty arrays to prevent white page
+      setResults([]);
+      setDevices([]);
+      setRules([]);
     } finally {
       setLoading(false);
     }

@@ -70,10 +70,12 @@ const DeviceManagement = () => {
     setLoading(true);
     try {
       const response = await devicesAPI.getAll();
-      setDevices(response.data);
+      setDevices(response.data || []);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching devices:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to fetch devices');
+      setDevices([]);
     } finally {
       setLoading(false);
     }
