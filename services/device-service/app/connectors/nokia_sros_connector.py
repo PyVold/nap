@@ -19,6 +19,32 @@ class NokiaSROSConnector(BaseConnector):
         self.device = device
         self.connection = None
 
+    @staticmethod
+    def _convert_pysros_to_dict(obj):
+        """Recursively convert pysros Container objects to dictionaries"""
+        import json
+        
+        # Check for pysros _Empty type (represents no data)
+        if obj is None or type(obj).__name__ == '_Empty':
+            return {}
+
+        if hasattr(obj, 'data'):
+            # pysros Container with .data attribute
+            return NokiaSROSConnector._convert_pysros_to_dict(obj.data)
+        elif isinstance(obj, dict):
+            return {k: NokiaSROSConnector._convert_pysros_to_dict(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [NokiaSROSConnector._convert_pysros_to_dict(item) for item in obj]
+        else:
+            # Try to convert to primitive types
+            try:
+                # Check if it's JSON serializable
+                json.dumps(obj)
+                return obj
+            except (TypeError, ValueError):
+                # If not serializable, convert to string
+                return str(obj)
+
     async def connect(self) -> bool:
         """Establish connection to Nokia SROS device using pysros"""
         try:
@@ -78,32 +104,9 @@ class NokiaSROSConnector(BaseConnector):
 
             # Convert pysros Container to JSON dictionary
             import json
-
-            def convert_pysros_to_dict(obj):
-                """Recursively convert pysros Container objects to dictionaries"""
-                # Check for pysros _Empty type (represents no data)
-                if obj is None or type(obj).__name__ == '_Empty':
-                    return {}
-
-                if hasattr(obj, 'data'):
-                    # pysros Container with .data attribute
-                    return convert_pysros_to_dict(obj.data)
-                elif isinstance(obj, dict):
-                    return {k: convert_pysros_to_dict(v) for k, v in obj.items()}
-                elif isinstance(obj, (list, tuple)):
-                    return [convert_pysros_to_dict(item) for item in obj]
-                else:
-                    # Try to convert to primitive types
-                    try:
-                        # Check if it's JSON serializable
-                        json.dumps(obj)
-                        return obj
-                    except (TypeError, ValueError):
-                        # If not serializable, convert to string
-                        return str(obj)
-
+            
             # Convert to dictionary then to JSON string
-            config_dict = convert_pysros_to_dict(result)
+            config_dict = self._convert_pysros_to_dict(result)
             config_json = json.dumps(config_dict, indent=2)
 
             logger.debug(f"Retrieved config from {self.device.hostname}: {len(config_json)} bytes")
@@ -143,32 +146,9 @@ class NokiaSROSConnector(BaseConnector):
 
             # Convert pysros Container to JSON dictionary
             import json
-
-            def convert_pysros_to_dict(obj):
-                """Recursively convert pysros Container objects to dictionaries"""
-                # Check for pysros _Empty type (represents no data)
-                if obj is None or type(obj).__name__ == '_Empty':
-                    return {}
-
-                if hasattr(obj, 'data'):
-                    # pysros Container with .data attribute
-                    return convert_pysros_to_dict(obj.data)
-                elif isinstance(obj, dict):
-                    return {k: convert_pysros_to_dict(v) for k, v in obj.items()}
-                elif isinstance(obj, (list, tuple)):
-                    return [convert_pysros_to_dict(item) for item in obj]
-                else:
-                    # Try to convert to primitive types
-                    try:
-                        # Check if it's JSON serializable
-                        json.dumps(obj)
-                        return obj
-                    except (TypeError, ValueError):
-                        # If not serializable, convert to string
-                        return str(obj)
-
+            
             # Convert to dictionary then to JSON string
-            state_dict = convert_pysros_to_dict(result)
+            state_dict = self._convert_pysros_to_dict(result)
             state_json = json.dumps(state_dict, indent=2)
 
             return state_json
@@ -337,8 +317,8 @@ class NokiaSROSConnector(BaseConnector):
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, self.connection.candidate.discard)
                 logger.info(f"Discarded failed configuration changes on {self.device.hostname}")
-            except:
-                pass
+            except Exception as discard_error:
+                logger.warning(f"Failed to discard candidate config on {self.device.hostname}: {discard_error}")
             raise
 
     async def disconnect(self):

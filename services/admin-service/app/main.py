@@ -6,6 +6,7 @@ Port: 3005
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import sys
+import os
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
@@ -15,6 +16,34 @@ from routes import (
 )
 
 logger = setup_logger(__name__)
+
+# Security warning for default credentials
+def check_security_configuration():
+    """Check for insecure configurations and log warnings"""
+    warnings = []
+    
+    # Check JWT secret
+    jwt_secret = os.getenv("JWT_SECRET", "")
+    if not jwt_secret or jwt_secret in ["GENERATE_SECURE_KEY_BEFORE_PRODUCTION", "change-me", "secret"]:
+        warnings.append("⚠️  WARNING: JWT_SECRET is not set or using default value!")
+    
+    # Check encryption key
+    encryption_key = os.getenv("ENCRYPTION_KEY", "")
+    if not encryption_key or encryption_key in ["GENERATE_SECURE_KEY_BEFORE_PRODUCTION", "change-me", "secret"]:
+        warnings.append("⚠️  WARNING: ENCRYPTION_KEY is not set or using default value!")
+    
+    if warnings:
+        logger.warning("=" * 80)
+        logger.warning("🔒 SECURITY CONFIGURATION WARNINGS")
+        logger.warning("=" * 80)
+        for warning in warnings:
+            logger.warning(warning)
+        logger.warning("")
+        logger.warning("Generate secure keys with:")
+        logger.warning("  python -c 'import secrets; print(secrets.token_urlsafe(32))'")
+        logger.warning("")
+        logger.warning("See SECURITY_SETUP_GUIDE.md for complete setup instructions.")
+        logger.warning("=" * 80)
 
 app = FastAPI(
     title="Admin Service",
@@ -33,8 +62,13 @@ async def startup_event():
     from passlib.context import CryptContext
     import db_models
 
+    # Check security configuration
+    check_security_configuration()
+
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     db = next(get_db())
+
+    created_users = []
 
     try:
         # Create default admin user if not exists
@@ -43,6 +77,7 @@ async def startup_event():
         ).first()
 
         if not admin_user:
+            created_users.append("admin")
             hashed_password = pwd_context.hash("admin")
             admin_user = db_models.UserDB(
                 username="admin",
@@ -64,6 +99,7 @@ async def startup_event():
         ).first()
 
         if not operator_user:
+            created_users.append("operator")
             hashed_password = pwd_context.hash("operator")
             operator_user = db_models.UserDB(
                 username="operator",
@@ -85,6 +121,7 @@ async def startup_event():
         ).first()
 
         if not viewer_user:
+            created_users.append("viewer")
             hashed_password = pwd_context.hash("viewer")
             viewer_user = db_models.UserDB(
                 username="viewer",
@@ -101,7 +138,24 @@ async def startup_event():
             logger.info("✅ Viewer user already exists")
 
         db.commit()
-        logger.warning("⚠️  Change default passwords immediately in production!")
+        
+        # Show security warning if any default users were created
+        if created_users:
+            logger.warning("=" * 80)
+            logger.warning("🚨 SECURITY ALERT: DEFAULT TEST USERS CREATED")
+            logger.warning("=" * 80)
+            logger.warning("")
+            logger.warning(f"Created {len(created_users)} default user(s) with DEFAULT PASSWORDS:")
+            for username in created_users:
+                logger.warning(f"  • Username: {username} / Password: {username}")
+            logger.warning("")
+            logger.warning("⚠️  CRITICAL: Change these passwords immediately!")
+            logger.warning("⚠️  CRITICAL: Delete or disable these accounts in production!")
+            logger.warning("")
+            logger.warning("See SECURITY_SETUP_GUIDE.md for instructions.")
+            logger.warning("=" * 80)
+        else:
+            logger.warning("⚠️  Change default passwords immediately in production!")
     except Exception as e:
         logger.error(f"❌ Error creating default users: {e}")
         db.rollback()
