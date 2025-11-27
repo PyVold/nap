@@ -65,6 +65,34 @@ SERVICES = {
         "routes": ["/admin", "/user-management", "/integrations", "/notifications", "/remediation"],
         "ui_routes": ["admin", "users", "integrations"]
     },
+    "analytics-service": {
+        "url": "http://admin-service:3005",  # Temporarily route to admin-service
+        "name": "Analytics",
+        "enabled": False,  # Disabled until implemented
+        "routes": ["/analytics"],
+        "ui_routes": ["analytics"]
+    },
+    "workflow-service": {
+        "url": "http://admin-service:3005",  # Temporarily route to admin-service
+        "name": "Workflows",
+        "enabled": False,  # Disabled until implemented
+        "routes": ["/workflows"],
+        "ui_routes": ["workflows"]
+    },
+    "config-template-service": {
+        "url": "http://admin-service:3005",  # Temporarily route to admin-service
+        "name": "Configuration Templates",
+        "enabled": False,  # Disabled until implemented
+        "routes": ["/config-templates"],
+        "ui_routes": ["templates"]
+    },
+    "licensing-service": {
+        "url": "http://admin-service:3005",  # Temporarily route to admin-service
+        "name": "Licensing",
+        "enabled": False,  # Disabled until implemented
+        "routes": ["/licensing"],
+        "ui_routes": ["licensing"]
+    },
 }
 
 @app.get("/")

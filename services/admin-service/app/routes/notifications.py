@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, HttpUrl
 
-from shared.deps import get_db
+from deps import get_db
 from db_models import NotificationWebhookDB, NotificationHistoryDB
 from services.notification_service import NotificationService
 
