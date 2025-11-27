@@ -7,6 +7,7 @@ import ipaddress
 import subprocess
 import platform
 from typing import List, Tuple
+from concurrent.futures import ThreadPoolExecutor
 from ncclient import manager
 from lxml import etree
 from models.device import Device
@@ -14,6 +15,13 @@ from models.enums import VendorType, DeviceStatus
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+# Create a dedicated thread pool for blocking I/O operations
+# This prevents the default thread pool from being exhausted during discovery
+_discovery_executor = ThreadPoolExecutor(
+    max_workers=30,  # Enough for concurrent pings + NETCONF
+    thread_name_prefix="discovery_"
+)
 
 # Try to import pysros, but don't fail if it's not available
 try:
@@ -47,9 +55,9 @@ class DiscoveryService:
             return False
 
     @staticmethod
-    async def _get_device_info_via_netconf(ip: str, port: int, username: str, password: str) -> Tuple[bool, str, VendorType]:
+    def _get_device_info_via_netconf_sync(ip: str, port: int, username: str, password: str) -> Tuple[bool, str, VendorType]:
         """
-        Connect via NETCONF and get device information
+        Connect via NETCONF and get device information (synchronous version)
         Returns: (success, hostname, vendor_type)
         """
         try:
@@ -219,18 +227,21 @@ class DiscoveryService:
             logger.info(f"Starting discovery on subnet {subnet} ({total_ips} addresses)")
             if excluded_ips:
                 logger.info(f"Excluding IPs: {', '.join(excluded_ips)}")
+            
+            logger.info("Phase 1: Ping scan initiated...")
 
             # Step 1: Ping all IPs in subnet
             reachable_ips = []
             loop = asyncio.get_event_loop()
 
             # Limit concurrent pings to avoid overwhelming the system
-            semaphore = asyncio.Semaphore(50)
+            # Reduced from 50 to 25 to prevent thread pool exhaustion
+            semaphore = asyncio.Semaphore(25)
 
             async def ping_with_semaphore(ip_str: str):
                 async with semaphore:
                     is_reachable = await loop.run_in_executor(
-                        None, DiscoveryService._ping_host, ip_str, 1
+                        _discovery_executor, DiscoveryService._ping_host, ip_str, 1
                     )
                     if is_reachable:
                         logger.info(f"Host {ip_str} is reachable")
@@ -248,11 +259,22 @@ class DiscoveryService:
             ping_results = await asyncio.gather(*ping_tasks)
             reachable_ips = [ip for ip in ping_results if ip is not None]
 
-            logger.info(f"Found {len(reachable_ips)} reachable hosts out of {len(hosts)}")
+            logger.info(f"Phase 1 complete: Found {len(reachable_ips)} reachable hosts out of {len(hosts)}")
+            
+            if len(reachable_ips) == 0:
+                logger.info("No reachable hosts found. Discovery complete.")
+                return []
+            
+            logger.info(f"Phase 2: Starting NETCONF connection attempts on {len(reachable_ips)} hosts...")
 
             # Step 2: Try NETCONF connection on reachable IPs
+            # Use the dedicated thread pool executor to avoid blocking the event loop
+            
             async def try_netconf(ip_str: str):
-                success, hostname, vendor = await DiscoveryService._get_device_info_via_netconf(
+                # Run the blocking NETCONF operation in a thread pool
+                success, hostname, vendor = await loop.run_in_executor(
+                    _discovery_executor,
+                    DiscoveryService._get_device_info_via_netconf_sync,
                     ip_str, port, username, password
                 )
                 if success:
@@ -268,8 +290,9 @@ class DiscoveryService:
                     )
                 return None
 
-            # Limit concurrent NETCONF connections
-            netconf_semaphore = asyncio.Semaphore(10)
+            # Limit concurrent NETCONF connections to avoid overwhelming the system
+            # Reduced from 10 to 5 to prevent thread pool exhaustion
+            netconf_semaphore = asyncio.Semaphore(5)
 
             async def netconf_with_semaphore(ip_str: str):
                 async with netconf_semaphore:
@@ -279,7 +302,8 @@ class DiscoveryService:
             netconf_results = await asyncio.gather(*netconf_tasks)
             discovered_devices = [dev for dev in netconf_results if dev is not None]
 
-            logger.info(f"Successfully discovered {len(discovered_devices)} devices via NETCONF")
+            logger.info(f"Phase 2 complete: Successfully discovered {len(discovered_devices)} devices via NETCONF")
+            logger.info(f"Discovery scan finished for subnet {subnet}")
 
         except Exception as e:
             logger.error(f"Error during subnet discovery: {str(e)}")

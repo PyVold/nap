@@ -20,5 +20,7 @@ COPY services/device-service/app /app
 # Expose port
 EXPOSE 3001
 
-# Run the service
-CMD ["python", "main.py"]
+# Run the service with uvicorn directly for better configuration
+# Using --timeout-keep-alive to prevent connection drops during long operations
+# Using --limit-concurrency to control resource usage
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3001", "--timeout-keep-alive", "75", "--limit-concurrency", "100"]
