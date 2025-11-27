@@ -157,6 +157,8 @@ curl http://localhost:3000/devices/
 
 2. `/workspace/services/device-service/app/main.py`
    - Added uvicorn timeout and concurrency configuration
+   - Integrated background scheduler for periodic tasks
+   - Added startup/shutdown event handlers
 
 3. `/workspace/services/device-service/Dockerfile`
    - Updated CMD to use uvicorn with proper flags
@@ -167,6 +169,15 @@ curl http://localhost:3000/devices/
 5. `/workspace/services/device-service/app/services/health_service.py`
    - Added concurrency limit to bulk health checks
    - Wrapped blocking ping operation in asyncio.to_thread()
+
+6. `/workspace/services/device-service/app/scheduler.py` (NEW)
+   - Created background scheduler for device service
+   - Periodic health checks (default: every 5 minutes)
+   - Scheduled discovery groups (checked every 2 minutes)
+   - Proper error handling and logging
+
+7. `/workspace/services/device-service/requirements.txt`
+   - Added apscheduler==3.10.4 for task scheduling
 
 ## Performance Characteristics
 
@@ -182,6 +193,53 @@ curl http://localhost:3000/devices/
 - Device list during discovery: <1 second response time
 - Thread pool: Dedicated executor prevents exhaustion
 
+## Periodic Health Checks
+
+The device service now runs automated health checks on all devices at a configurable interval.
+
+### Configuration
+
+Health checks can be configured via environment variables or the `.env` file:
+
+```bash
+# Enable/disable periodic health checks (default: true)
+HEALTH_CHECK_ENABLED=true
+
+# Health check interval in minutes (default: 5)
+HEALTH_CHECK_INTERVAL_MINUTES=5
+```
+
+### Features
+
+- **Automatic Scheduling**: Health checks run every 5 minutes by default
+- **Concurrent Checks**: Up to 10 devices checked simultaneously
+- **Backoff Support**: Failed devices are automatically backed off to reduce load
+- **Multi-Protocol**: Checks ping, NETCONF (port 830), and SSH (port 22)
+- **Status Tracking**: Updates device status in database (online/degraded/offline)
+- **History**: Stores health check history for trend analysis
+
+### Health Check Process
+
+For each device, the system checks:
+1. **Ping**: Network reachability (ICMP)
+2. **NETCONF**: Management protocol connectivity (port 830)
+3. **SSH**: CLI access (port 22)
+
+Status determination:
+- **Healthy**: All checks pass
+- **Degraded**: Ping works but NETCONF/SSH fails
+- **Unreachable**: Ping fails
+
+### Viewing Health Status
+
+```bash
+# Get overall health summary
+curl http://localhost:3000/health/summary
+
+# Get health check history for a device
+curl http://localhost:3000/health/devices/{device_id}/history
+```
+
 ## Additional Recommendations
 
 ### Future Improvements
@@ -191,6 +249,7 @@ curl http://localhost:3000/devices/
 3. **Chunked Discovery**: Break very large subnets into chunks and process sequentially
 4. **Resource Monitoring**: Add metrics for thread pool utilization
 5. **Discovery Cache**: Cache ping results for a short period to avoid re-scanning
+6. **Health Alerting**: Add webhook notifications for devices transitioning to unhealthy states
 
 ### Monitoring
 
@@ -199,6 +258,8 @@ Monitor these metrics in production:
 - Discovery task duration
 - API response times during discovery
 - 502 error rate
+- Health check success rate
+- Device status distribution (healthy/degraded/unreachable)
 
 ## Conclusion
 
@@ -208,5 +269,27 @@ The fixes address the root cause of service freezing during discovery by:
 3. Limiting concurrency to prevent resource exhaustion
 4. Extending timeouts for long-running operations
 5. Ensuring the service remains responsive during heavy operations
+6. **Implementing periodic health checks** to proactively monitor device status
 
-The system should now handle discovery scans without becoming unresponsive or returning Bad Gateway errors.
+### Key Improvements
+
+**Discovery Scans:**
+- No longer freeze the service
+- Run with proper concurrency limits
+- Use dedicated thread pool to prevent blocking
+- Complete successfully without 502 errors
+
+**Health Monitoring:**
+- Automatic periodic checks every 5 minutes (configurable)
+- Multi-protocol validation (ping, NETCONF, SSH)
+- Device status tracking with history
+- Backoff support for failed devices
+- Non-blocking execution
+
+**Service Reliability:**
+- Remains responsive during heavy operations
+- Proper timeout configurations
+- Background scheduler for automated tasks
+- Comprehensive logging for troubleshooting
+
+The system now provides both reactive (manual discovery) and proactive (periodic health checks) device monitoring capabilities while maintaining service responsiveness and stability.

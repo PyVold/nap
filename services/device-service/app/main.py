@@ -10,6 +10,7 @@ from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
 from routes import devices, device_groups, discovery_groups, device_import, health
+from scheduler import get_scheduler
 
 logger = setup_logger(__name__)
 
@@ -22,6 +23,9 @@ app = FastAPI(
 # Initialize database
 init_db()
 logger.info("Database initialized")
+
+# Get scheduler instance (will be started on app startup)
+scheduler = get_scheduler()
 
 # CORS middleware
 app.add_middleware(
@@ -40,6 +44,20 @@ app.include_router(device_import.router, prefix="/device-import", tags=["Device 
 app.include_router(health.router, tags=["Health"])  # Already has /health prefix
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Start background scheduler on application startup"""
+    scheduler.start()
+    logger.info("Device service started with background scheduler (health checks & scheduled discoveries)")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop background scheduler on application shutdown"""
+    scheduler.shutdown()
+    logger.info("Device service shutdown complete")
+
+
 @app.get("/")
 async def root():
     """Service health check"""
@@ -47,7 +65,14 @@ async def root():
         "service": "device-service",
         "status": "online",
         "version": "1.0.0",
-        "port": 3001
+        "port": 3001,
+        "features": [
+            "device management",
+            "device discovery",
+            "health monitoring (periodic)",
+            "device groups",
+            "scheduled discoveries"
+        ]
     }
 
 @app.get("/health")
