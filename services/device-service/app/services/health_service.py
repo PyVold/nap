@@ -124,8 +124,15 @@ class HealthService:
         }
 
     async def check_all_devices_health(self, db: Session, devices: list[Device]) -> list[Dict[str, Any]]:
-        """Check health for multiple devices concurrently"""
-        tasks = [self.check_device_health(db, device) for device in devices]
+        """Check health for multiple devices concurrently with rate limiting"""
+        # Limit concurrent health checks to avoid overwhelming the system
+        semaphore = asyncio.Semaphore(10)
+        
+        async def check_with_semaphore(device: Device):
+            async with semaphore:
+                return await self.check_device_health(db, device)
+        
+        tasks = [check_with_semaphore(device) for device in devices]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         successful_results = []
@@ -142,27 +149,36 @@ class HealthService:
         if not host:
             return False, None
 
+        def ping_sync():
+            """Synchronous ping operation"""
+            try:
+                # Run ping command (1 packet, 2 second timeout)
+                result = subprocess.run(
+                    ["ping", "-c", "1", "-W", "2", host],
+                    capture_output=True,
+                    text=True,
+                    timeout=3
+                )
+
+                if result.returncode == 0:
+                    # Extract latency from ping output
+                    output = result.stdout
+                    if "time=" in output:
+                        latency_str = output.split("time=")[1].split()[0]
+                        latency = float(latency_str)
+                        return True, latency
+                    return True, None
+                return False, None
+
+            except (subprocess.TimeoutExpired, Exception) as e:
+                logger.debug(f"Ping failed for {host}: {e}")
+                return False, None
+
         try:
-            # Run ping command (1 packet, 2 second timeout)
-            result = subprocess.run(
-                ["ping", "-c", "1", "-W", "2", host],
-                capture_output=True,
-                text=True,
-                timeout=3
-            )
-
-            if result.returncode == 0:
-                # Extract latency from ping output
-                output = result.stdout
-                if "time=" in output:
-                    latency_str = output.split("time=")[1].split()[0]
-                    latency = float(latency_str)
-                    return True, latency
-                return True, None
-            return False, None
-
-        except (subprocess.TimeoutExpired, Exception) as e:
-            logger.debug(f"Ping failed for {host}: {e}")
+            # Run ping in thread to avoid blocking
+            return await asyncio.to_thread(ping_sync)
+        except Exception as e:
+            logger.debug(f"Async ping failed for {host}: {e}")
             return False, None
 
     async def _check_netconf(self, device: Device) -> tuple[bool, str]:

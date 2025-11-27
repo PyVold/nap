@@ -226,6 +226,11 @@ async def proxy_request(request: Request, path: str):
 
     try:
         # Don't follow redirects - we're sending the correct URL format
+        # Increase timeout for long-running operations like discovery
+        request_timeout = 30.0
+        if '/discover' in path or '/discovery' in path:
+            request_timeout = 120.0  # 2 minutes for discovery operations
+        
         async with httpx.AsyncClient(follow_redirects=False) as client:
             # Forward request with same method, headers, and body
             response = await client.request(
@@ -233,7 +238,7 @@ async def proxy_request(request: Request, path: str):
                 url=url,
                 headers=dict(request.headers),
                 content=await request.body(),
-                timeout=30.0
+                timeout=request_timeout
             )
 
             # Return the response with proper content type

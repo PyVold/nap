@@ -68,5 +68,8 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=3001,
-        log_level="info"
+        log_level="info",
+        timeout_keep_alive=75,  # Increase keep-alive timeout
+        limit_concurrency=100,  # Limit concurrent connections
+        backlog=2048  # Increase connection backlog
     )
