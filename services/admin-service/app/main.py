@@ -9,7 +9,10 @@ import sys
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
-from routes import admin, user_management, integrations, notifications, remediation
+from routes import (
+    admin, user_management, integrations, notifications, remediation,
+    analytics, workflows, config_templates, licensing
+)
 
 logger = setup_logger(__name__)
 
@@ -120,6 +123,11 @@ app.include_router(user_management.router, prefix="/user-management", tags=["Use
 app.include_router(integrations.router, tags=["Integrations"])
 app.include_router(notifications.router, tags=["Notifications"])
 app.include_router(remediation.router, tags=["Remediation"])
+# Stub routes for unimplemented features
+app.include_router(analytics.router, tags=["Analytics"])
+app.include_router(workflows.router, tags=["Workflows"])
+app.include_router(config_templates.router, tags=["Config Templates"])
+app.include_router(licensing.router, tags=["Licensing"])
 
 
 @app.get("/")

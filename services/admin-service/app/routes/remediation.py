@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 
-from shared.deps import get_db, require_admin_or_operator
+from deps import get_db
+from shared.deps import require_admin_or_operator
 from services.remediation_service import RemediationService
 from shared.logger import setup_logger
 

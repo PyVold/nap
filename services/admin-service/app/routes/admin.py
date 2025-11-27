@@ -8,7 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
-from shared.deps import get_db
+from deps import get_db
 from db_models import UserDB, SystemModuleDB, AuditLogDB
 from shared.auth import (
     get_password_hash,

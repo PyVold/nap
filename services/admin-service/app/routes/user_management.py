@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from shared.deps import (
+from deps import (
     get_db, get_current_user_db,
     require_view_groups, require_create_groups, require_modify_groups, require_delete_groups,
     require_view_users, require_create_users, require_modify_users, require_delete_users

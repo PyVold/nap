@@ -33,10 +33,10 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(rules.router, tags=["Rules"])
-app.include_router(rule_templates.router, tags=["Rule Templates"])
-app.include_router(audits.router, tags=["Audits"])
-app.include_router(audit_schedules.router, tags=["Audit Schedules"])
+app.include_router(rules.router, prefix="/rules", tags=["Rules"])
+app.include_router(rule_templates.router, tags=["Rule Templates"])  # Already has /rule-templates prefix
+app.include_router(audits.router, prefix="/audit", tags=["Audits"])
+app.include_router(audit_schedules.router, prefix="/audit-schedules", tags=["Audit Schedules"])
 
 
 @app.get("/")

@@ -33,11 +33,11 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(devices.router, tags=["Devices"])
-app.include_router(device_groups.router, tags=["Device Groups"])
-app.include_router(discovery_groups.router, tags=["Discovery Groups"])
-app.include_router(device_import.router, tags=["Device Import"])
-app.include_router(health.router, tags=["Health"])
+app.include_router(devices.router, prefix="/devices", tags=["Devices"])
+app.include_router(device_groups.router, prefix="/device-groups", tags=["Device Groups"])
+app.include_router(discovery_groups.router, prefix="/discovery-groups", tags=["Discovery Groups"])
+app.include_router(device_import.router, prefix="/device-import", tags=["Device Import"])
+app.include_router(health.router, tags=["Health"])  # Already has /health prefix
 
 
 @app.get("/")

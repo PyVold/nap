@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
-from shared.deps import get_db
+from deps import get_db
 from db_models import IntegrationDB
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
