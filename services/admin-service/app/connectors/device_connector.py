@@ -9,7 +9,7 @@ from models.enums import VendorType
 from connectors.nokia_sros_connector import NokiaSROSConnector
 from connectors.netconf_connector import NetconfConnector
 from shared.logger import setup_logger
-from utils.exceptions import DeviceConnectionError
+from shared.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
 

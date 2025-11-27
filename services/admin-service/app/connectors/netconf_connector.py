@@ -10,7 +10,7 @@ from models.device import Device
 from models.enums import VendorType
 from connectors.base_connector import BaseConnector
 from shared.logger import setup_logger
-from utils.exceptions import DeviceConnectionError
+from shared.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
 
