@@ -55,7 +55,7 @@ SERVICES = {
         "url": "http://inventory-service:3004",
         "name": "Hardware Inventory",
         "enabled": True,
-        "routes": ["/hardware-inventory"],
+        "routes": ["/hardware", "/hardware-inventory"],
         "ui_routes": ["inventory"]
     },
     "admin-service": {
@@ -174,8 +174,12 @@ async def proxy_request(request: Request, path: str):
     # Forward the request
     url = f"{target_service['url']}/{path}"
 
+    # Preserve query string
+    if request.url.query:
+        url = f"{url}?{request.url.query}"
+
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=False) as client:
             # Forward request with same method, headers, and body
             response = await client.request(
                 method=request.method,
@@ -185,11 +189,39 @@ async def proxy_request(request: Request, path: str):
                 timeout=30.0
             )
 
-            return JSONResponse(
-                content=response.json() if response.content else {},
-                status_code=response.status_code,
-                headers=dict(response.headers)
-            )
+            # Filter out headers that shouldn't be forwarded
+            response_headers = {}
+            for key, value in response.headers.items():
+                if key.lower() not in ['content-encoding', 'content-length', 'transfer-encoding', 'connection']:
+                    response_headers[key] = value
+
+            # Handle different response types
+            if response.is_redirect:
+                # For redirects, return the response with location header
+                return JSONResponse(
+                    content={},
+                    status_code=response.status_code,
+                    headers=response_headers
+                )
+            elif response.content:
+                try:
+                    # Try to parse as JSON
+                    content = response.json()
+                except:
+                    # If not JSON, return as text
+                    content = {"data": response.text}
+
+                return JSONResponse(
+                    content=content,
+                    status_code=response.status_code,
+                    headers=response_headers
+                )
+            else:
+                return JSONResponse(
+                    content={},
+                    status_code=response.status_code,
+                    headers=response_headers
+                )
     except Exception as e:
         logger.error(f"Error forwarding request to {url}: {e}")
         raise HTTPException(status_code=502, detail=f"Service unavailable: {str(e)}")
