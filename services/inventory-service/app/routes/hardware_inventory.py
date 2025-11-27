@@ -20,6 +20,8 @@ router = APIRouter(prefix="/hardware", tags=["hardware"])
 # ============================================================================
 
 class HardwareComponent(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     id: int
     device_id: int
     component_type: str
