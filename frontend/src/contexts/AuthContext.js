@@ -57,14 +57,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await api.post('/admin/login', { username, password });
+      const response = await api.post('/login', { username, password });
       const { access_token, username: authUsername, role } = response.data;
 
       // Add token to axios default headers first
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
       // Get user info to get user_id
-      const userInfoResponse = await api.get('/admin/me');
+      const userInfoResponse = await api.get('/me');
       const userData = {
         username: authUsername,
         role,
