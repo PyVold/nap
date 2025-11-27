@@ -92,6 +92,47 @@ async def get_services():
             })
     return services_list
 
+@app.post("/login")
+async def unified_login(request: Request):
+    """Unified login endpoint for all users (admin, operator, viewer)"""
+    try:
+        async with httpx.AsyncClient() as client:
+            # Forward login request to admin-service
+            response = await client.post(
+                "http://admin-service:3005/admin/login",
+                headers={"Content-Type": "application/json"},
+                content=await request.body(),
+                timeout=10.0
+            )
+
+            return JSONResponse(
+                content=response.json() if response.content else {},
+                status_code=response.status_code
+            )
+    except Exception as e:
+        logger.error(f"Error during login: {e}")
+        raise HTTPException(status_code=502, detail=f"Login service unavailable: {str(e)}")
+
+@app.get("/me")
+async def get_current_user(request: Request):
+    """Get current authenticated user info"""
+    try:
+        async with httpx.AsyncClient() as client:
+            # Forward request to admin-service with authorization header
+            response = await client.get(
+                "http://admin-service:3005/admin/me",
+                headers=dict(request.headers),
+                timeout=10.0
+            )
+
+            return JSONResponse(
+                content=response.json() if response.content else {},
+                status_code=response.status_code
+            )
+    except Exception as e:
+        logger.error(f"Error getting current user: {e}")
+        raise HTTPException(status_code=502, detail=f"User service unavailable: {str(e)}")
+
 @app.get("/health")
 async def health_check():
     """Aggregate health check for all services"""
