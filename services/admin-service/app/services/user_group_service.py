@@ -301,9 +301,9 @@ class UserGroupService:
             return set([
                 'devices', 'device_groups', 'discovery_groups', 'device_import',
                 'audit', 'audit_schedules', 'rules', 'rule_templates',
-                'config_backups', 'config_templates', 'drift_detection',
-                'notifications', 'health', 'integrations', 'licensing',
-                'topology', 'workflows', 'analytics', 'admin'
+                'config_backups', 'drift_detection',
+                'notifications', 'health', 'hardware_inventory', 'integrations',
+                'workflows', 'analytics', 'admin'
             ])
 
         # Get user's groups
