@@ -199,90 +199,61 @@ class RemediationService:
         audit_result = None
         if not dry_run and success_count > 0 and re_audit:
             try:
-                logger.info(f"Re-auditing device {device.hostname} after remediation")
-                from engine.audit_engine import AuditEngine
-                from db_models import AuditRuleDB, AuditResultDB
-
-                # Get the latest audit result for this device to extract rule names
+                logger.info(f"Triggering re-audit for device {device.hostname} after remediation")
+                
+                # Call rule-service API to trigger audit
+                import httpx
+                import os
+                
+                # Get rule-service URL from environment or use default
+                rule_service_url = os.getenv('RULE_SERVICE_URL', 'http://rule-service:3002')
+                
+                # Get the latest audit to determine which rules to run
                 latest_audit = db.query(AuditResultDB).filter(
                     AuditResultDB.device_id == device_id
                 ).order_by(AuditResultDB.timestamp.desc()).first()
 
-                # Extract unique rule names from the latest audit's findings
-                rule_names = set()
+                # Extract unique rule IDs from the latest audit's findings
+                rule_ids = []
                 if latest_audit and latest_audit.findings:
+                    # Try to get rule IDs from findings
+                    from db_models import AuditRuleDB
+                    rule_names = set()
                     for finding in latest_audit.findings:
                         if isinstance(finding, dict) and 'rule' in finding:
                             rule_names.add(finding['rule'])
-
-                logger.info(f"Re-auditing with {len(rule_names)} rules from last audit: {rule_names}")
-
-                # Get only the rules that were in the last audit
-                if rule_names:
-                    rules_db = db.query(AuditRuleDB).filter(
-                        AuditRuleDB.name.in_(rule_names),
-                        AuditRuleDB.enabled == True
-                    ).all()
-                else:
-                    # If no previous audit, use all active rules as fallback
-                    logger.warning(f"No previous audit found for device {device_id}, using all active rules")
-                    rules_db = db.query(AuditRuleDB).filter(AuditRuleDB.enabled == True).all()
-
-                rules = []
-                for rule_db in rules_db:
-                    from models.rule import AuditRule
-                    from models.enums import SeverityLevel, ComparisonType, VendorType
-
-                    # Convert DB model to Pydantic model
-                    rule = AuditRule(
-                        id=rule_db.id,
-                        name=rule_db.name,
-                        description=rule_db.description or "",
-                        severity=SeverityLevel(rule_db.severity),
-                        category=rule_db.category or "general",
-                        vendors=[VendorType(v) for v in rule_db.vendors],
-                        checks=rule_db.checks,
-                        enabled=rule_db.enabled
+                    
+                    # Get rule IDs from rule names
+                    if rule_names:
+                        rules_db = db.query(AuditRuleDB).filter(
+                            AuditRuleDB.name.in_(rule_names),
+                            AuditRuleDB.enabled == True
+                        ).all()
+                        rule_ids = [r.id for r in rules_db]
+                        logger.info(f"Re-auditing with {len(rule_ids)} rules from last audit")
+                
+                # Prepare audit request
+                audit_request = {
+                    "device_ids": [device_id],
+                    "rule_ids": rule_ids if rule_ids else None  # None means use all enabled rules
+                }
+                
+                # Call rule-service API
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(
+                        f"{rule_service_url}/audits",
+                        json=audit_request
                     )
-                    rules.append(rule)
-
-                # Convert DeviceDB to Device model
-                device_model = Device(
-                    id=device.id,
-                    hostname=device.hostname,
-                    vendor=device.vendor,
-                    ip=device.ip,
-                    port=device.port or 830,
-                    username=device.username,
-                    password=device.password,
-                    status=device.status
-                )
-
-                # Run audit
-                audit_engine = AuditEngine()
-                audit_result = await audit_engine.audit_device(device_model, rules, db)
-
-                # Store audit result
-                from db_models import AuditResultDB
-                db_result = AuditResultDB(
-                    device_id=audit_result.device_id,
-                    device_name=audit_result.device_name,
-                    timestamp=datetime.fromisoformat(audit_result.timestamp) if isinstance(audit_result.timestamp, str) else audit_result.timestamp,
-                    findings=[f.dict() for f in audit_result.findings],
-                    compliance=audit_result.compliance,
-                    status="completed"
-                )
-                db.add(db_result)
-
-                # Update device last_audit and compliance
-                device.last_audit = datetime.utcnow()
-                device.compliance = audit_result.compliance
-
-                db.commit()
-                logger.info(f"Re-audit completed for {device.hostname}: {audit_result.compliance}% compliance")
+                    
+                    if response.status_code == 202:  # Accepted
+                        result = response.json()
+                        logger.info(f"Re-audit triggered for {device.hostname}: {result.get('message')}")
+                        logger.info(f"Audit will run with {result.get('device_count')} device(s) and {result.get('rule_count')} rule(s)")
+                    else:
+                        logger.warning(f"Re-audit request returned status {response.status_code}: {response.text}")
 
             except Exception as e:
-                logger.error(f"Failed to re-audit device {device.hostname}: {e}")
+                logger.error(f"Failed to trigger re-audit for device {device.hostname}: {e}")
                 # Don't fail the remediation if re-audit fails
 
         return {
@@ -294,7 +265,7 @@ class RemediationService:
             'results': results,
             'device_id': device_id,
             'device_name': device.hostname,
-            're_audit_compliance': audit_result.compliance if audit_result else None,
+            're_audit_triggered': re_audit and not dry_run and success_count > 0,
         }
 
     @staticmethod
