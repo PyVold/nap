@@ -80,14 +80,15 @@ class RemediationService:
                 'error': f'Device {device_id} not found',
             }
 
+        # Pre-remediation backups are disabled - only scheduled and manual backups are active
         # Create backup before applying changes
-        if not dry_run:
-            try:
-                backup = await RemediationService._create_pre_remediation_backup(db, device)
-                if not backup:
-                    logger.warning(f"Failed to create backup for device {device_id}, proceeding anyway")
-            except Exception as e:
-                logger.error(f"Backup failed for device {device_id}: {e}")
+        # if not dry_run:
+        #     try:
+        #         backup = await RemediationService._create_pre_remediation_backup(db, device)
+        #         if not backup:
+        #             logger.warning(f"Failed to create backup for device {device_id}, proceeding anyway")
+        #     except Exception as e:
+        #         logger.error(f"Backup failed for device {device_id}: {e}")
 
         # Get appropriate connector
         connector = RemediationService._get_connector(device)
