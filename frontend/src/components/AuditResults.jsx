@@ -273,6 +273,10 @@ const AuditResults = () => {
   // New state for search and selection
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResults, setSelectedResults] = useState(new Set());
+  
+  // Polling state for auto-refresh
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollInterval, setPollInterval] = useState(null);
 
   const fetchResults = async () => {
     setLoading(true);
@@ -320,6 +324,13 @@ const AuditResults = () => {
   useEffect(() => {
     console.log('AuditResults component mounted');
     fetchResults();
+    
+    // Cleanup polling on unmount
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
   }, []);
   
   useEffect(() => {
@@ -330,6 +341,42 @@ const AuditResults = () => {
     console.log('Loading state updated:', loading);
   }, [loading]);
 
+  // Start polling for new results
+  const startPolling = (maxAttempts = 12) => {
+    let attempts = 0;
+    setIsPolling(true);
+    
+    const interval = setInterval(async () => {
+      attempts++;
+      console.log(`Polling for results... Attempt ${attempts}/${maxAttempts}`);
+      
+      try {
+        await fetchResults();
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+      
+      // Stop polling after max attempts (12 attempts = 60 seconds with 5s interval)
+      if (attempts >= maxAttempts) {
+        console.log('Polling stopped - max attempts reached');
+        clearInterval(interval);
+        setIsPolling(false);
+        setPollInterval(null);
+      }
+    }, 5000); // Poll every 5 seconds
+    
+    setPollInterval(interval);
+  };
+
+  // Stop polling
+  const stopPolling = () => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      setPollInterval(null);
+      setIsPolling(false);
+    }
+  };
+
   const handleRunAudit = async () => {
     setRunningAudit(true);
     try {
@@ -338,9 +385,11 @@ const AuditResults = () => {
         rule_ids: selectedRules.length > 0 ? selectedRules : null,
       };
       await auditAPI.run(auditRequest);
-      setSuccess('Audit started successfully. Results will appear shortly.');
+      setSuccess('Audit started successfully. Results will appear automatically...');
       setOpenDialog(false);
-      setTimeout(fetchResults, 5000); // Refresh after 5 seconds
+      
+      // Start polling for results
+      startPolling();
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     } finally {
@@ -427,9 +476,11 @@ const AuditResults = () => {
         rule_ids: ruleIds.length > 0 ? ruleIds : null,
       };
       await auditAPI.run(auditRequest);
-      setSuccess(`Re-audit started for ${uniqueDeviceIds.length} device(s) with ${ruleIds.length} rule(s). Results will appear shortly.`);
+      setSuccess(`Re-audit started for ${uniqueDeviceIds.length} device(s). Results will appear automatically...`);
       setSelectedResults(new Set()); // Clear selection
-      setTimeout(fetchResults, 5000);
+      
+      // Start polling for results
+      startPolling();
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     } finally {
@@ -458,14 +509,20 @@ const AuditResults = () => {
       if (result.data.success) {
         const message = dryRun
           ? `Remediation validated for ${result.data.successful}/${result.data.total_devices} device(s). Review results and apply if ready.`
-          : `Remediation applied to ${result.data.successful}/${result.data.total_devices} device(s). Re-auditing...`;
+          : `Remediation applied to ${result.data.successful}/${result.data.total_devices} device(s). Results will appear automatically...`;
 
         setSuccess(message);
         setSelectedResults(new Set()); // Clear selection
 
-        // If not dry run, wait and re-audit
+        // If not dry run, start polling for updated results
         if (!dryRun) {
-          setTimeout(fetchResults, 5000);
+          // Auto re-audit after remediation
+          const auditRequest = {
+            device_ids: uniqueDeviceIds,
+            rule_ids: null,
+          };
+          await auditAPI.run(auditRequest);
+          startPolling();
         }
       } else {
         setError(`Remediation failed: ${result.data.failed} device(s) failed`);
@@ -491,15 +548,29 @@ const AuditResults = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Audit Results
-        </Typography>
+        <Box display="flex" alignItems="center">
+          <Typography variant="h4" fontWeight="bold">
+            <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Audit Results
+          </Typography>
+          {isPolling && (
+            <Chip
+              label="Auto-refreshing..."
+              color="primary"
+              size="small"
+              icon={<CircularProgress size={16} sx={{ color: 'white !important' }} />}
+              sx={{ ml: 2 }}
+            />
+          )}
+        </Box>
         <Box>
           <Button
             variant="outlined"
             startIcon={<Refresh />}
-            onClick={fetchResults}
+            onClick={() => {
+              stopPolling();
+              fetchResults();
+            }}
             disabled={loading}
             sx={{ mr: 1 }}
           >
