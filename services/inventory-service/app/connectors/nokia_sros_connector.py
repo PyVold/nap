@@ -231,19 +231,55 @@ class NokiaSROSConnector(BaseConnector):
             if xpath:
                 # XPath mode - for remediation with specific config paths
                 logger.info(f"Using xpath mode - XPath: {xpath}")
-                logger.info(f"Value: {config_data}")
+                logger.info(f"Value type: {type(config_data)}, length: {len(str(config_data))}")
+                logger.debug(f"Value content: {config_data}")
 
-                # Parse the config value - it may be JSON serialized
+                # Parse the config value - it may be JSON serialized or already a dict
                 config_value = config_data
-                try:
-                    # Try to deserialize if it's JSON
-                    if config_data.strip().startswith('{') or config_data.strip().startswith('['):
-                        config_value = json.loads(config_data)
-                        logger.debug(f"Deserialized JSON config to: {config_value}")
-                except (json.JSONDecodeError, ValueError):
-                    # Keep as string if not valid JSON
-                    logger.debug(f"Using config as string value")
-                    pass
+                
+                # Check if config_data is already a dict
+                if isinstance(config_data, dict):
+                    logger.debug(f"Config is already a dict, using directly")
+                    config_value = config_data
+                elif isinstance(config_data, str):
+                    # Try to deserialize if it's a JSON string
+                    config_data_stripped = config_data.strip()
+                    
+                    if config_data_stripped.startswith('{') or config_data_stripped.startswith('['):
+                        try:
+                            # Try to parse as JSON
+                            config_value = json.loads(config_data_stripped)
+                            logger.debug(f"Deserialized JSON config to: {config_value}")
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Failed to parse config as JSON: {e}")
+                            logger.error(f"Config content (first 500 chars): {config_data_stripped[:500]}")
+                            
+                            # Try to provide helpful error details
+                            lines = config_data_stripped.split('\n')
+                            error_line = e.lineno if hasattr(e, 'lineno') else None
+                            if error_line and error_line <= len(lines):
+                                logger.error(f"Error near line {error_line}: {lines[error_line-1]}")
+                            
+                            raise ValueError(f"Invalid JSON config for xpath mode: {str(e)}")
+                    else:
+                        # Check if it's a simple value that should be used directly
+                        # For pySROS, simple values (strings, numbers, booleans) can be set directly
+                        logger.info(f"Config is a simple string value, will use directly")
+                        
+                        # Try to infer the type
+                        if config_data_stripped.lower() in ('true', 'false'):
+                            config_value = config_data_stripped.lower() == 'true'
+                            logger.debug(f"Converted to boolean: {config_value}")
+                        elif config_data_stripped.isdigit():
+                            config_value = int(config_data_stripped)
+                            logger.debug(f"Converted to integer: {config_value}")
+                        else:
+                            # Keep as string
+                            config_value = config_data_stripped
+                            logger.debug(f"Using as string value: {config_value}")
+                else:
+                    logger.error(f"Unexpected config type: {type(config_data)}")
+                    raise ValueError(f"Config must be dict, JSON string, or simple value, got: {type(config_data)}")
 
                 def apply_xpath_config():
                     """Apply configuration using pysros candidate.set()"""
