@@ -71,9 +71,9 @@ export default function UserManagement() {
   const [availableModules, setAvailableModules] = useState([
     'devices', 'device_groups', 'discovery_groups', 'device_import',
     'audit', 'audit_schedules', 'rules', 'rule_templates',
-    'config_backups', 'config_templates', 'drift_detection',
-    'notifications', 'health', 'integrations', 'licensing',
-    'topology', 'analytics', 'admin'
+    'config_backups', 'drift_detection',
+    'notifications', 'health', 'hardware_inventory', 'integrations',
+    'workflows', 'analytics', 'admin'
   ]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

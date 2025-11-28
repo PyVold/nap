@@ -38,9 +38,6 @@ import {
   CompareArrows,
   LibraryBooks,
   Hub as IntegrationIcon,
-  MonetizationOn as LicenseIcon,
-  DeviceHub as TopologyIcon,
-  Description as TemplateIcon,
   Timeline as AnalyticsIcon,
   AdminPanelSettings as AdminIcon,
   ManageAccounts as ManageAccountsIcon,
@@ -62,9 +59,6 @@ import DeviceImport from './components/DeviceImport';
 import DriftDetection from './components/DriftDetection';
 import RuleTemplates from './components/RuleTemplates';
 import Integrations from './components/Integrations';
-import Licensing from './components/Licensing';
-import Topology from './components/Topology';
-import ConfigTemplates from './components/ConfigTemplates';
 import Analytics from './components/Analytics';
 import AdminPanel from './components/AdminPanel';
 import UserManagement from './components/UserManagement';
@@ -200,9 +194,6 @@ function AppContent() {
     { text: 'Hardware Inventory', icon: <HardwareIcon />, path: '/hardware-inventory', module: 'hardware_inventory' },
     { text: 'divider', isDivider: true },
     { text: 'Integration Hub', icon: <IntegrationIcon />, path: '/integrations', module: 'integrations' },
-    { text: 'Licensing', icon: <LicenseIcon />, path: '/licensing', module: 'licensing' },
-    { text: 'Topology', icon: <TopologyIcon />, path: '/topology', module: 'topology' },
-    { text: 'Config Templates', icon: <TemplateIcon />, path: '/config-templates', module: 'config_templates' },
     { text: 'Workflows', icon: <WorkflowIcon />, path: '/workflows', module: 'workflows' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics', module: 'analytics' },
     { text: 'divider', isDivider: true },
@@ -383,9 +374,6 @@ function AppContent() {
             <Route path="/health" element={<DeviceHealth />} />
             <Route path="/hardware-inventory" element={<HardwareInventory />} />
             <Route path="/integrations" element={<Integrations />} />
-            <Route path="/licensing" element={<Licensing />} />
-            <Route path="/topology" element={<Topology />} />
-            <Route path="/config-templates" element={<ConfigTemplates />} />
             <Route path="/workflows" element={<Workflows />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/admin" element={<AdminPanel />} />

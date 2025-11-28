@@ -239,46 +239,6 @@ export const integrationsAPI = {
   getLogs: (id, limit = 100) => api.get(`/integrations/${id}/logs?limit=${limit}`)
 };
 
-// Licensing API
-export const licensingAPI = {
-  getAll: (params = {}) => api.get('/licensing/', { params }),
-  getById: (id) => api.get(`/licensing/${id}`),
-  create: (license) => api.post('/licensing/', license),
-  update: (id, license) => api.put(`/licensing/${id}`, license),
-  delete: (id) => api.delete(`/licensing/${id}`),
-  verify: (id) => api.post(`/licensing/${id}/verify`),
-  getAlerts: (params = {}) => api.get('/licensing/alerts/', { params }),
-  acknowledgeAlert: (id, user) => api.post(`/licensing/alerts/${id}/acknowledge`, { acknowledged_by: user }),
-  getSoftware: (params = {}) => api.get('/licensing/software/', { params }),
-  getStats: () => api.get('/licensing/stats/summary')
-};
-
-// Topology API
-export const topologyAPI = {
-  getGraph: (activeOnly = true) => api.get('/topology/graph', { params: { active_only: activeOnly } }),
-  listNodes: (params = {}) => api.get('/topology/nodes', { params }),
-  startDiscovery: (seedDeviceIds, maxDepth = 5) =>
-    api.post('/topology/discover', { seed_device_ids: seedDeviceIds, max_depth: maxDepth }),
-  getDiscoveryStatus: (sessionId) => api.get(`/topology/discovery/${sessionId}`)
-};
-
-// Config Templates API
-export const configTemplatesAPI = {
-  initialize: () => api.post('/config-templates/initialize'),
-  getAll: (params = {}) => api.get('/config-templates/', { params }),
-  getById: (id) => api.get(`/config-templates/${id}`),
-  create: (template) => api.post('/config-templates/', template),
-  update: (id, template) => api.put(`/config-templates/${id}`, template),
-  delete: (id) => api.delete(`/config-templates/${id}`),
-  deploy: (templateId, deviceId, variables, dryRun = false) =>
-    api.post('/config-templates/deploy', { template_id: templateId, device_id: deviceId, variables, dry_run: dryRun }),
-  deployBulk: (templateId, deviceIds, variables, dryRun = false) =>
-    api.post('/config-templates/deploy/bulk', { template_id: templateId, device_ids: deviceIds, variables, dry_run: dryRun }),
-  deployToGroups: (templateId, groupIds, variables, dryRun = false) =>
-    api.post('/config-templates/deploy/groups', { template_id: templateId, group_ids: groupIds, variables, dry_run: dryRun }),
-  getCategories: () => api.get('/config-templates/categories/list')
-};
-
 // Analytics API
 export const analyticsAPI = {
   getTrends: (params = {}) => api.get('/analytics/trends', { params }),

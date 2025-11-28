@@ -79,20 +79,6 @@ SERVICES = {
         "routes": ["/workflows"],
         "ui_routes": ["workflows"]
     },
-    "config-template-service": {
-        "url": "http://admin-service:3005",  # Temporarily route to admin-service
-        "name": "Configuration Templates",
-        "enabled": False,  # Disabled until implemented
-        "routes": ["/config-templates"],
-        "ui_routes": ["templates"]
-    },
-    "licensing-service": {
-        "url": "http://admin-service:3005",  # Temporarily route to admin-service
-        "name": "Licensing",
-        "enabled": False,  # Disabled until implemented
-        "routes": ["/licensing"],
-        "ui_routes": ["licensing"]
-    },
 }
 
 @app.get("/")
