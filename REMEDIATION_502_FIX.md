@@ -7,14 +7,35 @@ api-gateway_1  | 2025-11-28 13:32:01 - __main__ - ERROR - Error forwarding reque
 api-gateway_1  | INFO:  172.18.0.10:35758 - "POST /remediation/push HTTP/1.1" 502 Bad Gateway
 ```
 
+## ⚠️ IMPORTANT: This is Often a Transient Issue
+
+**UPDATE**: In most cases, this error resolves itself after 10-30 seconds without any intervention. The service just needs time to fully initialize.
+
+**Quick Fix**: Simply wait 30 seconds and try again. If it works, no action needed!
+
 ## Root Cause Analysis
 
 The API Gateway is correctly routing the request to `admin-service:3005/remediation/push`, but the admin-service is either:
-1. Not running
-2. Running but the endpoint is not responding
-3. Has a runtime error in the remediation endpoint
+1. **Still initializing** (most common - wait 30 seconds)
+2. Not running
+3. Running but the endpoint is not responding  
+4. Has a runtime error in the remediation endpoint
 
 ## Solution Steps
+
+### Step 0: Wait and Retry (Try This First!)
+
+**Before doing anything else**, simply wait 30 seconds and try the "Apply Fix" button again. In most cases, the service just needs time to fully initialize after startup.
+
+**Why This Happens**:
+- Services can take 10-30 seconds to fully start
+- Database connection pools need to initialize
+- Docker container networking needs to stabilize
+- Python dependencies and connectors load on first request
+
+**If the issue persists after waiting**, proceed to Step 1 below.
+
+---
 
 ### Step 1: Check Service Status
 
