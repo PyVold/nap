@@ -30,6 +30,8 @@ const Dashboard = () => {
   const [healthSummary, setHealthSummary] = useState(null);
   const [systemHealth, setSystemHealth] = useState(null);
   const [deviceCount, setDeviceCount] = useState(0);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -45,6 +47,7 @@ const Dashboard = () => {
       setHealthSummary(healthRes.data);
       setSystemHealth(systemRes.data);
       setDeviceCount(devicesRes.data.length);
+      setLastRefresh(new Date());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,9 +57,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+    
+    if (autoRefreshEnabled) {
+      const interval = setInterval(fetchDashboardData, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [autoRefreshEnabled]);
 
   if (loading && !compliance) {
     return (
@@ -107,17 +113,37 @@ const Dashboard = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          Network Audit Dashboard
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Refresh />}
-          onClick={fetchDashboardData}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h4" fontWeight="bold">
+            Network Audit Dashboard
+          </Typography>
+          {autoRefreshEnabled && (
+            <Chip
+              label={`Auto-refresh: ${lastRefresh.toLocaleTimeString()}`}
+              color="primary"
+              size="small"
+              icon={<Refresh />}
+            />
+          )}
+        </Box>
+        <Box>
+          <Button
+            variant={autoRefreshEnabled ? "outlined" : "contained"}
+            startIcon={<Refresh />}
+            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+            sx={{ mr: 1 }}
+          >
+            Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Refresh />}
+            onClick={fetchDashboardData}
+            disabled={loading}
+          >
+            Refresh Now
+          </Button>
+        </Box>
       </Box>
 
       {/* Summary Cards */}
