@@ -491,6 +491,73 @@ class RemediationTaskDB(Base):
 
 
 # ============================================================================
+# License System
+# ============================================================================
+
+class LicenseDB(Base):
+    """Customer licenses for tiered access control"""
+    __tablename__ = "licenses"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Customer info (for records)
+    customer_name = Column(String(200), nullable=False)
+    customer_email = Column(String(200), nullable=False)
+    company_name = Column(String(200), nullable=True)
+    
+    # License details
+    license_key = Column(Text, unique=True, nullable=False, index=True)
+    license_tier = Column(String(50), nullable=False, index=True)  # starter, professional, enterprise
+    
+    # Status
+    is_active = Column(Boolean, default=True, index=True)
+    activated_at = Column(DateTime, nullable=True)  # When customer first activated
+    
+    # Validity
+    issued_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    
+    # Quotas
+    max_devices = Column(Integer, nullable=False)
+    max_users = Column(Integer, nullable=False)
+    max_storage_gb = Column(Integer, default=10)
+    
+    # Features (JSON array)
+    enabled_modules = Column(JSON, default=list)  # ["devices", "audits", "scheduled_audits", ...]
+    
+    # Current usage (updated by app)
+    current_devices = Column(Integer, default=0)
+    current_users = Column(Integer, default=0)
+    current_storage_gb = Column(Integer, default=0)
+    
+    # Metadata
+    notes = Column(Text, nullable=True)  # Internal notes
+    order_id = Column(String(100), nullable=True)  # Internal order/invoice ID
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_validated = Column(DateTime, nullable=True)
+
+
+class LicenseValidationLogDB(Base):
+    """Track license validation attempts for security audit"""
+    __tablename__ = "license_validation_logs"
+    __table_args__ = (
+        Index('ix_license_validation_time', 'checked_at'),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    license_id = Column(Integer, index=True, nullable=True)
+    license_key_attempted = Column(String(500))
+    validation_result = Column(String(50))  # valid, expired, invalid, tampered
+    validation_message = Column(Text)
+    ip_address = Column(String(45))
+    user_agent = Column(String(500), nullable=True)
+    checked_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ============================================================================
 # Advanced Models - Using separate model files for reference
 # ============================================================================
 # Note: Advanced models are defined in separate files for documentation
