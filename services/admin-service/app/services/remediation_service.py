@@ -142,6 +142,26 @@ class RemediationService:
                     # Apply configuration via connector edit-config
                     try:
                         logger.info(f"Applying remediation for rule {rule} on device {device.hostname}")
+                        logger.debug(f"Config type: {type(config)}, xpath: {xpath}, filter_xml: {filter_xml}")
+                        
+                        # For Nokia SROS with xpath, validate/prepare the config
+                        if xpath and device.vendor == VendorType.NOKIA_SROS:
+                            # If config is a string that looks like JSON, validate it
+                            if isinstance(config, str):
+                                config_stripped = config.strip()
+                                if config_stripped.startswith('{') or config_stripped.startswith('['):
+                                    # Use shared validator utility
+                                    from shared.validators import validate_and_fix_json
+                                    
+                                    is_valid, parsed_data, error_msg = validate_and_fix_json(config_stripped, auto_fix=True)
+                                    
+                                    if is_valid:
+                                        logger.debug(f"Validated JSON config: {parsed_data}")
+                                        config = parsed_data  # Use the parsed dict
+                                    else:
+                                        logger.error(f"Invalid JSON in reference_config for rule {rule}: {error_msg}")
+                                        logger.error(f"Config content (first 500 chars): {config_stripped[:500]}")
+                                        raise ValueError(f"Cannot parse reference_config as JSON: {error_msg}")
 
                         # Use edit_config to apply the configuration with xpath/filter
                         await connector.edit_config(
