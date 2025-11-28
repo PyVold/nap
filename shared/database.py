@@ -36,6 +36,19 @@ def get_db():
         db.close()
 
 def init_db():
+    """Initialize database tables and indexes, skipping if they already exist"""
+    from sqlalchemy.exc import ProgrammingError
+    
     # Import all models to ensure they're registered with Base
     import db_models
-    Base.metadata.create_all(bind=engine)
+    
+    try:
+        # create_all uses checkfirst=True by default, but we add error handling for edge cases
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+    except ProgrammingError as e:
+        # Handle cases where objects already exist (idempotent operation)
+        if "already exists" in str(e).lower():
+            print(f"Database objects already exist (this is normal on restart): {e}")
+        else:
+            # Re-raise if it's a different error
+            raise

@@ -16,7 +16,7 @@ class ComplianceTrendDB(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    snapshot_date = Column(DateTime, default=datetime.utcnow, index=True)
+    snapshot_date = Column(DateTime, default=datetime.utcnow)
     device_id = Column(Integer, nullable=True)  # Foreign key removed - cross-service reference
     
     # Compliance metrics
@@ -49,7 +49,7 @@ class ComplianceForecastDB(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    forecast_date = Column(DateTime, nullable=False, index=True)  # Date being forecasted
+    forecast_date = Column(DateTime, nullable=False)  # Date being forecasted
     device_id = Column(Integer, nullable=True)  # Foreign key removed - cross-service reference
     
     # Predictions
@@ -74,7 +74,7 @@ class ComplianceAnomalyDB(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, nullable=True)  # Foreign key removed - cross-service reference
-    detected_at = Column(DateTime, default=datetime.utcnow, index=True)
+    detected_at = Column(DateTime, default=datetime.utcnow)
     
     # Anomaly details
     anomaly_type = Column(String(100), nullable=False)  # compliance_drop, unusual_pattern, spike_failures
