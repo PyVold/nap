@@ -42,6 +42,17 @@ class Settings(BaseSettings):
     # Security
     enable_auth: bool = False
     api_key: Optional[str] = None
+    jwt_secret: Optional[str] = None
+    encryption_key: Optional[str] = None
+    
+    # License System
+    license_encryption_key: Optional[str] = None
+    license_secret_salt: Optional[str] = None
+    
+    # Service URLs (for microservices)
+    device_service_url: Optional[str] = None
+    api_gateway_port: Optional[int] = None
+    frontend_port: Optional[int] = None
     
     class Config:
         env_file = ".env"

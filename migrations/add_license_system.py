@@ -20,7 +20,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from database import engine, Base
 from db_models import LicenseDB, LicenseValidationLogDB
-from shared.logger import logger
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def run_migration():

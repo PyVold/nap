@@ -14,8 +14,9 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from cryptography.fernet import Fernet
+import logging
 
-from shared.logger import logger
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
