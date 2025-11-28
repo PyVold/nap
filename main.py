@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import get_db, init_db
-from api.routes import devices, rules, audits, health, discovery_groups, device_groups, audit_schedules, config_backups, notifications, device_import, drift_detection, rule_templates, integrations, admin, remediation, user_management, hardware_inventory
+from api.routes import devices, rules, audits, health, discovery_groups, device_groups, audit_schedules, config_backups, notifications, device_import, drift_detection, rule_templates, integrations, admin, remediation, user_management, hardware_inventory, license
 from config import settings
 from utils.logger import setup_logger
 from scheduler.background_scheduler import get_scheduler
@@ -114,6 +114,8 @@ app.include_router(user_management.router, prefix="/user-management", tags=["Use
 app.include_router(remediation.router, tags=["Remediation"])
 # Hardware Inventory
 app.include_router(hardware_inventory.router, tags=["Hardware Inventory"])
+# License Management
+app.include_router(license.router, tags=["License"])
 
 # Mount frontend static files (if they exist)
 try:

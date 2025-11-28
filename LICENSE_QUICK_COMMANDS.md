@@ -1,413 +1,352 @@
-# License System - Quick Commands Reference
+# License System - Quick Command Reference
 
-**For**: When you need to quickly generate/manage licenses
-**Time**: < 1 minute per command
+This file contains commonly used commands for the license system.
 
 ---
 
-## 🔑 Generate Keys (One-Time Setup)
+## First Time Setup
+
+### 1. Generate Encryption Keys
 
 ```bash
-# Step 1: Generate encryption key
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Generate encryption key
+python -c "from cryptography.fernet import Fernet; print('LICENSE_ENCRYPTION_KEY=\"' + Fernet.generate_key().decode() + '\"')"
 
-# Step 2: Generate secret salt
-python -c "import secrets; print(secrets.token_hex(32))"
+# Generate salt
+python -c "import secrets; print('LICENSE_SECRET_SALT=\"' + secrets.token_hex(32) + '\"')"
+```
 
-# Step 3: Add to .env file
-echo "LICENSE_ENCRYPTION_KEY=<key_from_step1>" >> .env
-echo "LICENSE_SECRET_SALT=<salt_from_step2>" >> .env
+### 2. Add to Environment
+
+```bash
+# Add to .env file
+echo 'LICENSE_ENCRYPTION_KEY="<your_key>"' >> .env
+echo 'LICENSE_SECRET_SALT="<your_salt>"' >> .env
+```
+
+### 3. Run Database Migration
+
+```bash
+python migrations/add_license_system.py
 ```
 
 ---
 
-## 📝 Generate Licenses
+## Generate Licenses
 
-### Starter License (10 devices, 2 users)
+### Starter License (1 year)
+
 ```bash
 python scripts/generate_license.py \
-  --customer "Company Name" \
-  --email "customer@company.com" \
+  --customer "Customer Name" \
+  --email "customer@example.com" \
   --tier starter \
   --days 365
 ```
 
-### Professional License (100 devices, 10 users)
+**Includes:**
+- 10 devices
+- 2 users
+- 5 GB storage
+- Basic modules
+
+### Professional License (1 year)
+
 ```bash
 python scripts/generate_license.py \
-  --customer "Company Name" \
-  --email "customer@company.com" \
+  --customer "Professional Customer" \
+  --email "admin@company.com" \
   --tier professional \
-  --days 365 \
-  --order "ORD-2025-001"
+  --days 365
 ```
 
-### Enterprise License (Unlimited)
+**Includes:**
+- 100 devices
+- 10 users
+- 50 GB storage
+- Advanced modules (scheduled audits, API access, backups, etc.)
+
+### Enterprise License (2 years)
+
 ```bash
 python scripts/generate_license.py \
-  --customer "Company Name" \
-  --email "customer@company.com" \
+  --customer "Enterprise Corp" \
+  --email "it@enterprise.com" \
   --tier enterprise \
-  --days 365 \
-  --order "ORD-2025-001"
+  --days 730
 ```
+
+**Includes:**
+- Unlimited devices
+- Unlimited users
+- Unlimited storage
+- All modules
 
 ### Custom Quotas
+
 ```bash
 python scripts/generate_license.py \
-  --customer "Company Name" \
-  --email "customer@company.com" \
+  --customer "Custom Client" \
+  --email "admin@custom.com" \
   --tier professional \
   --days 365 \
-  --devices 500 \
+  --devices 200 \
   --users 25 \
   --storage 100
 ```
 
-### Trial License (30 days)
-```bash
-python scripts/generate_license.py \
-  --customer "Trial User" \
-  --email "trial@company.com" \
-  --tier professional \
-  --days 30 \
-  --notes "Trial license - expires in 30 days"
-```
-
 ---
 
-## 📥 Import License to Your Database
+## Test License Locally
+
+### 1. Start the Application
 
 ```bash
-# Import generated license
-python scripts/import_license.py license_output/license_abc123.json
+# Monolithic mode
+python main.py
+
+# OR Microservices mode
+docker-compose up -d
 ```
 
----
+### 2. Activate License via API
 
-## 🧪 Test License via API
-
-### Activate License
 ```bash
+# Get the license key from license_output/license_*.txt
+LICENSE_KEY="<paste_license_key_here>"
+
+# Activate
 curl -X POST http://localhost:3000/license/activate \
   -H "Content-Type: application/json" \
-  -d '{"license_key": "YOUR_LICENSE_KEY_HERE"}'
+  -d "{\"license_key\": \"$LICENSE_KEY\"}"
 ```
 
-### Check License Status
+### 3. Check License Status
+
 ```bash
 curl http://localhost:3000/license/status | jq
 ```
 
-### Deactivate License
+### 4. Check Module Access
+
+```bash
+# Check if scheduled_audits is available
+curl http://localhost:3000/license/check-module/scheduled_audits | jq
+```
+
+### 5. View All Tiers
+
+```bash
+curl http://localhost:3000/license/tiers | jq
+```
+
+---
+
+## Common Scenarios
+
+### Generate Trial License (30 days)
+
+```bash
+python scripts/generate_license.py \
+  --customer "Trial User" \
+  --email "trial@example.com" \
+  --tier professional \
+  --days 30
+```
+
+### Generate License with Order ID
+
+```bash
+python scripts/generate_license.py \
+  --customer "Paid Customer" \
+  --email "customer@company.com" \
+  --tier enterprise \
+  --days 365 \
+  --order-id "INV-2025-001"
+```
+
+### Generate License with Company Name
+
+```bash
+python scripts/generate_license.py \
+  --customer "John Smith" \
+  --email "john@acme.com" \
+  --company "Acme Corporation" \
+  --tier professional \
+  --days 365
+```
+
+---
+
+## Deactivate License
+
 ```bash
 curl -X POST http://localhost:3000/license/deactivate
 ```
 
 ---
 
-## 📊 Common License Scenarios
+## Check Validation Logs
 
-### Scenario 1: New Customer Purchase
 ```bash
-# Generate license
-python scripts/generate_license.py \
-  --customer "Acme Corp" \
-  --email "admin@acme.com" \
-  --tier professional \
-  --days 365 \
-  --order "ORD-2025-042"
-
-# Output: license_output/license_abc123.txt
-# Email this file to customer
-```
-
-### Scenario 2: License Renewal
-```bash
-# Generate new license with extended date
-python scripts/generate_license.py \
-  --customer "Acme Corp" \
-  --email "admin@acme.com" \
-  --tier professional \
-  --days 365 \
-  --order "ORD-2025-143" \
-  --notes "Renewal for ORD-2025-042"
-
-# Email new license to customer
-# Customer replaces old license with new one
-```
-
-### Scenario 3: Upgrade Plan
-```bash
-# Generate higher tier license
-python scripts/generate_license.py \
-  --customer "Acme Corp" \
-  --email "admin@acme.com" \
-  --tier enterprise \
-  --days 365 \
-  --order "ORD-2025-144" \
-  --notes "Upgraded from Professional to Enterprise"
-```
-
-### Scenario 4: Temporary License Extension
-```bash
-# Generate 90-day extension
-python scripts/generate_license.py \
-  --customer "Acme Corp" \
-  --email "admin@acme.com" \
-  --tier professional \
-  --days 90 \
-  --notes "90-day extension while renewal is processed"
+curl http://localhost:3000/license/validation-logs | jq
 ```
 
 ---
 
-## 🔧 Maintenance Commands
+## Troubleshooting
 
-### List All Licenses in Database
+### Issue: "License validation failed"
+
+**Solution:**
+1. Check that LICENSE_ENCRYPTION_KEY is set correctly
+2. Verify the key hasn't changed since license generation
+3. Make sure the license hasn't expired
+
 ```bash
-# Connect to database
-sqlite3 network_audit.db "SELECT id, customer_name, license_tier, expires_at, is_active FROM licenses;"
+# Check environment variables
+echo $LICENSE_ENCRYPTION_KEY
 ```
 
-### Deactivate Expired Licenses
+### Issue: "Module not available"
+
+**Solution:**
+Check the current license tier and required tier:
+
 ```bash
-sqlite3 network_audit.db "UPDATE licenses SET is_active=0 WHERE expires_at < datetime('now');"
+curl http://localhost:3000/license/check-module/scheduled_audits | jq
 ```
 
-### Check License Validation Logs
+### Issue: "Quota exceeded"
+
+**Solution:**
+Check current quotas:
+
 ```bash
-sqlite3 network_audit.db "SELECT * FROM license_validation_logs ORDER BY checked_at DESC LIMIT 10;"
+curl http://localhost:3000/license/status | jq .quotas
+```
+
+Upgrade to higher tier or reduce usage.
+
+---
+
+## Python API Usage
+
+### In Backend Code
+
+```python
+from shared.license_manager import license_manager
+
+# Validate a license
+validation = license_manager.validate_license(license_key)
+print(validation)
+
+# Check module access
+license_data = validation["data"]
+has_access = license_manager.has_module(license_data, "scheduled_audits")
+
+# Check quota
+within_quota, max_allowed, message = license_manager.check_quota(
+    license_data,
+    "devices",
+    current_device_count
+)
+```
+
+### With Decorators
+
+```python
+from shared.license_manager import require_module, require_quota
+from fastapi import APIRouter, Request
+
+router = APIRouter()
+
+@router.get("/schedules")
+@require_module("scheduled_audits")
+async def get_schedules(request: Request):
+    # Only accessible if license has scheduled_audits module
+    return {"schedules": [...]}
+
+@router.post("/devices")
+@require_quota("devices", buffer=1)
+async def add_device(request: Request):
+    # Only allowed if within device quota
+    return {"device": {...}}
 ```
 
 ---
 
-## 📧 Email Template for Customers
+## Frontend Integration
 
-```text
-Subject: Your Network Audit Platform License
+### Check License Status
 
-Dear [Customer Name],
+```javascript
+const response = await fetch('/license/status');
+const license = await response.json();
 
-Thank you for your purchase of the Network Audit Platform!
+console.log('Tier:', license.tier);
+console.log('Days until expiry:', license.days_until_expiry);
+console.log('Enabled modules:', license.enabled_modules);
+```
 
-📋 LICENSE DETAILS
-Plan: [Professional/Enterprise]
-Devices: [100/Unlimited]
-Users: [10/Unlimited]
-Valid Until: [Date]
+### Activate License
 
-🔑 LICENSE KEY
-[PASTE LICENSE KEY HERE - LONG STRING]
+```javascript
+const response = await fetch('/license/activate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ license_key: userInputKey })
+});
 
-✅ ACTIVATION STEPS
-1. Log into your Network Audit Platform
-2. Click on "License" in the sidebar
-3. Click "Activate License" button
-4. Paste the license key above
-5. Click "Activate"
+if (response.ok) {
+  console.log('License activated!');
+}
+```
 
-That's it! All features are now available.
+### Check Module Access
 
-📞 SUPPORT
-Need help? Contact us:
-- Email: support@yourcompany.com
-- Phone: [Your Phone]
+```javascript
+const response = await fetch('/license/check-module/scheduled_audits');
+const result = await response.json();
 
-We're here to help!
-
-Best regards,
-[Your Name]
-[Your Company]
+if (result.has_access) {
+  // Show feature
+} else {
+  // Show upgrade prompt
+}
 ```
 
 ---
 
-## 🚨 Troubleshooting
+## Production Checklist
 
-### Problem: "LICENSE_ENCRYPTION_KEY not set"
-```bash
-# Solution: Set environment variable
-export LICENSE_ENCRYPTION_KEY="your_key_here"
-
-# Or add to .env file
-echo "LICENSE_ENCRYPTION_KEY=your_key_here" >> .env
-```
-
-### Problem: "License activation failed - invalid"
-```bash
-# Check if encryption keys match on both sides
-# Your machine (generation): Check .env
-# Customer deployment: Check their .env
-
-# Keys MUST be identical!
-```
-
-### Problem: "License expired"
-```bash
-# Generate new license with future date
-python scripts/generate_license.py \
-  --customer "Customer" \
-  --email "customer@email.com" \
-  --tier professional \
-  --days 365
-```
-
-### Problem: Customer can't activate license
-```bash
-# Test license validation locally first
-python -c "
-from scripts.generate_license import LicenseGenerator
-lg = LicenseGenerator()
-result = lg.validate_license('LICENSE_KEY_HERE')
-print(result)
-"
-```
+- [ ] Generate production encryption key and salt
+- [ ] Store keys securely (not in code)
+- [ ] Set LICENSE_ENCRYPTION_KEY in environment
+- [ ] Set LICENSE_SECRET_SALT in environment
+- [ ] Run database migration
+- [ ] Generate test license to verify
+- [ ] Activate test license in UI
+- [ ] Test feature gating
+- [ ] Test quota enforcement
+- [ ] Document license generation process for sales team
+- [ ] Create process for sending licenses to customers
 
 ---
 
-## 📊 License Analytics
+## Support
 
-### Count Active Licenses
-```bash
-sqlite3 network_audit.db "SELECT COUNT(*) FROM licenses WHERE is_active=1;"
-```
+**Generated license files location:**
+- `license_output/license_*.txt` - Send to customer
+- `license_output/license_*.json` - Keep for records
 
-### Revenue by Tier
-```bash
-sqlite3 network_audit.db "
-SELECT 
-  license_tier, 
-  COUNT(*) as count,
-  CASE 
-    WHEN license_tier='starter' THEN COUNT(*) * 49
-    WHEN license_tier='professional' THEN COUNT(*) * 199
-    WHEN license_tier='enterprise' THEN COUNT(*) * 999
-  END as monthly_revenue
-FROM licenses 
-WHERE is_active=1 
-GROUP BY license_tier;
-"
-```
+**Documentation:**
+- `LICENSE_SYSTEM_README.md` - Complete overview
+- `OFFLINE_LICENSE_IMPLEMENTATION.md` - Implementation guide
+- `FRONTEND_LICENSE_INTEGRATION_GUIDE.md` - Frontend guide
 
-### Licenses Expiring Soon (30 days)
-```bash
-sqlite3 network_audit.db "
-SELECT customer_name, customer_email, expires_at 
-FROM licenses 
-WHERE is_active=1 
-AND expires_at BETWEEN datetime('now') AND datetime('now', '+30 days')
-ORDER BY expires_at;
-"
-```
-
----
-
-## 🎯 Quick Checklist
-
-### Before Generating First License:
-- [ ] Encryption keys generated
-- [ ] Keys added to .env
-- [ ] Database migration applied
-- [ ] Test license generated successfully
-- [ ] Test license validated successfully
-
-### Before Sending to Customer:
-- [ ] License generated with correct tier
-- [ ] Expiration date verified (1 year = 365 days)
-- [ ] Customer name spelled correctly
-- [ ] Email address verified
-- [ ] Order ID added for tracking
-- [ ] License key copied to email
-
-### After Customer Activates:
-- [ ] Verify license shows in their UI
-- [ ] Check all modules visible
-- [ ] Verify quotas displayed correctly
-- [ ] Confirm expiration date shown
-- [ ] Test a premium feature works
-
----
-
-## 💡 Pro Tips
-
-### Tip 1: Keep License Records
-```bash
-# Store all generated licenses in organized folders
-mkdir -p licenses/2025/november
-mv license_output/* licenses/2025/november/
-```
-
-### Tip 2: Automate Renewal Reminders
-```bash
-# Add to crontab to check daily
-0 9 * * * sqlite3 /path/to/network_audit.db "
-SELECT customer_name, customer_email, expires_at 
-FROM licenses 
-WHERE expires_at = date('now', '+30 days')" | mail -s "Licenses Expiring in 30 Days" sales@yourcompany.com
-```
-
-### Tip 3: Create License Templates
-```bash
-# Save common commands to shell scripts
-cat > generate_pro_license.sh << 'EOF'
-#!/bin/bash
-python scripts/generate_license.py \
-  --customer "$1" \
-  --email "$2" \
-  --tier professional \
-  --days 365 \
-  --order "$3"
-EOF
-
-chmod +x generate_pro_license.sh
-
-# Usage: ./generate_pro_license.sh "Company" "email@company.com" "ORD-123"
-```
-
----
-
-## 🔐 Security Best Practices
-
-1. **Never commit keys to git**
-   ```bash
-   # Add to .gitignore
-   echo ".env" >> .gitignore
-   echo "license_output/" >> .gitignore
-   ```
-
-2. **Keep keys secure**
-   - Store in password manager
-   - Use environment variables
-   - Rotate keys annually
-
-3. **Track license generation**
-   - Keep log of all generated licenses
-   - Link to orders/invoices
-   - Monitor for suspicious activation patterns
-
----
-
-## 📞 Quick Contact Template
-
-```text
-Customer needs: [License renewal/Upgrade/New license]
-Customer: [Name]
-Email: [Email]
-Current tier: [Starter/Pro/Enterprise]
-Request: [Details]
-
-Command to run:
-python scripts/generate_license.py \
-  --customer "[Name]" \
-  --email "[Email]" \
-  --tier [tier] \
-  --days 365 \
-  --order "[ORDER-ID]"
-```
-
----
-
-**Keep this file handy!** Bookmark it for quick reference when managing licenses.
-
-**File Location**: `/workspace/LICENSE_QUICK_COMMANDS.md`
+**For help:**
+- Check logs for validation errors
+- Verify encryption keys match
+- Ensure license hasn't expired
+- Test with a new trial license
