@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
 
 # Copy shared code
 COPY shared/ /app/shared/
-COPY models/ /app/models/
 
 # Copy service code
 COPY services/analytics-service/ /app/
