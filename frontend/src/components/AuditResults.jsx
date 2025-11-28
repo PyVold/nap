@@ -277,6 +277,11 @@ const AuditResults = () => {
   // Polling state for auto-refresh
   const [isPolling, setIsPolling] = useState(false);
   const [pollInterval, setPollInterval] = useState(null);
+  
+  // Auto-refresh state (continuous periodic refresh)
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState(null);
 
   const fetchResults = async () => {
     setLoading(true);
@@ -308,6 +313,7 @@ const AuditResults = () => {
       setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : []);
       setRules(Array.isArray(rulesRes.data) ? rulesRes.data : []);
       setError(null);
+      setLastRefresh(new Date());
       console.log('Audit page loaded successfully');
     } catch (err) {
       console.error('Critical error in fetchResults:', err);
@@ -325,13 +331,37 @@ const AuditResults = () => {
     console.log('AuditResults component mounted');
     fetchResults();
     
-    // Cleanup polling on unmount
+    // Cleanup on unmount
     return () => {
       if (pollInterval) {
         clearInterval(pollInterval);
       }
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
     };
   }, []);
+  
+  // Continuous auto-refresh effect
+  useEffect(() => {
+    if (autoRefreshEnabled) {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing audit results...');
+        fetchResults();
+      }, 30000); // Refresh every 30 seconds
+      
+      setAutoRefreshInterval(interval);
+      
+      return () => {
+        clearInterval(interval);
+      };
+    } else {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        setAutoRefreshInterval(null);
+      }
+    }
+  }, [autoRefreshEnabled]);
   
   useEffect(() => {
     console.log('Results state updated:', results.length, 'results');
@@ -548,22 +578,37 @@ const AuditResults = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center">
+        <Box display="flex" alignItems="center" gap={2}>
           <Typography variant="h4" fontWeight="bold">
             <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
             Audit Results
           </Typography>
-          {isPolling && (
+          {autoRefreshEnabled && !isPolling && (
             <Chip
-              label="Auto-refreshing..."
+              label={`Auto-refresh: ${lastRefresh.toLocaleTimeString()}`}
               color="primary"
               size="small"
+              icon={<Refresh />}
+            />
+          )}
+          {isPolling && (
+            <Chip
+              label="Polling for results..."
+              color="secondary"
+              size="small"
               icon={<CircularProgress size={16} sx={{ color: 'white !important' }} />}
-              sx={{ ml: 2 }}
             />
           )}
         </Box>
         <Box>
+          <Button
+            variant={autoRefreshEnabled ? "outlined" : "contained"}
+            startIcon={<Refresh />}
+            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+            sx={{ mr: 1 }}
+          >
+            Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}
+          </Button>
           <Button
             variant="outlined"
             startIcon={<Refresh />}
@@ -574,7 +619,7 @@ const AuditResults = () => {
             disabled={loading}
             sx={{ mr: 1 }}
           >
-            Refresh
+            Refresh Now
           </Button>
           <Button
             variant="contained"

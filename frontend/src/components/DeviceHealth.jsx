@@ -216,6 +216,8 @@ const DeviceHealth = () => {
   const [success, setSuccess] = useState(null);
   const [checkingAll, setCheckingAll] = useState(false);
   const [healthSummary, setHealthSummary] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
 
   const fetchDevices = async () => {
     setLoading(true);
@@ -227,6 +229,7 @@ const DeviceHealth = () => {
       setDevices(devicesRes.data);
       setHealthSummary(summaryRes.data);
       setError(null);
+      setLastRefresh(new Date());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -236,9 +239,12 @@ const DeviceHealth = () => {
 
   useEffect(() => {
     fetchDevices();
-    const interval = setInterval(fetchDevices, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, []);
+    
+    if (autoRefreshEnabled) {
+      const interval = setInterval(fetchDevices, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [autoRefreshEnabled]);
 
   const handleCheckDevice = async (deviceId) => {
     try {
@@ -274,11 +280,29 @@ const DeviceHealth = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          <Router sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Device Health Monitoring
-        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h4" fontWeight="bold">
+            <Router sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Device Health Monitoring
+          </Typography>
+          {autoRefreshEnabled && (
+            <Chip
+              label={`Auto-refresh: ${lastRefresh.toLocaleTimeString()}`}
+              color="primary"
+              size="small"
+              icon={<Refresh />}
+            />
+          )}
+        </Box>
         <Box>
+          <Button
+            variant={autoRefreshEnabled ? "outlined" : "contained"}
+            startIcon={<Refresh />}
+            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+            sx={{ mr: 1 }}
+          >
+            Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}
+          </Button>
           <Button
             variant="outlined"
             startIcon={<Refresh />}
@@ -286,7 +310,7 @@ const DeviceHealth = () => {
             disabled={loading}
             sx={{ mr: 1 }}
           >
-            Refresh
+            Refresh Now
           </Button>
           <Button
             variant="contained"
