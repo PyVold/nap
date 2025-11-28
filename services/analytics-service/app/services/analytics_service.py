@@ -10,10 +10,10 @@ import statistics
 import math
 import httpx
 
-from app.db_models import (
+from db_models import (
     ComplianceTrendDB, ComplianceForecastDB, ComplianceAnomalyDB
 )
-from app.models.enums import SeverityLevel
+from models.enums import SeverityLevel
 
 
 class AnalyticsService:
