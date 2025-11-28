@@ -83,7 +83,7 @@ Admin Service
 Nokia SROS Device
   ↓ (success)
 Admin Service
-  ↓ (POST /audits with device_ids)
+  ↓ (POST /audit/ with device_ids)
 Rule Service
   ↓ (202 Accepted - audit in background)
 Admin Service

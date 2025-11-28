@@ -242,7 +242,7 @@ class RemediationService:
                 # Call rule-service API
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(
-                        f"{rule_service_url}/audits",
+                        f"{rule_service_url}/audit/",
                         json=audit_request
                     )
                     
