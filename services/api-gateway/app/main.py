@@ -66,9 +66,9 @@ SERVICES = {
         "ui_routes": ["admin", "users", "integrations"]
     },
     "analytics-service": {
-        "url": "http://admin-service:3005",  # Temporarily route to admin-service
+        "url": "http://analytics-service:3006",
         "name": "Analytics",
-        "enabled": False,  # Disabled until implemented
+        "enabled": True,
         "routes": ["/analytics"],
         "ui_routes": ["analytics"]
     },

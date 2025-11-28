@@ -31,6 +31,7 @@ services:
       - backup-service
       - inventory-service
       - admin-service
+      - analytics-service
     environment:
       - LOG_LEVEL=info
 
@@ -119,6 +120,23 @@ services:
       - SERVICE_PORT=3005
       - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
+      - LOG_LEVEL=info
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+    ports:
+      - "3006:3006"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3006
+      - RULE_SERVICE_URL=http://rule-service:3002
+      - DEVICE_SERVICE_URL=http://device-service:3001
       - LOG_LEVEL=info
 
   # Frontend
