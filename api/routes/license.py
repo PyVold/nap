@@ -17,7 +17,9 @@ from datetime import datetime
 from database import get_db
 import db_models
 from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES
-from shared.logger import logger
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 router = APIRouter(prefix="/license", tags=["License Management"])

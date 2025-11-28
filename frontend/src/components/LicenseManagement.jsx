@@ -218,21 +218,21 @@ export default function LicenseManagement() {
     return <NoLicenseView onActivate={() => setActivateDialogOpen(true)} />;
   }
 
-  const deviceUsage = license.quotas.max_devices >= 999999 
+  const deviceUsage = license.quotas?.devices?.max >= 999999 
     ? 0 
-    : (license.current_usage.devices / license.quotas.max_devices) * 100;
+    : (license.quotas?.devices?.percentage || 0);
   
-  const userUsage = license.quotas.max_users >= 999999
+  const userUsage = license.quotas?.users?.max >= 999999
     ? 0
-    : (license.current_usage.users / license.quotas.max_users) * 100;
+    : (license.quotas?.users?.percentage || 0);
 
-  const isUnlimited = license.quotas.max_devices >= 999999;
+  const isUnlimited = license.quotas?.devices?.max >= 999999;
 
   // Get all possible modules
   const allModules = Object.keys(moduleDefinitions);
-  const enabledModules = license.features.modules.includes('all') 
+  const enabledModules = license.enabled_modules?.includes('all') 
     ? allModules 
-    : license.features.modules;
+    : (license.enabled_modules || []);
 
   return (
     <Box p={3}>
@@ -271,7 +271,7 @@ export default function LicenseManagement() {
       )}
 
       {/* Expiring Soon Warning */}
-      {license.expiring_soon && (
+      {license.days_until_expiry !== undefined && license.days_until_expiry < 30 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           ⚠️ Your license expires in <strong>{license.days_until_expiry} days</strong> on{' '}
           {new Date(license.expires_at).toLocaleDateString()}.
@@ -280,9 +280,9 @@ export default function LicenseManagement() {
       )}
 
       {/* License Not Valid */}
-      {!license.is_valid && (
+      {!license.valid && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          ❌ Your license is <strong>{license.is_valid ? 'valid' : 'expired or invalid'}</strong>.
+          ❌ Your license is <strong>expired or invalid</strong>.
           Please contact sales to renew or activate a new license.
         </Alert>
       )}
@@ -312,8 +312,8 @@ export default function LicenseManagement() {
                 Status
               </Typography>
               <Chip
-                label={license.is_valid ? 'ACTIVE' : 'EXPIRED'}
-                color={license.is_valid ? 'success' : 'error'}
+                label={license.valid ? 'ACTIVE' : 'EXPIRED'}
+                color={license.valid ? 'success' : 'error'}
                 size="large"
                 sx={{ mt: 1, fontSize: '1rem', fontWeight: 'bold' }}
               />
@@ -329,10 +329,10 @@ export default function LicenseManagement() {
               </Typography>
               <Typography
                 variant="h4"
-                color={license.expiring_soon ? 'error.main' : 'text.primary'}
+                color={(license.days_until_expiry < 30) ? 'error.main' : 'text.primary'}
                 sx={{ mt: 1 }}
               >
-                {license.days_until_expiry} days
+                {license.days_until_expiry || 0} days
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {new Date(license.expires_at).toLocaleDateString()}
@@ -368,9 +368,9 @@ export default function LicenseManagement() {
                 Devices
               </Typography>
               <Box display="flex" alignItems="baseline" mb={1}>
-                <Typography variant="h3">{license.current_usage.devices}</Typography>
+                <Typography variant="h3">{license.quotas?.devices?.current || 0}</Typography>
                 <Typography variant="h6" color="text.secondary" ml={1}>
-                  / {isUnlimited ? '∞' : license.quotas.max_devices}
+                  / {isUnlimited ? '∞' : license.quotas?.devices?.max || 0}
                 </Typography>
               </Box>
               {!isUnlimited && (
@@ -397,9 +397,9 @@ export default function LicenseManagement() {
                 Users
               </Typography>
               <Box display="flex" alignItems="baseline" mb={1}>
-                <Typography variant="h3">{license.current_usage.users}</Typography>
+                <Typography variant="h3">{license.quotas?.users?.current || 0}</Typography>
                 <Typography variant="h6" color="text.secondary" ml={1}>
-                  / {isUnlimited ? '∞' : license.quotas.max_users}
+                  / {isUnlimited ? '∞' : license.quotas?.users?.max || 0}
                 </Typography>
               </Box>
               {!isUnlimited && (
@@ -427,10 +427,10 @@ export default function LicenseManagement() {
               </Typography>
               <Box display="flex" alignItems="baseline" mb={1}>
                 <Typography variant="h3">
-                  {license.current_usage.storage_gb.toFixed(1)}
+                  {(license.quotas?.storage_gb?.current || 0).toFixed(1)}
                 </Typography>
                 <Typography variant="h6" color="text.secondary" ml={1}>
-                  / {isUnlimited ? '∞' : license.quotas.max_storage_gb} GB
+                  / {isUnlimited ? '∞' : license.quotas?.storage_gb?.max || 0} GB
                 </Typography>
               </Box>
             </CardContent>

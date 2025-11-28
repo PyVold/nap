@@ -44,6 +44,7 @@ import {
   Logout as LogoutIcon,
   AccountTree as WorkflowIcon,
   Memory as HardwareIcon,
+  Key as KeyIcon,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import RuleManagement from './components/RuleManagement';
@@ -64,9 +65,11 @@ import AdminPanel from './components/AdminPanel';
 import UserManagement from './components/UserManagement';
 import Workflows from './components/Workflows';
 import HardwareInventory from './components/HardwareInventory';
+import LicenseManagement from './components/LicenseManagement';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LicenseProvider } from './contexts/LicenseContext';
 import api from './api/api';
 
 const drawerWidth = 240;
@@ -197,6 +200,7 @@ function AppContent() {
     { text: 'Workflows', icon: <WorkflowIcon />, path: '/workflows', module: 'workflows' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics', module: 'analytics' },
     { text: 'divider', isDivider: true },
+    { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
     { text: 'Admin Panel', icon: <AdminIcon />, path: '/admin', module: null, adminOnly: true }, // Admin only
   ];
@@ -376,6 +380,7 @@ function AppContent() {
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/workflows" element={<Workflows />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/license" element={<LicenseManagement />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -389,12 +394,14 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/*" element={<AppContent />} />
-        </Routes>
-      </Router>
+      <LicenseProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/*" element={<AppContent />} />
+          </Routes>
+        </Router>
+      </LicenseProvider>
     </AuthProvider>
   );
 }
