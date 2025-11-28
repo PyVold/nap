@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Float, JSON, DateTime, 
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from shared.database import Base
-from app.models.enums import SeverityLevel
+from models.enums import SeverityLevel
 
 # ============================================================================
 # Analytics & Compliance Intelligence

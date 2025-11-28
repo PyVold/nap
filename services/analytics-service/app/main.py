@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from shared.database import init_db
 from shared.logger import setup_logger
-from app.routes import analytics
+from routes import analytics
 
 logger = setup_logger(__name__)
 

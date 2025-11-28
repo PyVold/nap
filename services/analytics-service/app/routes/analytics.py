@@ -8,7 +8,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from shared.database import get_db
-from app.services.analytics_service import AnalyticsService
+from services.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
