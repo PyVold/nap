@@ -58,13 +58,16 @@ export default function LicenseManagement() {
       setError(null);
     } catch (err) {
       console.error('[LicenseManagement] Error fetching license:', err);
-      if (err.response?.status === 404) {
-        // No license activated
-        console.log('[LicenseManagement] No license found (404)');
+      if (err.response?.status === 404 || err.response?.status === 402) {
+        // No license activated or expired - this is fine, show activation screen
+        console.log('[LicenseManagement] No license found or expired (404/402)');
         setLicense(null);
+        setError(null);
       } else {
+        // Other errors - still allow showing the page but show error
         console.error('[LicenseManagement] Failed to fetch license:', err.message);
-        setError('Failed to fetch license status');
+        setError(`Failed to fetch license status: ${err.message || 'Unknown error'}`);
+        setLicense(null);
       }
     } finally {
       setLoading(false);
@@ -216,14 +219,123 @@ export default function LicenseManagement() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Box textAlign="center">
+          <CircularProgress size={60} />
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            Loading license information...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Show error message but still allow activation dialog
+  if (error && !license) {
+    return (
+      <Box p={3}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+        <NoLicenseView onActivate={() => setActivateDialogOpen(true)} />
+        
+        {/* License Activation Dialog */}
+        <Dialog
+          open={activateDialogOpen}
+          onClose={() => !activating && setActivateDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Activate License</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Enter your license key below. This will replace your current license if you have one active.
+            </Typography>
+
+            <TextField
+              fullWidth
+              label="License Key"
+              multiline
+              rows={6}
+              value={newLicenseKey}
+              onChange={(e) => setNewLicenseKey(e.target.value)}
+              placeholder="Paste your license key here..."
+              disabled={activating}
+              sx={{ mt: 2 }}
+            />
+
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <strong>Note:</strong> Your license key is provided by your sales representative.
+              Contact <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a> if you need assistance.
+            </Alert>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setActivateDialogOpen(false)} disabled={activating}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleActivateLicense}
+              variant="contained"
+              disabled={!newLicenseKey.trim() || activating}
+            >
+              {activating ? <CircularProgress size={24} /> : 'Activate'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     );
   }
 
   if (!license) {
-    return <NoLicenseView onActivate={() => setActivateDialogOpen(true)} />;
+    return (
+      <Box>
+        <NoLicenseView onActivate={() => setActivateDialogOpen(true)} />
+        
+        {/* License Activation Dialog - same as above */}
+        <Dialog
+          open={activateDialogOpen}
+          onClose={() => !activating && setActivateDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Activate License</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Enter your license key below. This will replace your current license if you have one active.
+            </Typography>
+
+            <TextField
+              fullWidth
+              label="License Key"
+              multiline
+              rows={6}
+              value={newLicenseKey}
+              onChange={(e) => setNewLicenseKey(e.target.value)}
+              placeholder="Paste your license key here..."
+              disabled={activating}
+              sx={{ mt: 2 }}
+            />
+
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <strong>Note:</strong> Your license key is provided by your sales representative.
+              Contact <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a> if you need assistance.
+            </Alert>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setActivateDialogOpen(false)} disabled={activating}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleActivateLicense}
+              variant="contained"
+              disabled={!newLicenseKey.trim() || activating}
+            >
+              {activating ? <CircularProgress size={24} /> : 'Activate'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    );
   }
 
   const deviceUsage = license.quotas?.devices?.max >= 999999 

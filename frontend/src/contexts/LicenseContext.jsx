@@ -24,18 +24,25 @@ export const LicenseProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await api.get('/license/status');
+      console.log('[LicenseContext] License fetched successfully:', response.data);
       setLicense(response.data);
       setError(null);
     } catch (err) {
-      if (err.response?.status === 404) {
-        // No license activated
+      console.log('[LicenseContext] Error fetching license:', err.response?.status, err.message);
+      if (err.response?.status === 404 || err.response?.status === 402) {
+        // No license activated or license invalid - this is ok, just set to null
         setLicense(null);
+        setError(null);
       } else {
-        console.error('Failed to fetch license:', err);
+        // Network or other error - log but don't block
+        console.error('[LicenseContext] Failed to fetch license:', err);
         setError('Failed to fetch license status');
+        // Still set license to null so app doesn't hang
+        setLicense(null);
       }
     } finally {
       setLoading(false);
+      console.log('[LicenseContext] Loading complete');
     }
   };
 

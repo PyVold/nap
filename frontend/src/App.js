@@ -69,6 +69,7 @@ import LicenseManagement from './components/LicenseManagement';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LicenseProvider } from './contexts/LicenseContext';
 import api from './api/api';
@@ -367,9 +368,7 @@ function AppContent() {
         >
           <Toolbar />
           <Routes>
-            {/* License page without LicenseGuard - accessible even without valid license */}
-            <Route path="/license" element={<LicenseManagement />} />
-            {/* All other routes are protected by LicenseGuard */}
+            {/* All routes are protected by LicenseGuard */}
             <Route path="/" element={<LicenseGuard><Dashboard /></LicenseGuard>} />
             <Route path="/devices" element={<LicenseGuard><DeviceManagement /></LicenseGuard>} />
             <Route path="/device-groups" element={<LicenseGuard><DeviceGroups /></LicenseGuard>} />
@@ -399,19 +398,54 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          {/* All other routes use LicenseProvider */}
-          <Route path="/*" element={
-            <LicenseProvider>
-              <AppContent />
-            </LicenseProvider>
-          } />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            {/* License page without LicenseProvider - always accessible */}
+            <Route path="/license" element={<LicensePageWrapper />} />
+            {/* All other routes use LicenseProvider */}
+            <Route path="/*" element={
+              <LicenseProvider>
+                <AppContent />
+              </LicenseProvider>
+            } />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+}
+
+// Standalone wrapper for license page - no LicenseProvider needed
+function LicensePageWrapper() {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <ErrorBoundary>
+      <LicenseManagement />
+    </ErrorBoundary>
   );
 }
 
