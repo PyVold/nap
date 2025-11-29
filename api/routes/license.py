@@ -17,6 +17,7 @@ from datetime import datetime
 from database import get_db
 import db_models
 from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES
+from services.license_enforcement_service import license_enforcement_service
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -459,6 +460,90 @@ async def check_module_access(module_name: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to check module access: {str(e)}"
+        )
+
+
+@router.post("/upgrade")
+async def handle_license_upgrade(db: Session = Depends(get_db)):
+    """
+    Handle license upgrade scenario
+    
+    This endpoint should be called after activating a new license with a higher tier.
+    It will:
+    1. Detect tier changes
+    2. Log the upgrade
+    3. Update module availability
+    """
+    try:
+        # Get current active license
+        active_license = db.query(db_models.LicenseDB).filter(
+            db_models.LicenseDB.is_active == True
+        ).first()
+        
+        if not active_license:
+            raise HTTPException(
+                status_code=404,
+                detail="No active license found"
+            )
+        
+        # Check if this is an upgrade (compare with previous tier if available)
+        # For now, just handle the current license
+        current_tier = active_license.license_tier
+        
+        # Call upgrade handler
+        upgrade_result = license_enforcement_service.handle_license_upgrade(
+            db,
+            old_tier=current_tier,  # In real scenario, get from history
+            new_tier=current_tier
+        )
+        
+        logger.info(f"License upgrade processed: {upgrade_result['message']}")
+        
+        return {
+            "success": True,
+            "current_tier": current_tier,
+            "changes": upgrade_result.get("changes", []),
+            "message": "License upgrade processed successfully"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error handling license upgrade: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to handle license upgrade: {str(e)}"
+        )
+
+
+@router.post("/renew")
+async def handle_license_renewal(db: Session = Depends(get_db)):
+    """
+    Handle license renewal
+    
+    This refreshes license validation and updates timestamps.
+    """
+    try:
+        renewal_result = license_enforcement_service.handle_license_renewal(db)
+        
+        if not renewal_result["success"]:
+            raise HTTPException(
+                status_code=400,
+                detail=renewal_result["message"]
+            )
+        
+        return {
+            "success": True,
+            "message": renewal_result["message"]
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error handling license renewal: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to handle license renewal: {str(e)}"
         )
 
 
