@@ -40,6 +40,8 @@ services:
     build:
       context: .
       dockerfile: services/device-service/Dockerfile
+    env_file:
+      - .env
     ports:
       - "3001:3001"
     depends_on:
@@ -49,14 +51,14 @@ services:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3001
       - LOG_LEVEL=info
-      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Rule Service
   rule-service:
     build:
       context: .
       dockerfile: services/rule-service/Dockerfile
+    env_file:
+      - .env
     ports:
       - "3002:3002"
     depends_on:
@@ -66,14 +68,14 @@ services:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3002
       - LOG_LEVEL=info
-      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Backup Service
   backup-service:
     build:
       context: .
       dockerfile: services/backup-service/Dockerfile
+    env_file:
+      - .env
     ports:
       - "3003:3003"
     depends_on:
@@ -84,14 +86,14 @@ services:
       - SERVICE_PORT=3003
       - DEVICE_SERVICE_URL=http://device-service:3001
       - LOG_LEVEL=info
-      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Inventory Service
   inventory-service:
     build:
       context: .
       dockerfile: services/inventory-service/Dockerfile
+    env_file:
+      - .env
     ports:
       - "3004:3004"
     depends_on:
@@ -102,14 +104,14 @@ services:
       - SERVICE_PORT=3004
       - DEVICE_SERVICE_URL=http://device-service:3001
       - LOG_LEVEL=info
-      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
 
   # Admin Service
   admin-service:
     build:
       context: .
       dockerfile: services/admin-service/Dockerfile
+    env_file:
+      - .env
     ports:
       - "3005:3005"
     depends_on:
@@ -118,10 +120,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3005
-      - JWT_SECRET=${JWT_SECRET:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - LICENSE_ENCRYPTION_KEY=${LICENSE_ENCRYPTION_KEY:-GENERATE_SECURE_KEY_BEFORE_PRODUCTION}
-      - LICENSE_SECRET_SALT=${LICENSE_SECRET_SALT:-GENERATE_SECURE_SALT_BEFORE_PRODUCTION}
       - LOG_LEVEL=info
 
   # Analytics Service
