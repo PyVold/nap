@@ -9,7 +9,7 @@ from sqlalchemy import func, and_, or_, desc
 import statistics
 import math
 
-from app.db_models import (
+from db_models import (
     ComplianceTrendDB, ComplianceForecastDB, ComplianceAnomalyDB,
     AuditResultDB, DeviceDB
 )
