@@ -84,19 +84,36 @@ class LicenseManager:
         """Initialize license manager with encryption key"""
         # Get encryption key from environment
         key = os.getenv("LICENSE_ENCRYPTION_KEY")
-        if not key:
-            logger.warning("LICENSE_ENCRYPTION_KEY not set - license validation will fail!")
-            # Use a placeholder key for development
+        
+        # List of invalid default values
+        invalid_defaults = [
+            "GENERATE_SECURE_KEY_BEFORE_PRODUCTION",
+            "change-me",
+            "secret",
+            "your-secret-key"
+        ]
+        
+        # Check if key is missing or set to an invalid default
+        if not key or key in invalid_defaults:
+            if key:
+                logger.warning(f"LICENSE_ENCRYPTION_KEY is set to an insecure default value: {key}")
+            else:
+                logger.warning("LICENSE_ENCRYPTION_KEY not set")
+            
+            # Generate a valid temporary key for development
             key = Fernet.generate_key().decode()
-            logger.info(f"Generated temporary key: {key}")
-            logger.info("Set this as LICENSE_ENCRYPTION_KEY in production")
+            logger.info("Generated temporary Fernet key for this session")
+            logger.info("To generate a permanent key, run:")
+            logger.info("  python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\"")
         
         try:
             self.cipher = Fernet(key.encode() if isinstance(key, str) else key)
         except Exception as e:
             logger.error(f"Failed to initialize cipher: {e}")
             # Fallback to a valid key for dev
-            self.cipher = Fernet(Fernet.generate_key())
+            key = Fernet.generate_key()
+            self.cipher = Fernet(key)
+            logger.info("Fallback: Generated new temporary Fernet key")
         
         self.secret_salt = os.getenv("LICENSE_SECRET_SALT", "network-audit-platform-salt-2025")
     
