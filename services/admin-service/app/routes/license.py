@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 from datetime import datetime
 
-from database import get_db
+from deps import get_db
 import db_models
 from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES
 import logging
