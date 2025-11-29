@@ -403,9 +403,9 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            {/* License page without LicenseProvider - always accessible */}
+            {/* License page with its own LicenseProvider - always accessible */}
             <Route path="/license" element={<LicensePageWrapper />} />
-            {/* All other routes use LicenseProvider */}
+            {/* All other routes use LicenseProvider and LicenseGuard */}
             <Route path="/*" element={
               <LicenseProvider>
                 <AppContent />
@@ -418,7 +418,7 @@ function App() {
   );
 }
 
-// Standalone wrapper for license page - no LicenseProvider needed
+// Standalone wrapper for license page - with LicenseProvider
 function LicensePageWrapper() {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
@@ -444,7 +444,9 @@ function LicensePageWrapper() {
 
   return (
     <ErrorBoundary>
-      <LicenseManagement />
+      <LicenseProvider>
+        <LicenseManagement />
+      </LicenseProvider>
     </ErrorBoundary>
   );
 }
