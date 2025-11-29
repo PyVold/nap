@@ -548,6 +548,103 @@ class LicenseValidationLogDB(Base):
 
 
 # ============================================================================
+# Analytics & Intelligence Models
+# ============================================================================
+
+class ComplianceTrendDB(Base):
+    """Compliance trend snapshots for analytics"""
+    __tablename__ = "compliance_trends"
+    __table_args__ = (
+        Index('ix_compliance_trends_device_snapshot', 'device_id', 'snapshot_date'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    snapshot_date = Column(DateTime, default=datetime.utcnow, index=True)
+    device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=True)  # NULL = overall
+    
+    # Compliance metrics
+    overall_compliance = Column(Float, default=0.0)
+    compliance_change = Column(Float, default=0.0)  # Change from previous snapshot
+    
+    # Device counts
+    total_devices = Column(Integer, default=0)
+    compliant_devices = Column(Integer, default=0)
+    failed_devices = Column(Integer, default=0)
+    
+    # Check counts
+    total_checks = Column(Integer, default=0)
+    passed_checks = Column(Integer, default=0)
+    failed_checks = Column(Integer, default=0)
+    warning_checks = Column(Integer, default=0)
+    
+    # Failure breakdown by severity
+    critical_failures = Column(Integer, default=0)
+    high_failures = Column(Integer, default=0)
+    medium_failures = Column(Integer, default=0)
+    low_failures = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    device = relationship("DeviceDB")
+
+
+class ComplianceForecastDB(Base):
+    """Compliance forecasts using predictive analytics"""
+    __tablename__ = "compliance_forecasts"
+    __table_args__ = (
+        Index('ix_compliance_forecasts_device_date', 'device_id', 'forecast_date'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_date = Column(DateTime, index=True, nullable=False)
+    device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=True)  # NULL = overall
+    
+    # Predictions
+    predicted_compliance = Column(Float, nullable=False)
+    confidence_score = Column(Float, default=0.0)  # 0-1 confidence level
+    predicted_failures = Column(Integer, default=0)
+    
+    # Model info
+    training_data_points = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    device = relationship("DeviceDB")
+
+
+class ComplianceAnomalyDB(Base):
+    """Detected compliance anomalies"""
+    __tablename__ = "compliance_anomalies"
+    __table_args__ = (
+        Index('ix_compliance_anomalies_device_detected', 'device_id', 'detected_at'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=True)  # NULL = overall
+    detected_at = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    # Anomaly details
+    anomaly_type = Column(String(100), nullable=False)  # compliance_drop, spike_failures, etc.
+    severity = Column(SQLEnum(SeverityLevel), default=SeverityLevel.MEDIUM)
+    description = Column(Text, nullable=False)
+    
+    # Statistical data
+    z_score = Column(Float, nullable=True)
+    expected_value = Column(Float, nullable=True)
+    actual_value = Column(Float, nullable=True)
+    
+    # Acknowledgment
+    acknowledged = Column(Boolean, default=False)
+    acknowledged_by = Column(String(100), nullable=True)
+    acknowledged_at = Column(DateTime, nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    device = relationship("DeviceDB")
+
+
+# ============================================================================
 # Advanced Models - Using separate model files for reference
 # ============================================================================
 # Note: Advanced models are defined in separate files for documentation
