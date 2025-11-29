@@ -491,6 +491,63 @@ class RemediationTaskDB(Base):
 
 
 # ============================================================================
+# License Management Models
+# ============================================================================
+
+class LicenseDB(Base):
+    """Software license information"""
+    __tablename__ = "licenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_name = Column(String(255), nullable=False)
+    customer_email = Column(String(255), nullable=False)
+    company_name = Column(String(255), nullable=True)
+    license_key = Column(Text, unique=True, nullable=False)
+    license_tier = Column(String(50), nullable=False)  # starter, professional, enterprise
+    is_active = Column(Boolean, default=True)
+    
+    # Dates
+    activated_at = Column(DateTime, nullable=True)
+    issued_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    last_validated = Column(DateTime, nullable=True)
+    
+    # Quotas
+    max_devices = Column(Integer, nullable=False)
+    max_users = Column(Integer, nullable=False)
+    max_storage_gb = Column(Integer, nullable=False)
+    
+    # Current usage (tracked)
+    current_devices = Column(Integer, default=0)
+    current_users = Column(Integer, default=0)
+    current_storage_gb = Column(Float, default=0.0)
+    
+    # Enabled modules (JSON list)
+    enabled_modules = Column(JSON, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class LicenseValidationLogDB(Base):
+    """Log of license validation attempts"""
+    __tablename__ = "license_validation_logs"
+    __table_args__ = (
+        Index('ix_license_logs_checked_at', 'checked_at'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    license_id = Column(Integer, ForeignKey('licenses.id', ondelete='SET NULL'), nullable=True)
+    license_key_attempted = Column(String(100), nullable=True)  # Partial key for security
+    validation_result = Column(String(50), nullable=False)  # valid, expired, invalid, etc.
+    validation_message = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    checked_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    license = relationship("LicenseDB")
+
+
+# ============================================================================
 # Advanced Models - Using separate model files for reference
 # ============================================================================
 # Note: Advanced models are defined in separate files for documentation
