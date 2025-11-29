@@ -68,6 +68,7 @@ import HardwareInventory from './components/HardwareInventory';
 import LicenseManagement from './components/LicenseManagement';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
+import LicenseGuard from './components/LicenseGuard';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LicenseProvider } from './contexts/LicenseContext';
 import api from './api/api';
@@ -147,7 +148,7 @@ function AppContent() {
   const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, loading, logout, userModules } = useAuth();
+  const { user, isAuthenticated, loading, logout, userModules, isAdmin } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -210,15 +211,18 @@ function AppContent() {
     // Always show dividers
     if (item.isDivider) return true;
 
-    // Hide admin panel for non-admins
-    if (item.adminOnly && user?.role !== 'admin') return false;
+    // Admin/superuser always sees all menu items (including admin-only)
+    if (isAdmin) return true;
 
-    // If item doesn't require a specific module (like Dashboard), show it
+    // Hide admin panel for non-admins
+    if (item.adminOnly) return false;
+
+    // If item doesn't require a specific module (like Dashboard, License), show it
     if (!item.module) return true;
 
-    // If userModules is empty, show all (could be superuser or still loading)
-    // This prevents hiding all menus during initial load
-    if (!userModules || userModules.length === 0) return true;
+    // If userModules is empty and not admin, hide module-specific items
+    // (prevents showing all menus for non-admin users before modules load)
+    if (!userModules || userModules.length === 0) return false;
 
     // Check if user has access to this module
     return userModules.includes(item.module);
@@ -363,26 +367,29 @@ function AppContent() {
         >
           <Toolbar />
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/devices" element={<DeviceManagement />} />
-            <Route path="/device-groups" element={<DeviceGroups />} />
-            <Route path="/discovery-groups" element={<DiscoveryGroups />} />
-            <Route path="/device-import" element={<DeviceImport />} />
-            <Route path="/audits" element={<AuditResults />} />
-            <Route path="/audit-schedules" element={<AuditSchedules />} />
-            <Route path="/rules" element={<RuleManagement />} />
-            <Route path="/rule-templates" element={<RuleTemplates />} />
-            <Route path="/config-backups" element={<ConfigBackups />} />
-            <Route path="/drift-detection" element={<DriftDetection />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/health" element={<DeviceHealth />} />
-            <Route path="/hardware-inventory" element={<HardwareInventory />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/workflows" element={<Workflows />} />
-            <Route path="/analytics" element={<Analytics />} />
+            {/* License page is NOT protected - always accessible */}
             <Route path="/license" element={<LicenseManagement />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/user-management" element={<UserManagement />} />
+            
+            {/* All other routes are protected by LicenseGuard */}
+            <Route path="/" element={<LicenseGuard><Dashboard /></LicenseGuard>} />
+            <Route path="/devices" element={<LicenseGuard><DeviceManagement /></LicenseGuard>} />
+            <Route path="/device-groups" element={<LicenseGuard><DeviceGroups /></LicenseGuard>} />
+            <Route path="/discovery-groups" element={<LicenseGuard><DiscoveryGroups /></LicenseGuard>} />
+            <Route path="/device-import" element={<LicenseGuard><DeviceImport /></LicenseGuard>} />
+            <Route path="/audits" element={<LicenseGuard><AuditResults /></LicenseGuard>} />
+            <Route path="/audit-schedules" element={<LicenseGuard><AuditSchedules /></LicenseGuard>} />
+            <Route path="/rules" element={<LicenseGuard><RuleManagement /></LicenseGuard>} />
+            <Route path="/rule-templates" element={<LicenseGuard><RuleTemplates /></LicenseGuard>} />
+            <Route path="/config-backups" element={<LicenseGuard><ConfigBackups /></LicenseGuard>} />
+            <Route path="/drift-detection" element={<LicenseGuard><DriftDetection /></LicenseGuard>} />
+            <Route path="/notifications" element={<LicenseGuard><Notifications /></LicenseGuard>} />
+            <Route path="/health" element={<LicenseGuard><DeviceHealth /></LicenseGuard>} />
+            <Route path="/hardware-inventory" element={<LicenseGuard><HardwareInventory /></LicenseGuard>} />
+            <Route path="/integrations" element={<LicenseGuard><Integrations /></LicenseGuard>} />
+            <Route path="/workflows" element={<LicenseGuard><Workflows /></LicenseGuard>} />
+            <Route path="/analytics" element={<LicenseGuard><Analytics /></LicenseGuard>} />
+            <Route path="/admin" element={<LicenseGuard><AdminPanel /></LicenseGuard>} />
+            <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Box>

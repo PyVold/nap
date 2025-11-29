@@ -70,6 +70,8 @@ export const AuthProvider = ({ children }) => {
       // Fetch user modules and permissions if user_id is available
       if (userData.user_id) {
         fetchUserAccessInfo(userData.user_id);
+      } else {
+        setAccessInfoLoaded(true);
       }
     }
     setLoading(false);
@@ -120,6 +122,9 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
   };
 
+  // Check if user is admin/superuser
+  const isAdmin = user?.role === 'admin' || user?.is_superuser === true;
+
   const value = {
     user,
     token,
@@ -129,6 +134,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token,
     userModules,
     userPermissions,
+    isAdmin,
+    accessInfoLoaded,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

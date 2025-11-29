@@ -32,6 +32,7 @@ import UpgradeIcon from '@mui/icons-material/Upgrade';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import api from '../api/api';
+import { LicenseWarningBanner } from './LicenseGuard';
 
 export default function LicenseManagement() {
   const [license, setLicense] = useState(null);
@@ -256,6 +257,9 @@ export default function LicenseManagement() {
           </Button>
         </Box>
       </Box>
+
+      {/* License Warning Banner - shows when license is invalid/expired */}
+      <LicenseWarningBanner />
 
       {/* Alert Messages */}
       {error && (
