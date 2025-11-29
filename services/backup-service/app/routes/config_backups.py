@@ -8,10 +8,13 @@ from sqlalchemy import select, desc
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
+import sys
+sys.path.append('/workspace')
 
 from shared.deps import get_db
 from db_models import DeviceDB, ConfigBackupDB, ConfigChangeEventDB
 from services.config_backup_service import ConfigBackupService
+from services.license_enforcement_service import license_enforcement_service
 from models.device import Device
 from models.enums import VendorType
 
@@ -195,7 +198,11 @@ def create_backup(
     request: CreateBackupRequest,
     db: Session = Depends(get_db)
 ):
-    """Manually trigger a configuration backup for a device"""
+    """
+    Manually trigger a configuration backup for a device
+    
+    Enforces storage quota limits based on license tier.
+    """
     try:
         # Get device from database
         stmt = select(DeviceDB).where(DeviceDB.id == request.device_id)
@@ -229,6 +236,39 @@ def create_backup(
                     created_by=request.created_by
                 )
             )
+            
+            # ============================================================================
+            # LICENSE ENFORCEMENT - Check storage quota after backup creation
+            # ============================================================================
+            try:
+                # Check current storage usage
+                storage_check = license_enforcement_service.check_storage_quota(db)
+                
+                if not storage_check["allowed"]:
+                    # Storage quota exceeded - attempt cleanup
+                    cleanup_result = license_enforcement_service.cleanup_old_backups_if_needed(db)
+                    
+                    # Check again after cleanup
+                    storage_check = license_enforcement_service.check_storage_quota(db)
+                    
+                    if not storage_check["allowed"]:
+                        # Still over quota even after cleanup - warn but don't fail
+                        # (backup already created, we don't want to delete it)
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(
+                            f"Storage quota exceeded after backup creation. "
+                            f"Current: {storage_check['current_gb']} GB / "
+                            f"Max: {storage_check['max_gb']} GB. "
+                            f"Cleanup freed {cleanup_result['freed_gb']} GB. "
+                            f"Please upgrade license for more storage."
+                        )
+            except Exception as storage_error:
+                # Don't fail backup if storage check fails
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Storage quota check failed: {storage_error}")
+            
             return backup
         finally:
             loop.close()

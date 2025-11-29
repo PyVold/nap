@@ -12,6 +12,7 @@ from services.device_service import DeviceService
 from services.device_group_service import DeviceGroupService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
+from shared.license_middleware import require_license_module
 from utils.logger import setup_logger
 
 router = APIRouter()
@@ -24,8 +25,11 @@ rule_service = RuleService()
 
 
 @router.get("/", response_model=List[AuditSchedule])
-async def get_all_audit_schedules(db: Session = Depends(get_db)):
-    """Get all audit schedules"""
+async def get_all_audit_schedules(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
+):
+    """Get all audit schedules (requires 'scheduled_audits' module)"""
     return audit_schedule_service.get_all_schedules(db)
 
 
@@ -44,9 +48,10 @@ async def get_audit_schedule(schedule_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=AuditSchedule, status_code=status.HTTP_201_CREATED)
 async def create_audit_schedule(
     schedule_create: AuditScheduleCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
 ):
-    """Create a new audit schedule"""
+    """Create a new audit schedule (requires 'scheduled_audits' module)"""
     try:
         return audit_schedule_service.create_schedule(db, schedule_create)
     except Exception as e:
