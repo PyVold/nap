@@ -59,7 +59,8 @@ class RuleService:
                 raise ValueError(f"Invalid XPath in check: {check.name}")
 
         # Convert checks to dict format for JSON storage
-        checks_dict = [check.dict() for check in rule_create.checks]
+        # Use exclude_none=False to ensure all fields (including None) are preserved
+        checks_dict = [check.dict(exclude_none=False) for check in rule_create.checks]
 
         # Create rule in database
         db_rule = AuditRuleDB(
@@ -103,7 +104,8 @@ class RuleService:
                 # Handle both RuleCheck objects and dicts
                 from models.rule import RuleCheck
                 checks = [RuleCheck(**check) if isinstance(check, dict) else check for check in value]
-                checks_dict = [check.dict() for check in checks]
+                # Use exclude_none=False to ensure all fields (including None) are preserved
+                checks_dict = [check.dict(exclude_none=False) for check in checks]
                 logger.info(f"Converting {len(checks)} checks to dict format")
                 for i, check_dict in enumerate(checks_dict):
                     logger.info(f"Check {i}: filter field = {check_dict.get('filter', 'NOT_FOUND')}")

@@ -519,40 +519,50 @@ const RuleManagement = () => {
                 onChange={(e) => setCheckForm({ ...checkForm, name: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="XPath (Nokia)"
-                multiline
-                rows={2}
-                value={checkForm.xpath}
-                onChange={(e) => setCheckForm({ ...checkForm, xpath: e.target.value })}
-                helperText="For Nokia SROS devices"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="XML Filter (Cisco)"
-                multiline
-                rows={2}
-                value={checkForm.filter_xml}
-                onChange={(e) => setCheckForm({ ...checkForm, filter_xml: e.target.value })}
-                helperText="For Cisco XR devices"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Filter (Nokia - JSON format)"
-                multiline
-                rows={3}
-                value={checkForm.filter}
-                onChange={(e) => setCheckForm({ ...checkForm, filter: e.target.value })}
-                helperText='For Nokia SROS: Filter dict in JSON format (e.g., {"service-name": "\\"", "admin-state": {}, "interface": {"interface-name": {}}})'
-                placeholder='{"service-name": "\\"", "admin-state": {}}'
-              />
-            </Grid>
+
+            {/* Show Nokia-specific fields only if Nokia is selected */}
+            {formData.vendors.includes('nokia_sros') && (
+              <>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="XPath (Nokia)"
+                    multiline
+                    rows={2}
+                    value={checkForm.xpath}
+                    onChange={(e) => setCheckForm({ ...checkForm, xpath: e.target.value })}
+                    helperText="For Nokia SROS devices - Path to configuration element"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Filter (Nokia - JSON format)"
+                    multiline
+                    rows={3}
+                    value={checkForm.filter}
+                    onChange={(e) => setCheckForm({ ...checkForm, filter: e.target.value })}
+                    helperText='Filter dict in JSON format (e.g., {"service-name": "\\"", "admin-state": {}, "interface": {"interface-name": {}}})'
+                    placeholder='{"service-name": "\\"", "admin-state": {}}'
+                  />
+                </Grid>
+              </>
+            )}
+
+            {/* Show Cisco/other vendor fields only if Cisco or other vendors selected */}
+            {(formData.vendors.includes('cisco_xr') || formData.vendors.length === 0 || !formData.vendors.includes('nokia_sros')) && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="XML Filter (Cisco XR / NETCONF)"
+                  multiline
+                  rows={3}
+                  value={checkForm.filter_xml}
+                  onChange={(e) => setCheckForm({ ...checkForm, filter_xml: e.target.value })}
+                  helperText="For Cisco XR and other NETCONF devices - XML subtree filter"
+                />
+              </Grid>
+            )}
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -592,9 +602,15 @@ const RuleManagement = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell><strong>Check Name</strong></TableCell>
-                        <TableCell><strong>XPath</strong></TableCell>
-                        <TableCell><strong>Filter XML (Cisco)</strong></TableCell>
-                        <TableCell><strong>Filter (Nokia)</strong></TableCell>
+                        {formData.vendors.includes('nokia_sros') && (
+                          <>
+                            <TableCell><strong>XPath (Nokia)</strong></TableCell>
+                            <TableCell><strong>Filter (Nokia)</strong></TableCell>
+                          </>
+                        )}
+                        {(formData.vendors.includes('cisco_xr') || !formData.vendors.includes('nokia_sros')) && (
+                          <TableCell><strong>Filter XML (Cisco/NETCONF)</strong></TableCell>
+                        )}
                         <TableCell align="center"><strong>Actions</strong></TableCell>
                       </TableRow>
                     </TableHead>
@@ -611,21 +627,27 @@ const RuleManagement = () => {
                               {check.name}
                             </Typography>
                           </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {check.xpath || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {check.filter_xml || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-wrap' }}>
-                              {check.filter ? JSON.stringify(check.filter, null, 0) : '-'}
-                            </Typography>
-                          </TableCell>
+                          {formData.vendors.includes('nokia_sros') && (
+                            <>
+                              <TableCell>
+                                <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {check.xpath || '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-wrap' }}>
+                                  {check.filter ? JSON.stringify(check.filter, null, 0) : '-'}
+                                </Typography>
+                              </TableCell>
+                            </>
+                          )}
+                          {(formData.vendors.includes('cisco_xr') || !formData.vendors.includes('nokia_sros')) && (
+                            <TableCell>
+                              <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {check.filter_xml || '-'}
+                              </Typography>
+                            </TableCell>
+                          )}
                           <TableCell align="center">
                             <IconButton
                               size="small"
