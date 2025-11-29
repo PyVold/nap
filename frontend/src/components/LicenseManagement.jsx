@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -33,8 +34,11 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import WarningIcon from '@mui/icons-material/Warning';
 import api from '../api/api';
+import { useLicense } from '../contexts/LicenseContext';
 
 export default function LicenseManagement() {
+  const navigate = useNavigate();
+  const { refetch: refetchLicenseContext } = useLicense();
   const [license, setLicense] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activateDialogOpen, setActivateDialogOpen] = useState(false);
@@ -91,11 +95,17 @@ export default function LicenseManagement() {
       setActivateDialogOpen(false);
       setNewLicenseKey('');
       
-      // Refresh license status
+      // Refresh both local and global license state
+      await Promise.all([
+        fetchLicenseStatus(),
+        refetchLicenseContext()
+      ]);
+      
+      // Wait a moment to show success message, then redirect to dashboard
       setTimeout(() => {
-        fetchLicenseStatus();
-        setSuccess(null);
-      }, 2000);
+        console.log('[LicenseManagement] Redirecting to dashboard after successful activation');
+        navigate('/');
+      }, 1500);
     } catch (err) {
       const detail = err.response?.data?.detail;
       if (typeof detail === 'object') {
@@ -116,7 +126,12 @@ export default function LicenseManagement() {
     try {
       await api.post('/license/deactivate');
       setSuccess('License deactivated');
-      fetchLicenseStatus();
+      
+      // Refresh both local and global license state
+      await Promise.all([
+        fetchLicenseStatus(),
+        refetchLicenseContext()
+      ]);
     } catch (err) {
       setError('Failed to deactivate license');
     }
