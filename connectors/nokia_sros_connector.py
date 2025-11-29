@@ -47,7 +47,7 @@ class NokiaSROSConnector(BaseConnector):
             logger.error(f"pysros connection failed to {self.device.hostname}: {str(e)}")
             raise DeviceConnectionError(f"Failed to connect to {self.device.hostname}: {str(e)}")
 
-    async def get_config(self, source: str = 'running', filter_data: Optional[str] = None, xpath: Optional[str] = None) -> str:
+    async def get_config(self, source: str = 'running', filter_data: Optional[str] = None, xpath: Optional[str] = None, filter: Optional[dict] = None) -> str:
         """
         Retrieve device configuration using pysros
 
@@ -55,6 +55,7 @@ class NokiaSROSConnector(BaseConnector):
             source: Not used with pysros (always gets running config)
             filter_data: Not used with pysros
             xpath: Path in pysros format (e.g., '/configure/system/management-interface/netconf')
+            filter: Optional filter dict for pysros get() (e.g., {'service-name': '"', 'admin-state': {}})
 
         Returns:
             JSON string representation of the configuration
@@ -68,13 +69,21 @@ class NokiaSROSConnector(BaseConnector):
             # Convert XPath to pysros path format (they're similar)
             path = xpath if xpath else '/configure'
 
-            logger.debug(f"Getting config from {self.device.hostname} using pysros path: {path}")
-
-            # Use pysros get() method
-            result = await loop.run_in_executor(
-                None,
-                lambda: self.connection.running.get(path)
-            )
+            # Use filter if provided and not empty
+            if filter and len(filter) > 0:
+                logger.debug(f"Getting config from {self.device.hostname} using pysros path: {path} with filter: {filter}")
+                # Use pysros get() method with filter
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: self.connection.running.get(path, filter=filter)
+                )
+            else:
+                logger.debug(f"Getting config from {self.device.hostname} using pysros path: {path}")
+                # Use pysros get() method without filter
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: self.connection.running.get(path)
+                )
 
             # Convert pysros Container to JSON dictionary
             import json
@@ -282,8 +291,18 @@ class NokiaSROSConnector(BaseConnector):
                     raise ValueError(f"Config must be dict, JSON string, or simple value, got: {type(config_data)}")
 
                 def apply_xpath_config():
-                    """Apply configuration using pysros candidate.set()"""
+                    """Apply configuration using pysros candidate.delete() then .set()"""
                     logger.debug(f"Setting {xpath} = {config_value}")
+
+                    # First, delete the existing configuration at this path to ensure clean state
+                    # This prevents leftover configuration from previous runs
+                    try:
+                        logger.info(f"Deleting existing configuration at {xpath} before applying new config")
+                        self.connection.candidate.delete(path=xpath)
+                        logger.debug(f"Successfully deleted existing config at {xpath}")
+                    except Exception as delete_error:
+                        # If delete fails (e.g., path doesn't exist), that's fine - continue
+                        logger.debug(f"Delete at {xpath} failed or path doesn't exist: {delete_error}. Continuing with set.")
 
                     # Handle nested dictionaries that might contain list items
                     # For pySROS, if we have nested dicts, we need to set them hierarchically

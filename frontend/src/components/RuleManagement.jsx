@@ -62,6 +62,7 @@ const RuleManagement = () => {
     name: '',
     filter_xml: '',
     xpath: '',
+    filter: '',
     reference_value: '',
     reference_config: '',
   });
@@ -133,21 +134,40 @@ const RuleManagement = () => {
       name: '',
       filter_xml: '',
       xpath: '',
+      filter: '',
       reference_value: '',
       reference_config: '',
     });
   };
 
   const handleAddCheck = () => {
+    // Parse filter JSON if it's provided
+    let parsedFilter = null;
+    if (checkForm.filter && checkForm.filter.trim()) {
+      try {
+        parsedFilter = JSON.parse(checkForm.filter);
+      } catch (e) {
+        setError('Invalid JSON format for filter. Please check your syntax.');
+        return;
+      }
+    }
+
+    const checkData = {
+      name: checkForm.name,
+      filter_xml: checkForm.filter_xml || null,
+      xpath: checkForm.xpath || null,
+      filter: parsedFilter,
+      reference_value: checkForm.reference_value || null,
+      reference_config: checkForm.reference_config || null,
+      comparison: 'exact',
+      error_message: 'Check failed',
+      success_message: 'Check passed',
+    };
+
     if (editingCheckIndex !== null) {
       // Update existing check
       const updatedChecks = [...formData.checks];
-      updatedChecks[editingCheckIndex] = {
-        ...checkForm,
-        comparison: 'exact',
-        error_message: 'Check failed',
-        success_message: 'Check passed',
-      };
+      updatedChecks[editingCheckIndex] = checkData;
       setFormData({
         ...formData,
         checks: updatedChecks,
@@ -157,18 +177,14 @@ const RuleManagement = () => {
       // Add new check
       setFormData({
         ...formData,
-        checks: [...formData.checks, {
-          ...checkForm,
-          comparison: 'exact',
-          error_message: 'Check failed',
-          success_message: 'Check passed',
-        }],
+        checks: [...formData.checks, checkData],
       });
     }
     setCheckForm({
       name: '',
       filter_xml: '',
       xpath: '',
+      filter: '',
       reference_value: '',
       reference_config: '',
     });
@@ -180,6 +196,7 @@ const RuleManagement = () => {
       name: check.name || '',
       filter_xml: check.filter_xml || '',
       xpath: check.xpath || '',
+      filter: typeof check.filter === 'object' ? JSON.stringify(check.filter, null, 2) : (check.filter || ''),
       reference_value: check.reference_value || '',
       reference_config: check.reference_config || '',
     });
@@ -213,6 +230,7 @@ const RuleManagement = () => {
       name: '',
       filter_xml: '',
       xpath: '',
+      filter: '',
       reference_value: '',
       reference_config: '',
     });
@@ -520,6 +538,18 @@ const RuleManagement = () => {
                 value={checkForm.filter_xml}
                 onChange={(e) => setCheckForm({ ...checkForm, filter_xml: e.target.value })}
                 helperText="For Cisco XR devices"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Filter (Nokia - JSON format)"
+                multiline
+                rows={3}
+                value={checkForm.filter}
+                onChange={(e) => setCheckForm({ ...checkForm, filter: e.target.value })}
+                helperText='For Nokia SROS: Filter dict in JSON format (e.g., {"service-name": "\\"", "admin-state": {}, "interface": {"interface-name": {}}})'
+                placeholder='{"service-name": "\\"", "admin-state": {}}'
               />
             </Grid>
             <Grid item xs={12}>
