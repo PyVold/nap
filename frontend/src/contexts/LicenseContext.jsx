@@ -52,9 +52,10 @@ export const LicenseProvider = ({ children }) => {
    * @returns {boolean}
    */
   const hasModule = (module) => {
-    if (!license || !license.is_valid) return false;
+    if (!license || !license.valid) return false;
     
-    const modules = license.features?.modules || [];
+    // Get modules from the response - backend returns it as enabled_modules
+    const modules = license.enabled_modules || [];
     
     // Enterprise has all modules
     if (modules.includes('all')) return true;
@@ -154,7 +155,7 @@ export const LicenseProvider = ({ children }) => {
    */
   const getEnabledModules = () => {
     if (!license) return [];
-    return license.features?.modules || [];
+    return license.enabled_modules || [];
   };
 
   const value = {

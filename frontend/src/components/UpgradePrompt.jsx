@@ -111,7 +111,7 @@ export default function UpgradePrompt({
               color="primary"
               size="large"
               startIcon={<UpgradeIcon />}
-              href="mailto:sales@yourcompany.com?subject=Upgrade License Request"
+              href="mailto:sales@ipdevops.com?subject=Upgrade License Request"
               sx={{ minWidth: 180 }}
             >
               Upgrade License
@@ -119,7 +119,7 @@ export default function UpgradePrompt({
             <Button
               variant="outlined"
               size="large"
-              href="mailto:sales@yourcompany.com?subject=License Information Request"
+              href="mailto:sales@ipdevops.com?subject=License Information Request"
             >
               Contact Sales
             </Button>
