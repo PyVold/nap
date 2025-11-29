@@ -17,21 +17,41 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [userModules, setUserModules] = useState([]);
   const [userPermissions, setUserPermissions] = useState([]);
+  const [accessInfoLoaded, setAccessInfoLoaded] = useState(false);
 
   // Fetch user's modules and permissions
   const fetchUserAccessInfo = async (userId) => {
+    if (!userId) {
+      console.warn('No user ID provided to fetchUserAccessInfo');
+      setAccessInfoLoaded(true);
+      return;
+    }
+
     try {
       const [modulesResponse, permissionsResponse] = await Promise.all([
-        api.get(`/user-management/users/${userId}/modules`),
-        api.get(`/user-management/users/${userId}/permissions`)
+        api.get(`/user-management/users/${userId}/modules`).catch(err => {
+          console.error('Error fetching modules:', err);
+          return { data: [] };
+        }),
+        api.get(`/user-management/users/${userId}/permissions`).catch(err => {
+          console.error('Error fetching permissions:', err);
+          return { data: [] };
+        })
       ]);
-      setUserModules(modulesResponse.data);
-      setUserPermissions(permissionsResponse.data);
+      
+      // Ensure we have valid arrays
+      const modules = Array.isArray(modulesResponse.data) ? modulesResponse.data : [];
+      const permissions = Array.isArray(permissionsResponse.data) ? permissionsResponse.data : [];
+      
+      setUserModules(modules);
+      setUserPermissions(permissions);
+      setAccessInfoLoaded(true);
     } catch (error) {
       console.error('Error fetching user access info:', error);
       // If it fails, don't block the user - they might be superuser
       setUserModules([]);
       setUserPermissions([]);
+      setAccessInfoLoaded(true);
     }
   };
 
