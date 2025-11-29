@@ -305,4 +305,24 @@ export const hardwareInventoryAPI = {
   scanAll: () => api.post('/hardware/scan-all')
 };
 
+// License Management API
+export const licenseAPI = {
+  getStatus: () => api.get('/license/status'),
+  activate: (licenseKey) => api.post('/license/activate', { license_key: licenseKey }),
+  deactivate: () => api.post('/license/deactivate'),
+  getTiers: () => api.get('/license/tiers'),
+  checkModule: (moduleName) => api.get(`/license/check-module/${moduleName}`),
+  getValidationLogs: (limit = 50) => api.get(`/license/validation-logs?limit=${limit}`)
+};
+
+// Admin API
+export const adminAPI = {
+  login: (credentials) => api.post('/login', credentials),
+  getCurrentUser: () => api.get('/me'),
+  getUsers: () => api.get('/user-management/'),
+  createUser: (user) => api.post('/user-management/', user),
+  updateUser: (id, user) => api.put(`/user-management/${id}`, user),
+  deleteUser: (id) => api.delete(`/user-management/${id}`)
+};
+
 export default api;
