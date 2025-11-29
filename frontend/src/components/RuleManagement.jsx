@@ -217,6 +217,7 @@ const RuleManagement = () => {
           name: '',
           filter_xml: '',
           xpath: '',
+          filter: '',
           reference_value: '',
           reference_config: '',
         });
@@ -592,7 +593,8 @@ const RuleManagement = () => {
                       <TableRow>
                         <TableCell><strong>Check Name</strong></TableCell>
                         <TableCell><strong>XPath</strong></TableCell>
-                        <TableCell><strong>Filter XML</strong></TableCell>
+                        <TableCell><strong>Filter XML (Cisco)</strong></TableCell>
+                        <TableCell><strong>Filter (Nokia)</strong></TableCell>
                         <TableCell align="center"><strong>Actions</strong></TableCell>
                       </TableRow>
                     </TableHead>
@@ -617,6 +619,11 @@ const RuleManagement = () => {
                           <TableCell>
                             <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {check.filter_xml || '-'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-wrap' }}>
+                              {check.filter ? JSON.stringify(check.filter, null, 0) : '-'}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
