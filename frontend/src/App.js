@@ -367,10 +367,7 @@ function AppContent() {
         >
           <Toolbar />
           <Routes>
-            {/* License page is NOT protected - always accessible */}
-            <Route path="/license" element={<LicenseManagement />} />
-            
-            {/* All other routes are protected by LicenseGuard */}
+            {/* All routes are protected by LicenseGuard */}
             <Route path="/" element={<LicenseGuard><Dashboard /></LicenseGuard>} />
             <Route path="/devices" element={<LicenseGuard><DeviceManagement /></LicenseGuard>} />
             <Route path="/device-groups" element={<LicenseGuard><DeviceGroups /></LicenseGuard>} />
@@ -398,17 +395,99 @@ function AppContent() {
   );
 }
 
+// Separate component for license page that doesn't use LicenseProvider
+function LicensePageWrapper() {
+  const navigate = useNavigate();
+  const { isAuthenticated, loading, user, logout } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const handleBackToDashboard = () => {
+    navigate('/');
+  };
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        {/* Simple navbar for license page */}
+        <AppBar position="static" sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <Toolbar>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              License Management
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={`${user?.username || 'Unknown'} (${user?.role || 'viewer'})`}
+                color="primary"
+                variant="outlined"
+                size="small"
+                sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)' }}
+              />
+              <Button
+                color="inherit"
+                onClick={handleBackToDashboard}
+                size="small"
+              >
+                Back to Dashboard
+              </Button>
+              <Button
+                color="inherit"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                size="small"
+              >
+                Logout
+              </Button>
+            </Box>
+          </Toolbar>
+        </AppBar>
+        <LicenseManagement />
+      </Box>
+    </ThemeProvider>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
-      <LicenseProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/*" element={<AppContent />} />
-          </Routes>
-        </Router>
-      </LicenseProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          {/* License page is separate and doesn't use LicenseProvider/LicenseGuard */}
+          <Route path="/license" element={<LicensePageWrapper />} />
+          {/* All other routes use LicenseProvider */}
+          <Route path="/*" element={
+            <LicenseProvider>
+              <AppContent />
+            </LicenseProvider>
+          } />
+        </Routes>
+      </Router>
     </AuthProvider>
   );
 }
