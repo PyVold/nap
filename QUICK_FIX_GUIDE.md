@@ -1,203 +1,89 @@
-# Nokia SROS JSON Config Error - Quick Fix Guide
+# Quick Fix Guide - License Endpoint 404
 
-## ✅ What Was Fixed
+## The Problem
+```
+api-gateway_1 | INFO: 192.168.1.150:47958 - "POST /api/license/activate HTTP/1.1" 404 Not Found
+```
 
-The remediation service was failing with JSON parsing errors when trying to apply configuration to Nokia SROS devices. This has been fixed with:
+## The Solution (3 Simple Steps)
 
-1. **Enhanced error handling** - Better logging and error messages
-2. **Auto-fix for common JSON issues** - Automatically fixes trailing commas
-3. **Support for simple values** - Not just JSON objects/arrays
-4. **Pre-validation** - Validates config before sending to device
-
-## 🚀 Quick Start
-
-### 1. Rebuild and Restart Services
-
+### Step 1: Rebuild the Admin Service
 ```bash
 cd /workspace
-docker-compose down
-docker-compose build admin-service backup-service
-docker-compose up -d
+docker compose build admin-service
 ```
 
-### 2. Validate Existing Rules (Optional but Recommended)
-
+### Step 2: Restart the Admin Service
 ```bash
-# Check for issues in existing rules
-python scripts/validate_rule_configs.py
-
-# If issues found, auto-fix them
-python scripts/validate_rule_configs.py --fix
+docker compose up -d admin-service
 ```
 
-### 3. Test Remediation
-
-1. Run an audit on a Nokia SROS device
-2. If failures found, try applying remediation
-3. Check logs for improved error messages
-
-## 📋 What to Look For in Logs
-
-### ✅ Success Messages
-
-```
-INFO: Validated JSON config: {"admin-state": "enable"}
-INFO: Configuration applied successfully to sros1
+### Step 3: Verify It's Working
+```bash
+# Should return 400 (invalid license), NOT 404 (not found)
+curl -X POST http://localhost:3000/api/license/activate \
+  -H "Content-Type: application/json" \
+  -d '{"license_key": "test"}'
 ```
 
-### ⚠️ Auto-Fix Messages
+## Automated Fix
 
-```
-WARNING: Fixed JSON by removing trailing commas
-INFO: Validated JSON config: {...}
-```
-
-### ❌ Error Messages (Now with Details!)
-
-```
-ERROR: Failed to parse config as JSON: Expecting ',' delimiter: line 11 column 4
-ERROR: Config content (first 500 chars): {"key": "value"...
-ERROR: Error near line 11: "another_key": "value"
+Run the automated fix script:
+```bash
+./rebuild_services.sh
 ```
 
-## 🔧 Files Changed
-
-| Service | File | Purpose |
-|---------|------|---------|
-| All Services | `connectors/nokia_sros_connector.py` | Enhanced JSON handling |
-| Admin Service | `services/remediation_service.py` | Pre-validation |
-| Shared | `utils/validators.py` | JSON validation utility |
-| Scripts | `validate_rule_configs.py` | Rule validator |
-
-## 📚 Documentation
-
-- **Detailed Guide**: [NOKIA_SROS_JSON_FIX.md](./NOKIA_SROS_JSON_FIX.md)
-- **Full Summary**: [FIX_SUMMARY.md](./FIX_SUMMARY.md)
-- **This Quick Guide**: [QUICK_FIX_GUIDE.md](./QUICK_FIX_GUIDE.md)
-
-## 🧪 Test Results
-
-All functionality tested and verified:
-
-```
-✅ Valid JSON parsing
-✅ Trailing comma auto-fix
-✅ Simple value handling
-✅ Boolean/integer conversion
-✅ Detailed error messages
-✅ Backward compatibility
+Or run the full test suite:
+```bash
+./test_license_endpoints.sh
 ```
 
-See `test_json_fix_standalone.py` for test details.
+## Why This Happened
 
-## ❓ Troubleshooting
+The license functionality was added to the codebase, but the Docker containers were built before these changes. The containers need to be rebuilt to include the new license endpoints.
 
-### Remediation Still Failing?
+## If It Still Doesn't Work
 
-1. **Check the specific error in logs**:
+1. **Check if services are running:**
    ```bash
-   docker-compose logs admin-service | grep -A 5 "Failed to parse"
+   docker compose ps
    ```
 
-2. **Validate the problematic rule**:
+2. **View admin-service logs:**
    ```bash
-   python scripts/validate_rule_configs.py
+   docker compose logs -f admin-service
    ```
 
-3. **Check the reference_config field** in the database for the failing rule
+3. **Rebuild all services:**
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
 
-### Rule Validation Script Issues?
+4. **Force rebuild without cache:**
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
 
-Make sure you're in the workspace directory:
-```bash
-cd /workspace
-python scripts/validate_rule_configs.py
-```
+## Verification Checklist
 
-### Still Getting JSON Errors?
+- [ ] Admin service is running (`docker compose ps admin-service`)
+- [ ] Health check passes (`curl http://localhost:3005/health`)
+- [ ] License endpoint returns 400 (not 404) for invalid keys
+- [ ] License tiers endpoint works (`curl http://localhost:3000/api/license/tiers`)
+- [ ] Frontend can access license page (http://localhost:8080/license)
 
-The error message now shows:
-- Exact line number of the error
-- First 500 characters of the config
-- The problematic line
+## Next Steps After Fix
 
-Use this info to manually fix the rule's `reference_config` in the database or UI.
+1. Access the license management page: http://localhost:8080/license
+2. Activate a valid license key
+3. View license status, quotas, and enabled modules
+4. Manage license tiers and features
 
-## 💡 Tips for Creating Rules
+## Need More Help?
 
-### ✅ Good JSON Configs
-
-```json
-{"admin-state": "enable"}
-```
-
-```json
-{
-  "admin-state": "enable",
-  "description": "Main interface"
-}
-```
-
-### ❌ Bad JSON Configs (Will Auto-Fix)
-
-```json
-{"admin-state": "enable",}  // Trailing comma - will be fixed
-```
-
-```json
-{
-  "admin-state": "enable",
-  "description": "Main interface",  // Trailing comma - will be fixed
-}
-```
-
-### ✅ Simple Values (Now Supported!)
-
-```
-enable
-```
-
-```
-true
-```
-
-```
-100
-```
-
-## 🎯 Key Improvements
-
-1. **Better Errors**: Now shows exactly where JSON is invalid
-2. **Auto-Fix**: Automatically fixes trailing commas
-3. **More Types**: Supports strings, booleans, integers (not just JSON)
-4. **Validation**: Pre-validates before sending to device
-5. **Logging**: Detailed logging of all transformations
-
-## 📞 Support
-
-If issues persist:
-
-1. Review logs: `docker-compose logs admin-service`
-2. Run validation: `python scripts/validate_rule_configs.py`
-3. Check documentation: `NOKIA_SROS_JSON_FIX.md`
-4. Verify rule configs in database
-
-## ✨ Summary
-
-**Before:**
-- Unclear JSON errors
-- No auto-fix
-- Only JSON objects supported
-- Hard to diagnose issues
-
-**After:**
-- Clear error messages with line numbers
-- Auto-fixes trailing commas
-- Supports JSON, strings, booleans, integers
-- Easy to diagnose and fix issues
-
----
-
-**Status:** ✅ Ready for deployment
-**Risk:** Low (backward compatible)
-**Testing:** ✅ All tests pass
+See detailed documentation:
+- `LICENSE_ENDPOINT_404_FIX.md` - Comprehensive troubleshooting guide
+- `LICENSE_SYSTEM_README.md` - License system overview
+- `LICENSE_QUICKSTART.md` - How to generate and activate licenses
