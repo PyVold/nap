@@ -281,7 +281,7 @@ export default function LicenseManagement() {
 
             <Alert severity="info" sx={{ mt: 2 }}>
               <strong>Note:</strong> Your license key is provided by your sales representative.
-              Contact <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a> if you need assistance.
+              Contact <a href="mailto:sales@ipdevops.com">sales@ipdevops.com</a> if you need assistance.
             </Alert>
           </DialogContent>
           <DialogActions>
@@ -333,7 +333,7 @@ export default function LicenseManagement() {
 
             <Alert severity="info" sx={{ mt: 2 }}>
               <strong>Note:</strong> Your license key is provided by your sales representative.
-              Contact <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a> if you need assistance.
+              Contact <a href="mailto:sales@ipdevops.com">sales@ipdevops.com</a> if you need assistance.
             </Alert>
           </DialogContent>
           <DialogActions>
@@ -427,10 +427,10 @@ export default function LicenseManagement() {
 
       {/* Expiring Soon Warning */}
       {license.days_until_expiry !== undefined && license.days_until_expiry < 30 && license.days_until_expiry > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+          <Alert severity="warning" sx={{ mb: 3 }}>
           ⚠️ Your license expires in <strong>{license.days_until_expiry} days</strong> on{' '}
           {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'N/A'}.
-          Please contact sales to renew: <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a>
+          Please contact sales to renew: <a href="mailto:sales@ipdevops.com">sales@ipdevops.com</a>
         </Alert>
       )}
 
@@ -663,7 +663,7 @@ export default function LicenseManagement() {
                   variant="contained"
                   color="secondary"
                   size="large"
-                  href="mailto:sales@yourcompany.com"
+                  href="mailto:sales@ipdevops.com"
                   sx={{ fontWeight: 'bold' }}
                 >
                   Contact Sales
@@ -701,7 +701,7 @@ export default function LicenseManagement() {
 
           <Alert severity="info" sx={{ mt: 2 }}>
             <strong>Note:</strong> Your license key is provided by your sales representative.
-            Contact <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a> if you need assistance.
+            Contact <a href="mailto:sales@ipdevops.com">sales@ipdevops.com</a> if you need assistance.
           </Alert>
         </DialogContent>
         <DialogActions>
@@ -759,7 +759,7 @@ function NoLicenseView({ onActivate }) {
               <strong>Need a license?</strong>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Contact sales: <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a>
+              Contact sales: <a href="mailto:sales@ipdevops.com">sales@ipdevops.com</a>
             </Typography>
           </Box>
         </CardContent>

@@ -261,8 +261,15 @@ async def get_license_status(db: Session = Depends(get_db)):
             }
         }
         
-        # Get enabled modules with details
-        tier_modules = license_manager.get_tier_modules(active_license.license_tier)
+        # Get enabled modules from the stored license (not tier defaults)
+        # This ensures that custom licenses with specific module restrictions are respected
+        stored_modules = active_license.enabled_modules or []
+        
+        # If the license has "all" or is empty (legacy), fall back to tier defaults
+        if not stored_modules or "all" in stored_modules:
+            tier_modules = license_manager.get_tier_modules(active_license.license_tier)
+        else:
+            tier_modules = stored_modules
         
         module_details = []
         for module in tier_modules:
