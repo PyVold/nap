@@ -59,7 +59,8 @@ class RuleService:
                 raise ValueError(f"Invalid XPath in check: {check.name}")
 
         # Convert checks to dict format for JSON storage
-        checks_dict = [check.dict() for check in rule_create.checks]
+        # Use exclude_none=False to ensure all fields (including None) are preserved
+        checks_dict = [check.dict(exclude_none=False) for check in rule_create.checks]
 
         # Create rule in database
         db_rule = AuditRuleDB(
@@ -96,12 +97,19 @@ class RuleService:
 
         # Update fields
         update_data = rule_update.dict(exclude_unset=True)
+        logger.info(f"Updating rule {rule_id} with data: {update_data}")
+        
         for field, value in update_data.items():
             if field == "checks" and value:
                 # Handle both RuleCheck objects and dicts
                 from models.rule import RuleCheck
                 checks = [RuleCheck(**check) if isinstance(check, dict) else check for check in value]
-                setattr(db_rule, field, [check.dict() for check in checks])
+                # Use exclude_none=False to ensure all fields (including None) are preserved
+                checks_dict = [check.dict(exclude_none=False) for check in checks]
+                logger.info(f"Converting {len(checks)} checks to dict format")
+                for i, check_dict in enumerate(checks_dict):
+                    logger.info(f"Check {i}: filter field = {check_dict.get('filter', 'NOT_FOUND')}")
+                setattr(db_rule, field, checks_dict)
             elif field == "vendors" and value:
                 setattr(db_rule, field, [v.value if hasattr(v, 'value') else v for v in value])
             else:
@@ -111,7 +119,7 @@ class RuleService:
         db.commit()
         db.refresh(db_rule)
 
-        logger.info(f"Updated rule: {db_rule.name} (ID: {db_rule.id})")
+        logger.info(f"Updated rule: {db_rule.name} (ID: {db_rule.id}), checks in DB: {db_rule.checks}")
         return self._to_pydantic(db_rule)
 
     def delete_rule(self, db: Session, rule_id: int) -> bool:
