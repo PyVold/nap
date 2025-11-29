@@ -12,6 +12,15 @@ from cryptography.hazmat.backends import default_backend
 
 # Encryption key MUST be set via environment variable
 SECRET_KEY = os.getenv("ENCRYPTION_KEY")
+
+# List of invalid default values
+INVALID_DEFAULTS = [
+    "GENERATE_SECURE_KEY_BEFORE_PRODUCTION",
+    "network-audit-platform-secret-key-change-in-production",
+    "change-me",
+    "secret"
+]
+
 if not SECRET_KEY:
     raise RuntimeError(
         "ENCRYPTION_KEY environment variable is not set. "
@@ -19,9 +28,9 @@ if not SECRET_KEY:
     )
 
 # Warn if using insecure default
-if SECRET_KEY in ["network-audit-platform-secret-key-change-in-production", "change-me", "secret"]:
+if SECRET_KEY in INVALID_DEFAULTS:
     raise RuntimeError(
-        "ENCRYPTION_KEY is set to an insecure default value. "
+        f"ENCRYPTION_KEY is set to an insecure default value: {SECRET_KEY}. "
         "Generate a secure key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
     )
 
