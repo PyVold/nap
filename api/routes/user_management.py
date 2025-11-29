@@ -14,6 +14,7 @@ from api.deps import (
 )
 from db_models import UserDB
 from services.user_group_service import UserGroupService
+from services.license_enforcement_service import license_enforcement_service
 from models.user_group import (
     UserGroup, UserGroupCreate, UserGroupUpdate,
     User, UserCreate, UserUpdate,
@@ -217,9 +218,18 @@ def create_user(
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(require_create_users)
 ):
-    """Create a new user (requires create_users permission)"""
+    """Create a new user (requires create_users permission, enforces user quota)"""
     try:
-        return user_group_service.create_user(db, user_create, created_by="admin")
+        # Enforce user creation limit
+        license_enforcement_service.enforce_user_creation_limit(db)
+        
+        # Create user
+        user = user_group_service.create_user(db, user_create, created_by=current_user.username)
+        
+        # Update license usage after creating user
+        license_enforcement_service.enforcer.update_license_usage(db)
+        
+        return user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -253,6 +263,9 @@ def delete_user(
     """Delete user (requires delete_users permission)"""
     try:
         user_group_service.delete_user(db, user_id)
+        
+        # Update license usage after deleting user
+        license_enforcement_service.enforcer.update_license_usage(db)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

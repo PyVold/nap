@@ -19,6 +19,17 @@ import difflib
 
 logger = setup_logger(__name__)
 
+# Import license enforcement service (lazy to avoid circular imports)
+_license_enforcement_service = None
+
+def _get_license_enforcement_service():
+    """Lazy import to avoid circular dependency"""
+    global _license_enforcement_service
+    if _license_enforcement_service is None:
+        from services.license_enforcement_service import license_enforcement_service
+        _license_enforcement_service = license_enforcement_service
+    return _license_enforcement_service
+
 
 class ConfigBackupService:
     """Service for managing device configuration backups"""
@@ -96,6 +107,10 @@ class ConfigBackupService:
 
             db.commit()
             logger.info(f"Created {backup_type} backup for device {device.hostname} (ID: {backup.id})")
+
+            # Update license usage after creating backup
+            enforcement_service = _get_license_enforcement_service()
+            enforcement_service.enforcer.update_license_usage(db)
 
             # Cleanup old backups - keep only last 30 per device
             ConfigBackupService._cleanup_old_backups_sync(db, device.id, keep_count=30)
