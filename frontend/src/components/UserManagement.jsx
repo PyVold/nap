@@ -89,6 +89,9 @@ export default function UserManagement() {
     is_superuser: false,
   });
 
+  // User detail dialog state
+  const [userDetailDialog, setUserDetailDialog] = useState({ open: false, user: null });
+
   // Group dialog state
   const [groupDialog, setGroupDialog] = useState({ open: false, group: null });
   const [groupForm, setGroupForm] = useState({
@@ -413,7 +416,14 @@ export default function UserManagement() {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.full_name || '-'}</TableCell>
                     <TableCell>
-                      {user.groups?.length > 0 ? (
+                      {user.is_superuser ? (
+                        <Chip
+                          label="All Groups (Admin)"
+                          color="secondary"
+                          size="small"
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                        />
+                      ) : user.groups?.length > 0 ? (
                         user.groups.map((group, idx) => (
                           <Chip
                             key={idx}
@@ -428,7 +438,7 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell>
                       {user.is_superuser ? (
-                        <Chip label="Yes" color="secondary" size="small" />
+                        <Chip label="Yes" color="secondary" size="small" icon={<SecurityIcon />} />
                       ) : (
                         '-'
                       )}
@@ -443,7 +453,15 @@ export default function UserManagement() {
                     <TableCell>
                       <IconButton
                         size="small"
+                        onClick={() => setUserDetailDialog({ open: true, user })}
+                        title="View Details"
+                      >
+                        <SecurityIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
                         onClick={() => handleOpenUserDialog(user)}
+                        title="Edit User"
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
@@ -451,6 +469,7 @@ export default function UserManagement() {
                         size="small"
                         onClick={() => handleDeleteUser(user.id)}
                         color="error"
+                        title="Delete User"
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -717,6 +736,123 @@ export default function UserManagement() {
           <Button onClick={handleSaveMembers} variant="contained">
             Save Members
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* User Detail Dialog - Shows permissions and modules */}
+      <Dialog 
+        open={userDetailDialog.open} 
+        onClose={() => setUserDetailDialog({ open: false, user: null })} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <SecurityIcon />
+            User Permissions & Access: {userDetailDialog.user?.username}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {userDetailDialog.user && (
+            <Box>
+              <Card sx={{ mb: 2, bgcolor: 'info.light', color: 'info.contrastText' }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {userDetailDialog.user.is_superuser ? '👑 Administrator / Superuser' : '👤 Regular User'}
+                  </Typography>
+                  <Typography variant="body2">
+                    {userDetailDialog.user.is_superuser 
+                      ? 'This user has FULL ACCESS to all modules and permissions in the system.'
+                      : 'This user has access based on their group memberships.'}
+                  </Typography>
+                </CardContent>
+              </Card>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h6" gutterBottom>
+                <SecurityIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
+                Permissions
+              </Typography>
+              {userDetailDialog.user.is_superuser ? (
+                <Alert severity="success" icon={<CheckCircleIcon />}>
+                  <strong>ALL PERMISSIONS GRANTED</strong> - This superuser has access to all system permissions.
+                </Alert>
+              ) : userDetailDialog.user.permissions?.length > 0 ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {userDetailDialog.user.permissions.map((perm) => (
+                    <Chip
+                      key={perm}
+                      label={perm.replace(/_/g, ' ')}
+                      color="primary"
+                      size="small"
+                      icon={<CheckCircleIcon />}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No permissions assigned. Add this user to a group to grant permissions.
+                </Typography>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h6" gutterBottom>
+                Module Access
+              </Typography>
+              {userDetailDialog.user.is_superuser ? (
+                <Alert severity="success" icon={<CheckCircleIcon />}>
+                  <strong>ALL MODULES ACCESSIBLE</strong> - This superuser has access to all system modules.
+                </Alert>
+              ) : userDetailDialog.user.modules?.length > 0 ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {userDetailDialog.user.modules.map((mod) => (
+                    <Chip
+                      key={mod}
+                      label={mod.replace(/_/g, ' ')}
+                      color="secondary"
+                      size="small"
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No module access. Add this user to a group to grant module access.
+                </Typography>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h6" gutterBottom>
+                Group Memberships
+              </Typography>
+              {userDetailDialog.user.is_superuser ? (
+                <Typography variant="body2" color="text.secondary">
+                  Superusers do not need group memberships - they have inherent access to everything.
+                </Typography>
+              ) : userDetailDialog.user.groups?.length > 0 ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {userDetailDialog.user.groups.map((group) => (
+                    <Chip
+                      key={group}
+                      label={group}
+                      color="default"
+                      size="small"
+                      icon={<GroupIcon />}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Not a member of any groups.
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserDetailDialog({ open: false, user: null })}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

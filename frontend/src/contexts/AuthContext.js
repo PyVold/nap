@@ -17,21 +17,41 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [userModules, setUserModules] = useState([]);
   const [userPermissions, setUserPermissions] = useState([]);
+  const [accessInfoLoaded, setAccessInfoLoaded] = useState(false);
 
   // Fetch user's modules and permissions
   const fetchUserAccessInfo = async (userId) => {
+    if (!userId) {
+      console.warn('No user ID provided to fetchUserAccessInfo');
+      setAccessInfoLoaded(true);
+      return;
+    }
+
     try {
       const [modulesResponse, permissionsResponse] = await Promise.all([
-        api.get(`/user-management/users/${userId}/modules`),
-        api.get(`/user-management/users/${userId}/permissions`)
+        api.get(`/user-management/users/${userId}/modules`).catch(err => {
+          console.error('Error fetching modules:', err);
+          return { data: [] };
+        }),
+        api.get(`/user-management/users/${userId}/permissions`).catch(err => {
+          console.error('Error fetching permissions:', err);
+          return { data: [] };
+        })
       ]);
-      setUserModules(modulesResponse.data);
-      setUserPermissions(permissionsResponse.data);
+      
+      // Ensure we have valid arrays
+      const modules = Array.isArray(modulesResponse.data) ? modulesResponse.data : [];
+      const permissions = Array.isArray(permissionsResponse.data) ? permissionsResponse.data : [];
+      
+      setUserModules(modules);
+      setUserPermissions(permissions);
+      setAccessInfoLoaded(true);
     } catch (error) {
       console.error('Error fetching user access info:', error);
       // If it fails, don't block the user - they might be superuser
       setUserModules([]);
       setUserPermissions([]);
+      setAccessInfoLoaded(true);
     }
   };
 
@@ -50,6 +70,8 @@ export const AuthProvider = ({ children }) => {
       // Fetch user modules and permissions if user_id is available
       if (userData.user_id) {
         fetchUserAccessInfo(userData.user_id);
+      } else {
+        setAccessInfoLoaded(true);
       }
     }
     setLoading(false);
@@ -100,6 +122,9 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
   };
 
+  // Check if user is admin/superuser
+  const isAdmin = user?.role === 'admin' || user?.is_superuser === true;
+
   const value = {
     user,
     token,
@@ -109,6 +134,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token,
     userModules,
     userPermissions,
+    isAdmin,
+    accessInfoLoaded,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

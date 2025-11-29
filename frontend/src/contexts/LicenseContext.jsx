@@ -171,7 +171,7 @@ export const LicenseProvider = ({ children }) => {
     
     // Computed values
     isLicenseActive: license?.is_active || false,
-    isLicenseValid: license?.is_valid || false,
+    isLicenseValid: license?.valid || license?.is_valid || false,
     hasLicense: !!license,
     tier: license?.tier || null,
   };
