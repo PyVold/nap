@@ -83,7 +83,7 @@ const ComponentRow = ({ component }) => {
       </TableCell>
       <TableCell>
         <Chip
-          label={component.component_type.toUpperCase()}
+          label={(component.component_type || 'unknown').toUpperCase()}
           size="small"
           variant="outlined"
         />

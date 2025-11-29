@@ -391,7 +391,7 @@ export default function LicenseManagement() {
           </Typography>
           {license.expires_at && (
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              Original expiry date: {new Date(license.expires_at).toLocaleDateString()}
+              Original expiry date: {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'N/A'}
             </Typography>
           )}
         </Alert>
@@ -411,10 +411,10 @@ export default function LicenseManagement() {
       )}
 
       {/* Expiring Soon Warning */}
-      {license.days_until_expiry !== undefined && license.days_until_expiry < 30 && (
+      {license.days_until_expiry !== undefined && license.days_until_expiry < 30 && license.days_until_expiry > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           ⚠️ Your license expires in <strong>{license.days_until_expiry} days</strong> on{' '}
-          {new Date(license.expires_at).toLocaleDateString()}.
+          {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'N/A'}.
           Please contact sales to renew: <a href="mailto:sales@yourcompany.com">sales@yourcompany.com</a>
         </Alert>
       )}
@@ -436,7 +436,7 @@ export default function LicenseManagement() {
                 Current Plan
               </Typography>
               <Chip
-                label={license.tier.toUpperCase()}
+                label={(license.tier || 'unknown').toUpperCase()}
                 color="primary"
                 size="large"
                 sx={{ mt: 1, fontSize: '1rem', fontWeight: 'bold' }}
@@ -475,7 +475,7 @@ export default function LicenseManagement() {
                 {license.days_until_expiry || 0} days
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {new Date(license.expires_at).toLocaleDateString()}
+                {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'N/A'}
               </Typography>
             </CardContent>
           </Card>
@@ -488,7 +488,7 @@ export default function LicenseManagement() {
                 Licensed To
               </Typography>
               <Typography variant="body1" sx={{ mt: 1, fontWeight: 500 }}>
-                {license.customer_name}
+                {license.customer_name || 'Unknown'}
               </Typography>
             </CardContent>
           </Card>
