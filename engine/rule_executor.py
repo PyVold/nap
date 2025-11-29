@@ -59,7 +59,11 @@ class RuleExecutor:
             config_data = await connector.get_config(filter_data=check.filter_xml)
         elif device.vendor == VendorType.NOKIA_SROS and check.xpath:
             # Nokia SROS uses XPath and returns configuration (not operational state)
-            config_data = await connector.get_config(xpath=check.xpath)
+            # If filter is provided, use it to narrow down the query
+            if check.filter:
+                config_data = await connector.get_config(xpath=check.xpath, filter=check.filter)
+            else:
+                config_data = await connector.get_config(xpath=check.xpath)
         else:
             # Fallback to full config
             config_data = await connector.get_config()

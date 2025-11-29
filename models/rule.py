@@ -11,6 +11,7 @@ class RuleCheck(BaseModel):
     name: Optional[str] = "Check"  # Optional with default for backward compatibility
     filter_xml: Optional[str] = None
     xpath: Optional[str] = None
+    filter: Optional[dict] = None  # Nokia SROS filter dict for pysros get() function
     comparison: Optional[ComparisonType] = None  # Optional for backward compatibility
     reference_value: Optional[str] = None
     reference_config: Optional[str] = None
