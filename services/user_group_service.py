@@ -330,6 +330,10 @@ class UserGroupService:
         # Backend uses names like 'manual_audits', 'scheduled_audits', 'basic_rules'
         # Frontend uses 'audit', 'audit_schedules', 'rules'
         module_mapping = {
+            'devices': 'devices',
+            'device_groups': 'device_groups',
+            'device_import': 'device_import',
+            'discovery': 'discovery_groups',
             'manual_audits': 'audit',
             'scheduled_audits': 'audit_schedules',
             'basic_rules': 'rules',
@@ -338,18 +342,15 @@ class UserGroupService:
             'config_backups': 'config_backups',
             'drift_detection': 'drift_detection',
             'webhooks': 'notifications',
-            'device_groups': 'device_groups',
-            'discovery': 'discovery_groups',
             'health_checks': 'health',
+            'hardware_inventory': 'hardware_inventory',
             'workflow_automation': 'workflows',
             'topology': 'topology',
             'ai_features': 'ai',
             'integrations': 'integrations',
             'sso': 'sso',
-            'devices': 'devices',
-            'device_import': 'device_import',
-            'hardware_inventory': 'hardware_inventory',
             'analytics': 'analytics',
+            'remediation': 'remediation',
             'admin': 'admin'
         }
         
