@@ -41,11 +41,6 @@ env/
 *.log
 logs/
 
-# Environment
-.env
-.env.local
-.env.*.local
-
 # License System - IMPORTANT: Never commit license files!
 license_output/
 !license_output/README.md
@@ -55,7 +50,6 @@ license_output/
 # Frontend
 node_modules/
 frontend/build/
-frontend/.env
 frontend/package-lock.json
 
 # macOS
