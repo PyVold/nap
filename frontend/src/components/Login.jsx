@@ -29,10 +29,10 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to admin if already authenticated
+  // Redirect to dashboard if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate('/admin');
+      navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
@@ -44,7 +44,8 @@ export default function Login() {
     const result = await login(username, password);
 
     if (result.success) {
-      navigate('/admin');
+      // Redirect to root - the app will handle license check and redirect if needed
+      navigate('/');
     } else {
       setError(result.error);
     }
