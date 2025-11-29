@@ -44,24 +44,31 @@ export default function LicenseManagement() {
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
+    console.log('[LicenseManagement] Component mounted, fetching license status');
     fetchLicenseStatus();
   }, []);
 
   const fetchLicenseStatus = async () => {
+    console.log('[LicenseManagement] Fetching license status...');
     setLoading(true);
     try {
       const response = await api.get('/license/status');
+      console.log('[LicenseManagement] License status received:', response.data);
       setLicense(response.data);
       setError(null);
     } catch (err) {
+      console.error('[LicenseManagement] Error fetching license:', err);
       if (err.response?.status === 404) {
         // No license activated
+        console.log('[LicenseManagement] No license found (404)');
         setLicense(null);
       } else {
+        console.error('[LicenseManagement] Failed to fetch license:', err.message);
         setError('Failed to fetch license status');
       }
     } finally {
       setLoading(false);
+      console.log('[LicenseManagement] Loading complete');
     }
   };
 
