@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from api.deps import get_db
 from db_models import DeviceDB, ConfigBackupDB, ConfigChangeEventDB
 from services.config_backup_service import ConfigBackupService
+from services.license_enforcement_service import license_enforcement_service
 from models.device import Device
 from models.enums import VendorType
 
@@ -195,7 +196,11 @@ def create_backup(
     request: CreateBackupRequest,
     db: Session = Depends(get_db)
 ):
-    """Manually trigger a configuration backup for a device"""
+    """
+    Manually trigger a configuration backup for a device
+    
+    Enforces storage quota limits based on license tier.
+    """
     try:
         # Get device from database
         stmt = select(DeviceDB).where(DeviceDB.id == request.device_id)
@@ -229,12 +234,32 @@ def create_backup(
                     created_by=request.created_by
                 )
             )
+            
+            # After creating backup, check storage quota
+            # If exceeded, try to clean up old backups automatically
+            storage_check = license_enforcement_service.check_storage_quota(db, 0)
+            if not storage_check["allowed"]:
+                # Try to clean up old backups
+                cleanup_result = license_enforcement_service.cleanup_old_backups_if_needed(db)
+                if cleanup_result["cleaned"] > 0:
+                    # Log the cleanup
+                    from utils.logger import setup_logger
+                    logger = setup_logger(__name__)
+                    logger.info(f"Storage quota exceeded. Cleaned up {cleanup_result['cleaned']} old backups "
+                              f"to free {cleanup_result['freed_gb']} GB")
+            
+            # Update license usage stats
+            license_enforcement_service.enforcer.update_license_usage(db)
+            
             return backup
         finally:
             loop.close()
 
     except HTTPException:
         raise
+    except ValueError as e:
+        # License enforcement errors
+        raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

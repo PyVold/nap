@@ -13,6 +13,7 @@ from shared.logger import setup_logger
 from shared.exceptions import DeviceNotFoundError
 from shared.validators import validate_hostname, validate_ip
 from shared.backoff import BackoffManager
+from services.license_enforcement_service import license_enforcement_service
 
 logger = setup_logger(__name__)
 
@@ -110,9 +111,14 @@ class DeviceService:
         return True
 
     def merge_discovered_devices(self, db: Session, discovered: List[Device]) -> int:
-        """Merge discovered devices with existing ones"""
-        added_count = 0
-
+        """
+        Merge discovered devices with existing ones
+        
+        Enforces device limits based on license tier - only adds devices within quota.
+        """
+        # First pass: separate new devices from updates
+        new_devices_to_add = []
+        
         for new_device in discovered:
             # First check if a device with this IP already exists (primary match)
             existing_by_ip = None
@@ -123,7 +129,7 @@ class DeviceService:
             existing_by_hostname = db.query(DeviceDB).filter(DeviceDB.hostname == new_device.hostname).first()
 
             if existing_by_ip:
-                # Device with this IP exists - update it
+                # Device with this IP exists - update it (doesn't count against quota)
                 if existing_by_ip.hostname != new_device.hostname:
                     # Hostname changed - need to handle UNIQUE constraint
                     # Check if another device already has the new hostname
@@ -149,7 +155,7 @@ class DeviceService:
                 existing_by_ip.updated_at = datetime.utcnow()
                 logger.info(f"Updated existing device at {new_device.ip} (ID: {existing_by_ip.id})")
             elif existing_by_hostname:
-                # Device with this hostname exists but different IP - update IP
+                # Device with this hostname exists but different IP - update IP (doesn't count against quota)
                 logger.info(f"IP changed for device {new_device.hostname}: {existing_by_hostname.ip} -> {new_device.ip}")
                 existing_by_hostname.ip = new_device.ip
                 existing_by_hostname.vendor = new_device.vendor
@@ -159,23 +165,53 @@ class DeviceService:
                 existing_by_hostname.status = DeviceStatus.DISCOVERED
                 existing_by_hostname.updated_at = datetime.utcnow()
             else:
-                # Brand new device - add it
-                db_device = DeviceDB(
-                    hostname=new_device.hostname,
-                    vendor=new_device.vendor,
-                    ip=new_device.ip,
-                    port=new_device.port or 830,
-                    username=new_device.username,
-                    password=new_device.password,
-                    status=DeviceStatus.DISCOVERED,
-                    compliance=0.0
+                # Brand new device - add to list for quota checking
+                new_devices_to_add.append(new_device)
+
+        # Enforce device limits using license enforcement service
+        if new_devices_to_add:
+            enforcement_result = license_enforcement_service.enforce_device_limit_on_discovery(
+                db, [d.__dict__ for d in new_devices_to_add]
+            )
+            
+            accepted_devices = enforcement_result["accepted"]
+            rejected_devices = enforcement_result["rejected"]
+            
+            if rejected_devices:
+                logger.warning(
+                    f"Device quota exceeded: {len(rejected_devices)} discovered devices rejected. "
+                    f"Upgrade license to add more devices."
                 )
-                db.add(db_device)
-                added_count += 1
-                logger.info(f"Added new device: {new_device.hostname} at {new_device.ip}")
+            
+            # Add only the accepted devices
+            added_count = 0
+            for i, new_device in enumerate(new_devices_to_add):
+                # Check if this device was accepted
+                if i < len(accepted_devices):
+                    db_device = DeviceDB(
+                        hostname=new_device.hostname,
+                        vendor=new_device.vendor,
+                        ip=new_device.ip,
+                        port=new_device.port or 830,
+                        username=new_device.username,
+                        password=new_device.password,
+                        status=DeviceStatus.DISCOVERED,
+                        compliance=0.0
+                    )
+                    db.add(db_device)
+                    added_count += 1
+                    logger.info(f"Added new device: {new_device.hostname} at {new_device.ip}")
+                else:
+                    logger.info(f"Skipped device due to quota: {new_device.hostname} at {new_device.ip}")
+        else:
+            added_count = 0
 
         db.commit()
-        logger.info(f"Merged {added_count} new devices")
+        
+        # Update license usage stats
+        license_enforcement_service.enforcer.update_license_usage(db)
+        
+        logger.info(f"Merged {added_count} new devices (quota enforced)")
         return added_count
 
     def get_devices_by_vendor(self, db: Session, vendor: str) -> List[Device]:

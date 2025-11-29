@@ -17,6 +17,8 @@ from models.user_group import (
     User, UserCreate, UserUpdate, Permission
 )
 from shared.logger import setup_logger
+from shared.license_middleware import license_enforcer
+from shared.license_manager import license_manager
 
 logger = setup_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -294,25 +296,84 @@ class UserGroupService:
         return set(p.permission for p in permissions)
 
     def get_user_modules(self, db: Session, user_id: int) -> Set[str]:
-        """Get all accessible modules for a user (aggregated from all groups)"""
-        # Check if superuser
-        db_user = db.query(UserDB).filter(UserDB.id == user_id).first()
-        if db_user and db_user.is_superuser:
-            return set([
+        """
+        Get all accessible modules for a user (aggregated from all groups)
+        
+        IMPORTANT: This now enforces license restrictions for ALL users including admin/superuser.
+        Only modules available in the active license tier will be returned.
+        """
+        # Get active license data - if no license, no modules available
+        license_data = license_enforcer.get_active_license_data(db)
+        
+        if not license_data:
+            logger.warning(f"No active license - user {user_id} has no module access")
+            return set()
+        
+        # Get tier and available modules from license
+        tier = license_data.get("tier", "starter")
+        tier_modules = license_manager.get_tier_modules(tier)
+        
+        # Convert to set for easier filtering
+        license_modules = set(tier_modules)
+        
+        # If license has "all" modules, get the full list
+        if "all" in license_modules:
+            license_modules = set([
                 'devices', 'device_groups', 'discovery_groups', 'device_import',
                 'audit', 'audit_schedules', 'rules', 'rule_templates',
                 'config_backups', 'drift_detection',
                 'notifications', 'health', 'hardware_inventory', 'integrations',
                 'workflows', 'analytics', 'admin'
             ])
+        
+        # Map license module names to frontend module names if needed
+        # Backend uses names like 'manual_audits', 'scheduled_audits', 'basic_rules'
+        # Frontend uses 'audit', 'audit_schedules', 'rules'
+        module_mapping = {
+            'manual_audits': 'audit',
+            'scheduled_audits': 'audit_schedules',
+            'basic_rules': 'rules',
+            'rule_templates': 'rule_templates',
+            'api_access': 'api',
+            'config_backups': 'config_backups',
+            'drift_detection': 'drift_detection',
+            'webhooks': 'notifications',
+            'device_groups': 'device_groups',
+            'discovery': 'discovery_groups',
+            'health_checks': 'health',
+            'workflow_automation': 'workflows',
+            'topology': 'topology',
+            'ai_features': 'ai',
+            'integrations': 'integrations',
+            'sso': 'sso',
+            'devices': 'devices',
+            'device_import': 'device_import',
+            'hardware_inventory': 'hardware_inventory',
+            'analytics': 'analytics',
+            'admin': 'admin'
+        }
+        
+        # Convert license modules to frontend module names
+        frontend_license_modules = set()
+        for license_module in license_modules:
+            frontend_module = module_mapping.get(license_module, license_module)
+            frontend_license_modules.add(frontend_module)
+        
+        # Check if superuser - they see ALL modules that are in the license, not just group-assigned ones
+        db_user = db.query(UserDB).filter(UserDB.id == user_id).first()
+        if db_user and db_user.is_superuser:
+            # Superusers get all modules that are available in the license
+            logger.debug(f"Superuser {user_id} has access to all licensed modules: {frontend_license_modules}")
+            return frontend_license_modules
 
-        # Get user's groups
+        # For regular users, get their group-based module access
         memberships = db.query(UserGroupMembershipDB).filter(
             UserGroupMembershipDB.user_id == user_id
         ).all()
         group_ids = [m.group_id for m in memberships]
 
         if not group_ids:
+            logger.debug(f"User {user_id} has no groups - no module access")
             return set()
 
         # Get all module access from all groups
@@ -321,7 +382,15 @@ class UserGroupService:
             GroupModuleAccessDB.can_access == True
         ).all()
 
-        return set(m.module_name for m in module_access)
+        user_modules = set(m.module_name for m in module_access)
+        
+        # Intersect user modules with license-allowed modules
+        # User can only access modules that are BOTH in their groups AND in the license
+        allowed_modules = user_modules.intersection(frontend_license_modules)
+        
+        logger.debug(f"User {user_id} modules: group={user_modules}, license={frontend_license_modules}, allowed={allowed_modules}")
+        
+        return allowed_modules
 
     def user_has_permission(self, db: Session, user_id: int, permission: str) -> bool:
         """Check if user has a specific permission"""

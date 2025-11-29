@@ -308,28 +308,28 @@ class NokiaSROSConnector(BaseConnector):
                                                 # Build path: base/container/instance/leaf
                                                 item_path = f"{xpath}/{key}/{list_key}/{leaf}"
                                                 logger.debug(f"Setting: {item_path} = {leaf_value}")
-                                                self.connection.candidate.set(path=item_path, value=leaf_value)
+                                                self.connection.candidate.set(path=item_path, value=leaf_value, method='replace')
                                         else:
                                             # Direct value
                                             item_path = f"{xpath}/{key}/{list_key}"
                                             logger.debug(f"Setting: {item_path} = {list_value}")
-                                            self.connection.candidate.set(path=item_path, value=list_value)
+                                            self.connection.candidate.set(path=item_path, value=list_value, method='replace')
                                 else:
                                     # Simple value - set at current level
                                     simple_path = f"{xpath}/{key}"
                                     logger.debug(f"Setting simple value: {simple_path} = {value}")
-                                    self.connection.candidate.set(path=simple_path, value=value)
+                                    self.connection.candidate.set(path=simple_path, value=value, method='replace')
 
                             logger.info(f"Committing configuration on {self.device.hostname}")
                             self.connection.candidate.commit()
                         else:
                             # No nested dicts, set normally
                             logger.info(f"Committing configuration on {self.device.hostname}")
-                            self.connection.candidate.set(path=xpath, commit=True, value=config_value)
+                            self.connection.candidate.set(path=xpath, commit=True, value=config_value, method='replace')
                     else:
                         # Simple value, set normally
                         logger.info(f"Committing configuration on {self.device.hostname}")
-                        self.connection.candidate.set(path=xpath, commit=True, value=config_value)
+                        self.connection.candidate.set(path=xpath, commit=True, value=config_value, method='replace')
 
                 await loop.run_in_executor(None, apply_xpath_config)
 
