@@ -231,14 +231,16 @@ async def get_license_status(db: Session = Depends(get_db)):
         active_license.last_validated = datetime.utcnow()
         db.commit()
         
-        # Get current usage
-        device_count = db.query(db_models.DeviceDB).count()
-        user_count = db.query(db_models.UserDB).count()
+        # Update all current usage stats including storage
+        # This ensures the UI shows the most recent usage data
+        license_enforcement_service.enforcer.update_license_usage(db)
         
-        # Update current usage in license record
-        active_license.current_devices = device_count
-        active_license.current_users = user_count
-        db.commit()
+        # Refresh the license object to get updated values
+        db.refresh(active_license)
+        
+        # Get current usage (already updated above, but keep for clarity)
+        device_count = active_license.current_devices
+        user_count = active_license.current_users
         
         # Calculate quotas
         quotas = {

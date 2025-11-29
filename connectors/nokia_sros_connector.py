@@ -282,8 +282,18 @@ class NokiaSROSConnector(BaseConnector):
                     raise ValueError(f"Config must be dict, JSON string, or simple value, got: {type(config_data)}")
 
                 def apply_xpath_config():
-                    """Apply configuration using pysros candidate.set()"""
+                    """Apply configuration using pysros candidate.delete() then .set()"""
                     logger.debug(f"Setting {xpath} = {config_value}")
+
+                    # First, delete the existing configuration at this path to ensure clean state
+                    # This prevents leftover configuration from previous runs
+                    try:
+                        logger.info(f"Deleting existing configuration at {xpath} before applying new config")
+                        self.connection.candidate.delete(path=xpath)
+                        logger.debug(f"Successfully deleted existing config at {xpath}")
+                    except Exception as delete_error:
+                        # If delete fails (e.g., path doesn't exist), that's fine - continue
+                        logger.debug(f"Delete at {xpath} failed or path doesn't exist: {delete_error}. Continuing with set.")
 
                     # Handle nested dictionaries that might contain list items
                     # For pySROS, if we have nested dicts, we need to set them hierarchically

@@ -208,24 +208,27 @@ function AppContent() {
   ];
 
   // Filter menu items based on user role and module access
+  // IMPORTANT: License enforcement applies to ALL users including admins
   const menuItems = allMenuItems.filter(item => {
     // Always show dividers
     if (item.isDivider) return true;
 
-    // Admin/superuser always sees all menu items (including admin-only)
-    if (isAdmin) return true;
-
-    // Hide admin panel for non-admins
-    if (item.adminOnly) return false;
+    // Admin-only items (User Management, Admin Panel) - only visible to admins
+    if (item.adminOnly && !isAdmin) return false;
 
     // If item doesn't require a specific module (like Dashboard, License), show it
+    // These items are always visible regardless of license
     if (!item.module) return true;
 
-    // If userModules is empty and not admin, hide module-specific items
-    // (prevents showing all menus for non-admin users before modules load)
-    if (!userModules || userModules.length === 0) return false;
+    // For module-specific items, check if user has access
+    // This applies to ALL users including admins and superusers
+    // userModules already contains license-restricted modules from backend
+    if (!userModules || userModules.length === 0) {
+      // If modules haven't loaded yet, hide module-specific items
+      return false;
+    }
 
-    // Check if user has access to this module
+    // Check if user has access to this module (enforced by license + group permissions)
     return userModules.includes(item.module);
   });
 
