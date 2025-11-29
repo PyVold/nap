@@ -10,7 +10,6 @@ from datetime import datetime
 
 from api.deps import get_db
 from db_models import UserDB, SystemModuleDB, AuditLogDB
-from services.license_enforcement_service import license_enforcement_service
 from utils.auth import (
     get_password_hash,
     verify_password,
@@ -101,16 +100,6 @@ class AuditLogResponse(BaseModel):
         from_attributes = True
 
 
-class GroupModuleAccessRequest(BaseModel):
-    """Request to set module access for a user group"""
-    module_permissions: dict[str, bool]  # module_name -> can_access
-
-
-class LicenseModuleInfo(BaseModel):
-    """Information about a module in the license"""
-    key: str
-    name: str
-    available: bool
 
 
 # ============================================================================
@@ -450,144 +439,3 @@ def get_admin_stats(
     }
 
 
-# ============================================================================
-# License & Module Permission Management
-# ============================================================================
-
-@router.get("/license/available-modules", response_model=List[LicenseModuleInfo])
-def get_available_modules_for_license(
-    current_user: dict = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    """
-    Get all modules available in the current license tier
-    
-    This shows which modules can be assigned to user groups based on the license.
-    """
-    try:
-        modules = license_enforcement_service.get_available_modules_for_license(db)
-        return modules
-    except Exception as e:
-        logger.error(f"Error fetching available modules: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch available modules: {str(e)}"
-        )
-
-
-@router.get("/groups/{group_id}/module-access")
-def get_group_module_access(
-    group_id: int,
-    current_user: dict = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    """
-    Get module access permissions for a user group
-    
-    Returns:
-        Dict mapping module names to access boolean
-    """
-    try:
-        module_access = license_enforcement_service.get_group_module_access(db, group_id)
-        return {
-            "group_id": group_id,
-            "module_access": module_access
-        }
-    except Exception as e:
-        logger.error(f"Error fetching group module access: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch group module access: {str(e)}"
-        )
-
-
-@router.put("/groups/{group_id}/module-access")
-def set_group_module_access(
-    group_id: int,
-    request: GroupModuleAccessRequest,
-    current_user: dict = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    """
-    Set module access permissions for a user group
-    
-    Only modules available in the current license tier can be granted.
-    Attempting to grant access to unavailable modules will fail.
-    """
-    try:
-        license_enforcement_service.set_group_module_access(
-            db,
-            group_id,
-            request.module_permissions
-        )
-        
-        # Log the action
-        audit_log = AuditLogDB(
-            user_id=current_user["user_id"],
-            username=current_user["sub"],
-            action="group_module_access_updated",
-            resource_type="user_group",
-            resource_id=group_id,
-            details={"module_permissions": request.module_permissions}
-        )
-        db.add(audit_log)
-        db.commit()
-        
-        logger.info(f"Updated module access for group {group_id} by {current_user['sub']}")
-        
-        return {
-            "success": True,
-            "message": "Module access updated successfully",
-            "group_id": group_id,
-            "module_permissions": request.module_permissions
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error setting group module access: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to set group module access: {str(e)}"
-        )
-
-
-@router.get("/license/quotas")
-def get_license_quotas(
-    current_user: dict = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    """
-    Get current license quota status
-    
-    Returns usage for devices, users, and storage.
-    """
-    try:
-        device_quota = license_enforcement_service.check_can_add_devices(db, 0)
-        user_quota = license_enforcement_service.check_can_create_user(db)
-        storage_quota = license_enforcement_service.check_storage_quota(db, 0)
-        
-        return {
-            "devices": {
-                "current": device_quota["current"],
-                "max": device_quota["max"],
-                "available_slots": device_quota["available_slots"],
-                "within_quota": device_quota["allowed"]
-            },
-            "users": {
-                "current": user_quota["current"],
-                "max": user_quota["max"],
-                "within_quota": user_quota["allowed"]
-            },
-            "storage": {
-                "current_gb": storage_quota["current_gb"],
-                "max_gb": storage_quota["max_gb"],
-                "used_percentage": storage_quota["used_percentage"],
-                "within_quota": storage_quota["allowed"]
-            }
-        }
-    except Exception as e:
-        logger.error(f"Error fetching license quotas: {str(e)}")
-        return {
-            "error": "Failed to fetch license quotas",
-            "message": str(e)
-        }

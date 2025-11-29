@@ -198,6 +198,11 @@ def require_any_permission(*permissions: str):
 def require_module_access(module_name: str):
     """
     Dependency to check if user can access a specific module
+    
+    IMPORTANT: This now enforces license restrictions for ALL users including superusers.
+    The module must be:
+    1. Available in the active license tier
+    2. Granted to the user via their group membership (or all modules if superuser)
 
     Args:
         module_name: Module name (e.g., 'devices', 'audit', 'rules')
@@ -211,15 +216,18 @@ def require_module_access(module_name: str):
         db_user: UserDB = Depends(get_current_user_db),
         db: Session = Depends(get_db)
     ) -> UserDB:
-        # Superusers have access to all modules
-        if db_user.is_superuser:
-            return db_user
-
-        # Check if user has access to the module
+        # Check if user has access to the module (this now includes license checking)
+        # The user_can_access_module method has been updated to enforce license restrictions
         if not user_group_service.user_can_access_module(db, db_user.id, module_name):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Module '{module_name}' is not accessible",
+                detail={
+                    "error": "Module access denied",
+                    "module": module_name,
+                    "message": f"Module '{module_name}' is not accessible. "
+                              "It may not be available in your license tier or you don't have permission.",
+                    "action": "check_license_or_contact_admin"
+                }
             )
 
         return db_user

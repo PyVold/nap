@@ -66,7 +66,6 @@ import UserManagement from './components/UserManagement';
 import Workflows from './components/Workflows';
 import HardwareInventory from './components/HardwareInventory';
 import LicenseManagement from './components/LicenseManagement';
-import LicenseQuotaManager from './components/LicenseQuotaManager';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
@@ -205,7 +204,6 @@ function AppContent() {
     { text: 'divider', isDivider: true },
     { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
-    { text: 'License Quotas', icon: <KeyIcon />, path: '/license-quotas', module: null, adminOnly: true }, // Admin only
     { text: 'Admin Panel', icon: <AdminIcon />, path: '/admin', module: null, adminOnly: true }, // Admin only
   ];
 
@@ -390,7 +388,6 @@ function AppContent() {
             <Route path="/analytics" element={<LicenseGuard><Analytics /></LicenseGuard>} />
             <Route path="/admin" element={<LicenseGuard><AdminPanel /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
-            <Route path="/license-quotas" element={<LicenseGuard><LicenseQuotaManager /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Box>
