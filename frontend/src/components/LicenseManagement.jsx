@@ -31,8 +31,8 @@ import KeyIcon from '@mui/icons-material/Key';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import WarningIcon from '@mui/icons-material/Warning';
 import api from '../api/api';
-import { LicenseWarningBanner } from './LicenseGuard';
 
 export default function LicenseManagement() {
   const [license, setLicense] = useState(null);
@@ -259,7 +259,24 @@ export default function LicenseManagement() {
       </Box>
 
       {/* License Warning Banner - shows when license is invalid/expired */}
-      <LicenseWarningBanner />
+      {license && !license.valid && (
+        <Alert severity="error" icon={<WarningIcon />} sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            License {license.days_until_expiry <= 0 ? 'Expired' : 'Invalid'}
+          </Typography>
+          <Typography variant="body2">
+            {license.days_until_expiry <= 0
+              ? `Your license expired ${Math.abs(license.days_until_expiry)} days ago. All modules are now locked.`
+              : 'Your license is invalid or corrupted. All modules are locked.'}
+            {' '}Please activate a new license key or contact sales to renew your license.
+          </Typography>
+          {license.expires_at && (
+            <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+              Original expiry date: {new Date(license.expires_at).toLocaleDateString()}
+            </Typography>
+          )}
+        </Alert>
+      )}
 
       {/* Alert Messages */}
       {error && (
