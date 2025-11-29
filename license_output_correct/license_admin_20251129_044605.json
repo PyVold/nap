@@ -1,0 +1,17 @@
+{
+  "customer_name": "Development User",
+  "customer_email": "admin@localhost.local",
+  "company_name": "Network Audit Platform",
+  "tier": "enterprise",
+  "issued_at": "2025-11-29T04:46:05.106559",
+  "expires_at": "2035-11-27T04:46:05.106559",
+  "max_devices": 999999,
+  "max_users": 999999,
+  "max_storage_gb": 999999,
+  "modules": [
+    "all"
+  ],
+  "order_id": null,
+  "version": "1.0",
+  "license_key_preview": "gAAAAABpKnqNbJQcwmsoL1s41u6C8sI1ue2SveSbgmbhKUYlzr..."
+}

@@ -175,6 +175,10 @@ async def proxy_request(request: Request, path: str):
     # Normalize path - remove trailing slash if present
     original_path = path
     path = path.rstrip('/')
+    
+    # Remove /api prefix if present (for backward compatibility)
+    if path.startswith('api/'):
+        path = path[4:]  # Remove 'api/'
 
     # Determine which service should handle this request
     target_service = None

@@ -1,0 +1,31 @@
+================================================================================
+NETWORK AUDIT PLATFORM - LICENSE KEY
+================================================================================
+
+Customer: Development User
+Email: admin@localhost.local
+Company: Network Audit Platform
+Tier: Enterprise
+Issued: 2025-11-29
+Expires: 2035-11-27
+
+Max Devices: 999999
+Max Users: 999999
+Storage: 999999 GB
+
+================================================================================
+LICENSE KEY (copy this to activate):
+================================================================================
+
+gAAAAABpKnqNbJQcwmsoL1s41u6C8sI1ue2SveSbgmbhKUYlzrp5DWwz6PAvlonjgnjDfS-TVkD-nvkOjVbKw12zZUT3KAxOldEzUBEoYUU0ZaDPIjFIXGTjpkQs_rBa0DscZI0NO4RfKxqZxvIxJ4UPz5e1TYLC9FMWWSYauNWgveAkBSiMpMqm9VesmIQqkhbPBGmsy6N91mlbF8WeYmLspKQ5CN8VY1ES4hmg-QJ8nYyytS6ODjZLPAlRDwKeR-yEb91MvBTCMCSE0lVF9Bx_pxzgcODXtL6pvywTfK85MgE2CS29FwAHkhR3g30K6RCB8Y1Qz2n7WeY65LLmNeohxSQVde_8q5sCZP1TOzb_yqm5usuExGwk1bXUCqt0K_Zung3IldMxcH-Pd_n5DfYbEZAzKNgSp65PAbqF7x8_4or2w4PXdd3-Hc--tHt0hAZtajlhZ6K7aCIbe9oDMwSJc_6C0SJCVZ6n68QXMrqWZXblU80EHJW3rxVDW-OJY7v2TKRgjgxQISHcLpD9KyV317jLZSTNQ-RhZdFSoxUwujVLEZoyefHV8lY5z3Fo7Dq5VpOr7eHNsHf9-uFbYI-v9iyM539HkmXKMNg5LXJmVfOXBM00JYJpz8VpQ1w1a-yqqlfRwmUjzyre4EDHp9YrRbZX2NgN4w==
+
+================================================================================
+ACTIVATION INSTRUCTIONS:
+================================================================================
+1. Log into your Network Audit Platform
+2. Navigate to Settings > License
+3. Paste the license key above
+4. Click 'Activate'
+
+For support: support@yourcompany.com
+================================================================================
