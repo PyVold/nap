@@ -29,9 +29,7 @@ LICENSE_TIERS = {
         "max_devices": 10,
         "max_users": 2,
         "max_storage_gb": 5,
-        "modules": [
-            "devices", "manual_audits", "basic_rules", "health_checks"
-        ]
+        "modules": ["devices", "manual_audits", "basic_rules", "health_checks"]
     },
     "professional": {
         "name": "Professional",
@@ -39,10 +37,9 @@ LICENSE_TIERS = {
         "max_users": 10,
         "max_storage_gb": 50,
         "modules": [
-            "devices", "device_groups", "device_import", "discovery",
-            "manual_audits", "scheduled_audits", "basic_rules", "rule_templates",
-            "config_backups", "drift_detection", "webhooks",
-            "health_checks", "hardware_inventory", "api_access"
+            "devices", "manual_audits", "scheduled_audits", "basic_rules",
+            "rule_templates", "api_access", "config_backups", "drift_detection",
+            "webhooks", "device_groups", "discovery"
         ]
     },
     "enterprise": {
@@ -57,9 +54,6 @@ LICENSE_TIERS = {
 # Module display names for UI
 MODULE_DISPLAY_NAMES = {
     "devices": "Device Management",
-    "device_groups": "Device Groups",
-    "device_import": "Device Import",
-    "discovery": "Device Discovery",
     "manual_audits": "Manual Audits",
     "scheduled_audits": "Scheduled Audits",
     "basic_rules": "Basic Audit Rules",
@@ -68,15 +62,14 @@ MODULE_DISPLAY_NAMES = {
     "config_backups": "Configuration Backups",
     "drift_detection": "Drift Detection",
     "webhooks": "Webhook Notifications",
+    "device_groups": "Device Groups",
+    "discovery": "Device Discovery",
     "health_checks": "Health Monitoring",
-    "hardware_inventory": "Hardware Inventory",
     "workflow_automation": "Workflow Automation",
     "topology": "Network Topology Maps",
     "ai_features": "AI-Powered Features",
     "integrations": "Advanced Integrations",
-    "sso": "SSO & SAML Authentication",
-    "analytics": "Analytics & Reporting",
-    "remediation": "Remediation Tasks"
+    "sso": "SSO & SAML Authentication"
 }
 
 
