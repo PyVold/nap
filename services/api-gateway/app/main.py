@@ -1,6 +1,6 @@
 """
 API Gateway - Main Entry Point
-Handles service discovery and request routing with license enforcement
+Handles service discovery and request routing
 """
 
 from fastapi import FastAPI, Request, HTTPException
@@ -10,7 +10,6 @@ import httpx
 import sys
 from shared.logger import setup_logger
 from typing import Dict, List
-from app.license_middleware import license_gateway_middleware
 
 logger = setup_logger(__name__)
 
@@ -171,7 +170,7 @@ async def health_check():
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_request(request: Request, path: str):
-    """Proxy requests to appropriate microservice with license enforcement"""
+    """Proxy requests to appropriate microservice"""
 
     # Normalize path - remove trailing slash if present
     original_path = path
@@ -180,16 +179,6 @@ async def proxy_request(request: Request, path: str):
     # Remove /api prefix if present (for backward compatibility)
     if path.startswith('api/'):
         path = path[4:]  # Remove 'api/'
-
-    # ============================================================================
-    # LICENSE ENFORCEMENT - Check if license allows access to this module
-    # ============================================================================
-    try:
-        license_gateway_middleware.check_license_for_request(f"/{path}")
-    except HTTPException as e:
-        # License check failed - return error to client
-        logger.warning(f"License check failed for path /{path}: {e.detail}")
-        raise e
 
     # Determine which service should handle this request
     target_service = None

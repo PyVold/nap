@@ -11,7 +11,6 @@ from services.device_service import DeviceService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
 from engine.audit_engine import AuditEngine
-from shared.license_middleware import require_license_module
 from utils.logger import setup_logger
 
 router = APIRouter()
@@ -36,10 +35,9 @@ async def execute_audit_background(devices: List, rules: List):
 async def run_audit(
     audit_request: AuditRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    _: None = Depends(require_license_module("manual_audits"))
+    db: Session = Depends(get_db)
 ):
-    """Execute audit on specified devices with specified rules (requires 'manual_audits' module)"""
+    """Execute audit on specified devices with specified rules"""
 
     # Determine which devices to audit
     if audit_request.device_ids:
