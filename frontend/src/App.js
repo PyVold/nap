@@ -69,10 +69,12 @@ import LicenseManagement from './components/LicenseManagement';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
+import ModuleGuard from './components/ModuleGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LicenseProvider } from './contexts/LicenseContext';
 import api from './api/api';
+import { fetchModuleMappings, mapRouteToModule } from './utils/moduleMappings';
 
 const drawerWidth = 240;
 
@@ -147,9 +149,23 @@ const darkTheme = createTheme({
 function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [moduleMappings, setModuleMappings] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, loading, logout, userModules, isAdmin } = useAuth();
+
+  // Fetch module mappings on mount
+  useEffect(() => {
+    const loadModuleMappings = async () => {
+      try {
+        const mappings = await fetchModuleMappings();
+        setModuleMappings(mappings);
+      } catch (error) {
+        console.error('Failed to load module mappings:', error);
+      }
+    };
+    loadModuleMappings();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -228,8 +244,12 @@ function AppContent() {
       return false;
     }
 
+    // Map the frontend module name to the backend license module name
+    // e.g., 'audit' -> 'manual_audits', 'audit_schedules' -> 'scheduled_audits'
+    const licenseModule = mapRouteToModule(item.module, moduleMappings);
+
     // Check if user has access to this module (enforced by license + group permissions)
-    return userModules.includes(item.module);
+    return userModules.includes(licenseModule);
   });
 
   const drawer = (
@@ -371,24 +391,24 @@ function AppContent() {
         >
           <Toolbar />
           <Routes>
-            {/* All routes are protected by LicenseGuard */}
+            {/* All routes are protected by LicenseGuard and ModuleGuard */}
             <Route path="/" element={<LicenseGuard><Dashboard /></LicenseGuard>} />
-            <Route path="/devices" element={<LicenseGuard><DeviceManagement /></LicenseGuard>} />
-            <Route path="/device-groups" element={<LicenseGuard><DeviceGroups /></LicenseGuard>} />
-            <Route path="/discovery-groups" element={<LicenseGuard><DiscoveryGroups /></LicenseGuard>} />
-            <Route path="/device-import" element={<LicenseGuard><DeviceImport /></LicenseGuard>} />
-            <Route path="/audits" element={<LicenseGuard><AuditResults /></LicenseGuard>} />
-            <Route path="/audit-schedules" element={<LicenseGuard><AuditSchedules /></LicenseGuard>} />
-            <Route path="/rules" element={<LicenseGuard><RuleManagement /></LicenseGuard>} />
-            <Route path="/rule-templates" element={<LicenseGuard><RuleTemplates /></LicenseGuard>} />
-            <Route path="/config-backups" element={<LicenseGuard><ConfigBackups /></LicenseGuard>} />
-            <Route path="/drift-detection" element={<LicenseGuard><DriftDetection /></LicenseGuard>} />
-            <Route path="/notifications" element={<LicenseGuard><Notifications /></LicenseGuard>} />
-            <Route path="/health" element={<LicenseGuard><DeviceHealth /></LicenseGuard>} />
-            <Route path="/hardware-inventory" element={<LicenseGuard><HardwareInventory /></LicenseGuard>} />
-            <Route path="/integrations" element={<LicenseGuard><Integrations /></LicenseGuard>} />
-            <Route path="/workflows" element={<LicenseGuard><Workflows /></LicenseGuard>} />
-            <Route path="/analytics" element={<LicenseGuard><Analytics /></LicenseGuard>} />
+            <Route path="/devices" element={<LicenseGuard><ModuleGuard module="devices"><DeviceManagement /></ModuleGuard></LicenseGuard>} />
+            <Route path="/device-groups" element={<LicenseGuard><ModuleGuard module="device_groups"><DeviceGroups /></ModuleGuard></LicenseGuard>} />
+            <Route path="/discovery-groups" element={<LicenseGuard><ModuleGuard module="discovery_groups"><DiscoveryGroups /></ModuleGuard></LicenseGuard>} />
+            <Route path="/device-import" element={<LicenseGuard><ModuleGuard module="device_import"><DeviceImport /></ModuleGuard></LicenseGuard>} />
+            <Route path="/audits" element={<LicenseGuard><ModuleGuard module="audit"><AuditResults /></ModuleGuard></LicenseGuard>} />
+            <Route path="/audit-schedules" element={<LicenseGuard><ModuleGuard module="audit_schedules"><AuditSchedules /></ModuleGuard></LicenseGuard>} />
+            <Route path="/rules" element={<LicenseGuard><ModuleGuard module="rules"><RuleManagement /></ModuleGuard></LicenseGuard>} />
+            <Route path="/rule-templates" element={<LicenseGuard><ModuleGuard module="rule_templates"><RuleTemplates /></ModuleGuard></LicenseGuard>} />
+            <Route path="/config-backups" element={<LicenseGuard><ModuleGuard module="config_backups"><ConfigBackups /></ModuleGuard></LicenseGuard>} />
+            <Route path="/drift-detection" element={<LicenseGuard><ModuleGuard module="drift_detection"><DriftDetection /></ModuleGuard></LicenseGuard>} />
+            <Route path="/notifications" element={<LicenseGuard><ModuleGuard module="notifications"><Notifications /></ModuleGuard></LicenseGuard>} />
+            <Route path="/health" element={<LicenseGuard><ModuleGuard module="health"><DeviceHealth /></ModuleGuard></LicenseGuard>} />
+            <Route path="/hardware-inventory" element={<LicenseGuard><ModuleGuard module="hardware_inventory"><HardwareInventory /></ModuleGuard></LicenseGuard>} />
+            <Route path="/integrations" element={<LicenseGuard><ModuleGuard module="integrations"><Integrations /></ModuleGuard></LicenseGuard>} />
+            <Route path="/workflows" element={<LicenseGuard><ModuleGuard module="workflows"><Workflows /></ModuleGuard></LicenseGuard>} />
+            <Route path="/analytics" element={<LicenseGuard><ModuleGuard module="analytics"><Analytics /></ModuleGuard></LicenseGuard>} />
             <Route path="/admin" element={<LicenseGuard><AdminPanel /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />

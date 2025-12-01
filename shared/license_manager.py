@@ -29,7 +29,12 @@ LICENSE_TIERS = {
         "max_devices": 10,
         "max_users": 2,
         "max_storage_gb": 5,
-        "modules": ["devices", "manual_audits", "basic_rules", "health_checks"]
+        "modules": [
+            "devices",           # Device Management
+            "manual_audits",     # Manual Audits
+            "basic_rules",       # Basic Audit Rules
+            "health_checks"      # Health Monitoring
+        ]
     },
     "professional": {
         "name": "Professional",
@@ -37,9 +42,17 @@ LICENSE_TIERS = {
         "max_users": 10,
         "max_storage_gb": 50,
         "modules": [
-            "devices", "manual_audits", "scheduled_audits", "basic_rules",
-            "rule_templates", "api_access", "config_backups", "drift_detection",
-            "webhooks", "device_groups", "discovery"
+            # Starter features
+            "devices", "manual_audits", "basic_rules", "health_checks",
+            # Professional features
+            "scheduled_audits",  # Scheduled Audits
+            "rule_templates",    # Rule Templates
+            "api_access",        # API Access
+            "config_backups",    # Configuration Backups
+            "drift_detection",   # Drift Detection
+            "webhooks",          # Webhook Notifications
+            "device_groups",     # Device Groups
+            "discovery"          # Device Discovery
         ]
     },
     "enterprise": {
@@ -47,7 +60,7 @@ LICENSE_TIERS = {
         "max_devices": 999999,  # Unlimited
         "max_users": 999999,
         "max_storage_gb": 999999,
-        "modules": ["all"]  # All features
+        "modules": ["all"]  # All features including integrations, workflow_automation, ai_features, topology, sso
     }
 }
 
@@ -71,6 +84,59 @@ MODULE_DISPLAY_NAMES = {
     "integrations": "Advanced Integrations",
     "sso": "SSO & SAML Authentication"
 }
+
+# Route to module mapping
+# Maps frontend routes and API endpoint names to license modules
+# This ensures consistency between frontend menu, routes, and backend API
+ROUTE_MODULE_MAP = {
+    # Device Management
+    "devices": "devices",
+    "device_groups": "device_groups",
+    "discovery_groups": "discovery",
+    "device_import": "devices",  # Part of device management
+
+    # Auditing
+    "audit": "manual_audits",
+    "audits": "manual_audits",
+    "audit_schedules": "scheduled_audits",
+
+    # Rules
+    "rules": "basic_rules",
+    "rule_templates": "rule_templates",
+
+    # Configuration Management
+    "config_backups": "config_backups",
+    "drift_detection": "drift_detection",
+
+    # Monitoring & Notifications
+    "notifications": "webhooks",
+    "health": "health_checks",
+    "hardware_inventory": "devices",  # Part of device management
+
+    # Advanced Features
+    "integrations": "integrations",
+    "workflows": "workflow_automation",
+    "analytics": "ai_features",
+
+    # API Access
+    "api": "api_access",
+}
+
+def get_module_for_route(route_or_menu_name: str) -> str:
+    """
+    Get the license module name for a given route or menu item
+
+    Args:
+        route_or_menu_name: Frontend route name or menu identifier
+
+    Returns:
+        License module name (e.g., "scheduled_audits" for "audit_schedules")
+    """
+    # Remove leading slash if present
+    route = route_or_menu_name.lstrip('/')
+
+    # Return mapped module or the route name itself if no mapping exists
+    return ROUTE_MODULE_MAP.get(route, route)
 
 
 # ============================================================================

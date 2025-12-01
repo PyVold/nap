@@ -11,6 +11,7 @@ from services.discovery_group_service import DiscoveryGroupService
 from services.device_service import DeviceService
 from services.discovery_service import DiscoveryService
 from utils.logger import setup_logger
+from shared.license_middleware import require_license_module
 
 router = APIRouter()
 logger = setup_logger(__name__)
@@ -21,13 +22,20 @@ discovery_service = DiscoveryService()
 
 
 @router.get("/", response_model=List[DiscoveryGroup])
-async def get_all_discovery_groups(db: Session = Depends(get_db)):
+async def get_all_discovery_groups(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("discovery"))
+):
     """Get all discovery groups"""
     return discovery_group_service.get_all_groups(db)
 
 
 @router.get("/{group_id}", response_model=DiscoveryGroup)
-async def get_discovery_group(group_id: int, db: Session = Depends(get_db)):
+async def get_discovery_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("discovery"))
+):
     """Get a specific discovery group by ID"""
     group = discovery_group_service.get_group_by_id(db, group_id)
     if not group:
@@ -41,7 +49,8 @@ async def get_discovery_group(group_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=DiscoveryGroup, status_code=status.HTTP_201_CREATED)
 async def create_discovery_group(
     group_create: DiscoveryGroupCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("discovery"))
 ):
     """Create a new discovery group"""
     try:
@@ -58,7 +67,8 @@ async def create_discovery_group(
 async def update_discovery_group(
     group_id: int,
     group_update: DiscoveryGroupUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("discovery"))
 ):
     """Update an existing discovery group"""
     try:
@@ -77,7 +87,11 @@ async def update_discovery_group(
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_discovery_group(group_id: int, db: Session = Depends(get_db)):
+async def delete_discovery_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("discovery"))
+):
     """Delete a discovery group"""
     try:
         discovery_group_service.delete_group(db, group_id)
@@ -92,7 +106,8 @@ async def delete_discovery_group(group_id: int, db: Session = Depends(get_db)):
 async def run_discovery_for_group(
     group_id: int,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("discovery"))
 ):
     """Run discovery for a specific group"""
     group = discovery_group_service.get_group_by_id(db, group_id)

@@ -11,6 +11,7 @@ from services.device_service import DeviceService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
 from engine.audit_engine import AuditEngine
+from shared.license_middleware import require_license_module
 from utils.logger import setup_logger
 
 router = APIRouter()
@@ -35,7 +36,8 @@ async def execute_audit_background(devices: List, rules: List):
 async def run_audit(
     audit_request: AuditRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("manual_audits"))
 ):
     """Execute audit on specified devices with specified rules"""
 
@@ -88,7 +90,8 @@ async def run_audit(
 @router.get("/results", response_model=List[AuditResult])
 async def get_audit_results(
     latest_only: bool = True,  # Default to latest per device for scalability
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("manual_audits"))
 ):
     """
     Get audit results
@@ -104,7 +107,8 @@ async def get_audit_results(
 @router.get("/results/{device_id}", response_model=AuditResult)
 async def get_device_audit_result(
     device_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("manual_audits"))
 ):
     """Get latest audit result for a specific device"""
     result = audit_service.get_latest_result_by_device(db, device_id)
@@ -119,7 +123,8 @@ async def get_device_audit_result(
 async def get_device_audit_history(
     device_id: int,
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("manual_audits"))
 ):
     """Get audit history for a specific device (latest N results)"""
     results = audit_service.get_results_by_device(db, device_id)
@@ -127,14 +132,18 @@ async def get_device_audit_history(
     return results[:limit] if results else []
 
 @router.get("/compliance")
-async def get_compliance_summary(db: Session = Depends(get_db)):
+async def get_compliance_summary(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("manual_audits"))
+):
     """Get overall compliance summary"""
     return audit_service.get_compliance_summary(db)
 
 @router.delete("/results/cleanup")
 async def cleanup_old_results(
     days: int = 30,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("manual_audits"))
 ):
     """Clean up audit results older than specified days"""
     removed = audit_service.clear_old_results(db, days)

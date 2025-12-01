@@ -16,7 +16,7 @@ from datetime import datetime
 
 from database import get_db
 import db_models
-from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES
+from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES, ROUTE_MODULE_MAP, get_module_for_route
 from services.license_enforcement_service import license_enforcement_service
 from utils.logger import setup_logger
 
@@ -462,6 +462,35 @@ async def check_module_access(module_name: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to check module access: {str(e)}"
+        )
+
+
+@router.get("/module-mappings")
+async def get_module_mappings():
+    """
+    Get route-to-module mappings for frontend
+
+    This endpoint returns the mapping of frontend routes/menu items
+    to their corresponding license modules. The frontend should use this
+    to determine which license module to check for each feature.
+
+    Returns:
+        {
+            "mappings": dict,  # route_name -> module_name
+            "modules": dict    # module_name -> display_name
+        }
+    """
+    try:
+        return {
+            "mappings": ROUTE_MODULE_MAP,
+            "modules": MODULE_DISPLAY_NAMES,
+            "tiers": LICENSE_TIERS
+        }
+    except Exception as e:
+        logger.error(f"Error getting module mappings: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get module mappings: {str(e)}"
         )
 
 

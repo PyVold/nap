@@ -15,6 +15,7 @@ from services.config_backup_service import ConfigBackupService
 from services.license_enforcement_service import license_enforcement_service
 from models.device import Device
 from models.enums import VendorType
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/config-backups", tags=["config-backups"])
 
@@ -88,7 +89,8 @@ def list_all_backups(
     limit: int = Query(100, ge=1, le=500),
     device_id: Optional[int] = None,
     include_auto: bool = Query(False, description="Include auto/pre_remediation/pre_template backups"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """
     List all configuration backups (optionally filtered by device)
@@ -118,7 +120,8 @@ def list_all_backups(
 @router.get("/devices/summary", response_model=List[DeviceBackupSummary])
 def list_devices_with_backups(
     include_auto: bool = Query(False, description="Include auto/pre_remediation/pre_template backups in counts"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """
     List all devices with their backup statistics (scalable device-per-device view)
@@ -180,7 +183,8 @@ def list_devices_with_backups(
 @router.get("/{backup_id}", response_model=BackupDetailResponse)
 def get_backup(
     backup_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """Get a specific backup with full configuration data"""
     backup = db.query(ConfigBackupDB).filter(ConfigBackupDB.id == backup_id).first()
@@ -194,11 +198,12 @@ def get_backup(
 @router.post("/", response_model=BackupResponse)
 def create_backup(
     request: CreateBackupRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """
     Manually trigger a configuration backup for a device
-    
+
     Enforces storage quota limits based on license tier.
     """
     try:
@@ -269,7 +274,8 @@ def get_device_backup_history(
     device_id: int,
     limit: int = Query(50, ge=1, le=200),
     include_auto: bool = Query(False, description="Include auto/pre_remediation/pre_template backups"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """
     Get backup history for a specific device
@@ -297,7 +303,8 @@ def get_device_backup_history(
 def get_device_change_history(
     device_id: int,
     limit: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """Get configuration change history for a device"""
     try:
@@ -314,7 +321,8 @@ def get_device_change_history(
 def compare_backups(
     backup_id_1: int,
     backup_id_2: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """Compare two configuration backups"""
     try:
@@ -363,7 +371,8 @@ def compare_backups(
 @router.delete("/{backup_id}")
 def delete_backup(
     backup_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("config_backups"))
 ):
     """Delete a configuration backup"""
     try:

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from api.deps import get_db
 from services.device_import_service import DeviceImportService
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/device-import", tags=["device-import"])
 
@@ -34,7 +35,7 @@ class CSVImportRequest(BaseModel):
 # ============================================================================
 
 @router.get("/template")
-def download_import_template():
+def download_import_template(_: None = Depends(require_license_module("devices"))):
     """Download a CSV template for bulk device import"""
     template_csv = DeviceImportService.generate_csv_template()
 
@@ -48,7 +49,10 @@ def download_import_template():
 
 
 @router.post("/validate")
-def validate_csv(csv_content: str):
+def validate_csv(
+    csv_content: str,
+    _: None = Depends(require_license_module("devices"))
+):
     """Validate CSV content without importing"""
     devices, errors = DeviceImportService.parse_csv(csv_content)
 
@@ -64,7 +68,8 @@ def validate_csv(csv_content: str):
 def upload_csv_file(
     file: UploadFile = File(...),
     update_existing: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
 ):
     """Upload and import devices from CSV file"""
     # Validate file type
@@ -100,7 +105,8 @@ def upload_csv_file(
 @router.post("/csv", response_model=ImportResult)
 def import_csv_content(
     request: CSVImportRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
 ):
     """Import devices from CSV content (JSON payload)"""
     try:
@@ -126,7 +132,10 @@ def import_csv_content(
 
 
 @router.get("/export")
-def export_devices(db: Session = Depends(get_db)):
+def export_devices(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
+):
     """Export all devices to CSV format"""
     try:
         csv_content = DeviceImportService.export_devices_to_csv(db)

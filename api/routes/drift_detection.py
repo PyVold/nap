@@ -12,6 +12,7 @@ from db_models import DeviceDB
 from models.device import Device
 from models.enums import VendorType
 from services.drift_detection_service import DriftDetectionService
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/drift-detection", tags=["drift-detection"])
 
@@ -52,14 +53,20 @@ class DriftSummary(BaseModel):
 # ============================================================================
 
 @router.get("/summary", response_model=DriftSummary)
-def get_drift_summary(db: Session = Depends(get_db)):
+def get_drift_summary(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("drift_detection"))
+):
     """Get drift detection summary statistics"""
     summary = DriftDetectionService.get_drift_summary(db)
     return summary
 
 
 @router.get("/scan", response_model=List[DriftInfo])
-def scan_all_devices(db: Session = Depends(get_db)):
+def scan_all_devices(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("drift_detection"))
+):
     """Scan all devices for configuration drift"""
     drifts = DriftDetectionService.detect_drift_for_all_devices(db)
 
@@ -82,7 +89,8 @@ def scan_all_devices(db: Session = Depends(get_db)):
 @router.get("/device/{device_id}", response_model=Optional[DriftInfoDetailed])
 def detect_drift_for_device(
     device_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("drift_detection"))
 ):
     """Detect configuration drift for a specific device"""
     # Get device from database
@@ -115,7 +123,8 @@ def detect_drift_for_device(
 def set_baseline(
     device_id: int,
     request: SetBaselineRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("drift_detection"))
 ):
     """Set a configuration backup as the baseline for drift detection"""
     # Verify device exists
@@ -138,7 +147,10 @@ def set_baseline(
 
 
 @router.post("/auto-scan")
-def trigger_auto_scan(db: Session = Depends(get_db)):
+def trigger_auto_scan(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("drift_detection"))
+):
     """Trigger automatic drift detection and notifications"""
     try:
         DriftDetectionService.auto_detect_and_notify(db)
