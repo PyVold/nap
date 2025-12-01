@@ -71,7 +71,7 @@ def upload_csv_file(
     db: Session = Depends(get_db),
     _: None = Depends(require_license_module("devices"))
 ):
-    """Upload and import devices from CSV file"""
+    """Upload and import devices from CSV file (enforces device quota)"""
     # Validate file type
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV file")
@@ -87,10 +87,49 @@ def upload_csv_file(
         if parse_errors:
             return ImportResult(created=0, updated=0, errors=parse_errors)
 
+        # Check quota before importing
+        # Count how many NEW devices would be created (not updates)
+        new_device_count = 0
+        if not update_existing:
+            # If not updating, all devices are new
+            new_device_count = len(devices)
+        else:
+            # Count only devices that don't exist yet
+            for device_data in devices:
+                existing = db.query(DeviceDB).filter(
+                    DeviceDB.hostname == device_data.get("hostname")
+                ).first()
+                if not existing:
+                    new_device_count += 1
+
+        # Enforce device quota
+        from shared.license_middleware import license_enforcer
+        quota_result = license_enforcer.check_quota(db, "devices", new_device_count)
+
+        if not quota_result["allowed"]:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Device quota exceeded",
+                    "message": f"Cannot import {new_device_count} new devices. "
+                              f"Current: {quota_result['current']}/{quota_result['max']}. "
+                              f"Available slots: {quota_result['max'] - quota_result['current']}. "
+                              "Please upgrade your license to import more devices.",
+                    "current": quota_result['current'],
+                    "max": quota_result['max'],
+                    "requested": new_device_count,
+                    "action": "upgrade_license"
+                }
+            )
+
         # Import devices
         created, updated, import_errors = DeviceImportService.import_devices(
             db, devices, update_existing
         )
+
+        # Update license usage after import
+        from services.license_enforcement_service import license_enforcement_service
+        license_enforcement_service.enforcer.update_license_usage(db)
 
         return ImportResult(
             created=created,
@@ -108,7 +147,7 @@ def import_csv_content(
     db: Session = Depends(get_db),
     _: None = Depends(require_license_module("devices"))
 ):
-    """Import devices from CSV content (JSON payload)"""
+    """Import devices from CSV content (JSON payload, enforces device quota)"""
     try:
         # Parse CSV
         devices, parse_errors = DeviceImportService.parse_csv(request.csv_content)
@@ -116,10 +155,49 @@ def import_csv_content(
         if parse_errors:
             return ImportResult(created=0, updated=0, errors=parse_errors)
 
+        # Check quota before importing
+        # Count how many NEW devices would be created (not updates)
+        new_device_count = 0
+        if not request.update_existing:
+            # If not updating, all devices are new
+            new_device_count = len(devices)
+        else:
+            # Count only devices that don't exist yet
+            for device_data in devices:
+                existing = db.query(DeviceDB).filter(
+                    DeviceDB.hostname == device_data.get("hostname")
+                ).first()
+                if not existing:
+                    new_device_count += 1
+
+        # Enforce device quota
+        from shared.license_middleware import license_enforcer
+        quota_result = license_enforcer.check_quota(db, "devices", new_device_count)
+
+        if not quota_result["allowed"]:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "Device quota exceeded",
+                    "message": f"Cannot import {new_device_count} new devices. "
+                              f"Current: {quota_result['current']}/{quota_result['max']}. "
+                              f"Available slots: {quota_result['max'] - quota_result['current']}. "
+                              "Please upgrade your license to import more devices.",
+                    "current": quota_result['current'],
+                    "max": quota_result['max'],
+                    "requested": new_device_count,
+                    "action": "upgrade_license"
+                }
+            )
+
         # Import devices
         created, updated, import_errors = DeviceImportService.import_devices(
             db, devices, request.update_existing
         )
+
+        # Update license usage after import
+        from services.license_enforcement_service import license_enforcement_service
+        license_enforcement_service.enforcer.update_license_usage(db)
 
         return ImportResult(
             created=created,
