@@ -16,7 +16,7 @@ from datetime import datetime
 
 from deps import get_db
 import db_models
-from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES
+from shared.license_manager import license_manager, LICENSE_TIERS, MODULE_DISPLAY_NAMES, ROUTE_MODULE_MAP, get_module_for_route
 import logging
 
 logger = logging.getLogger(__name__)
@@ -110,23 +110,24 @@ async def activate_license(
         
         # Extract license data
         license_data = validation["data"]
-        
+
+        # ALWAYS deactivate all licenses first (single license mode)
+        db.query(db_models.LicenseDB).update({"is_active": False})
+        db.flush()  # Ensure deactivation is committed before proceeding
+
         # Check if this license already exists
         existing_license = db.query(db_models.LicenseDB).filter(
             db_models.LicenseDB.license_key == request.license_key
         ).first()
-        
+
         if existing_license:
             # Reactivate existing license
             existing_license.is_active = True
             existing_license.last_validated = datetime.utcnow()
             db.commit()
-            
-            logger.info(f"Reactivated existing license for {existing_license.customer_email}")
+
+            logger.info(f"Reactivated existing {existing_license.license_tier} license for {existing_license.customer_email}")
         else:
-            # Deactivate all other licenses (single license mode)
-            db.query(db_models.LicenseDB).update({"is_active": False})
-            
             # Create new license record
             new_license = db_models.LicenseDB(
                 customer_name=license_data.get("customer_name", "Unknown"),
@@ -459,6 +460,36 @@ async def check_module_access(module_name: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to check module access: {str(e)}"
+        )
+
+
+@router.get("/module-mappings")
+async def get_module_mappings():
+    """
+    Get route-to-module mappings for frontend
+
+    This endpoint returns the mapping of frontend routes/menu items
+    to their corresponding license modules. The frontend should use this
+    to determine which license module to check for each feature.
+
+    Returns:
+        {
+            "mappings": dict,  # route_name -> module_name
+            "modules": dict,   # module_name -> display_name
+            "tiers": dict      # tier definitions
+        }
+    """
+    try:
+        return {
+            "mappings": ROUTE_MODULE_MAP,
+            "modules": MODULE_DISPLAY_NAMES,
+            "tiers": LICENSE_TIERS
+        }
+    except Exception as e:
+        logger.error(f"Error getting module mappings: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get module mappings: {str(e)}"
         )
 
 
