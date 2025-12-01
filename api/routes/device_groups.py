@@ -9,6 +9,7 @@ from database import get_db
 from models.device_group import DeviceGroup, DeviceGroupCreate, DeviceGroupUpdate
 from services.device_group_service import DeviceGroupService
 from utils.logger import setup_logger
+from shared.license_middleware import require_license_module
 
 router = APIRouter()
 logger = setup_logger(__name__)
@@ -17,13 +18,20 @@ device_group_service = DeviceGroupService()
 
 
 @router.get("/", response_model=List[DeviceGroup])
-async def get_all_device_groups(db: Session = Depends(get_db)):
+async def get_all_device_groups(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
+):
     """Get all device groups"""
     return device_group_service.get_all_groups(db)
 
 
 @router.get("/{group_id}", response_model=DeviceGroup)
-async def get_device_group(group_id: int, db: Session = Depends(get_db)):
+async def get_device_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
+):
     """Get a specific device group by ID"""
     group = device_group_service.get_group_by_id(db, group_id)
     if not group:
@@ -37,7 +45,8 @@ async def get_device_group(group_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=DeviceGroup, status_code=status.HTTP_201_CREATED)
 async def create_device_group(
     group_create: DeviceGroupCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
 ):
     """Create a new device group"""
     try:
@@ -54,7 +63,8 @@ async def create_device_group(
 async def update_device_group(
     group_id: int,
     group_update: DeviceGroupUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
 ):
     """Update an existing device group"""
     try:
@@ -73,7 +83,11 @@ async def update_device_group(
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_device_group(group_id: int, db: Session = Depends(get_db)):
+async def delete_device_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
+):
     """Delete a device group"""
     try:
         device_group_service.delete_group(db, group_id)
@@ -88,7 +102,8 @@ async def delete_device_group(group_id: int, db: Session = Depends(get_db)):
 async def add_device_to_group(
     group_id: int,
     device_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
 ):
     """Add a device to a group"""
     try:
@@ -109,7 +124,8 @@ async def add_device_to_group(
 async def remove_device_from_group(
     group_id: int,
     device_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
 ):
     """Remove a device from a group"""
     try:
@@ -132,6 +148,10 @@ async def remove_device_from_group(
 
 
 @router.get("/{group_id}/devices", response_model=List[int])
-async def get_group_devices(group_id: int, db: Session = Depends(get_db)):
+async def get_group_devices(
+    group_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("device_groups"))
+):
     """Get all device IDs in a group"""
     return device_group_service.get_group_devices(db, group_id)

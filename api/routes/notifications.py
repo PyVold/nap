@@ -11,6 +11,7 @@ from pydantic import BaseModel, HttpUrl
 from api.deps import get_db
 from db_models import NotificationWebhookDB, NotificationHistoryDB
 from services.notification_service import NotificationService
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -72,7 +73,8 @@ class TestWebhookRequest(BaseModel):
 @router.post("/webhooks", response_model=WebhookResponse)
 async def create_webhook(
     webhook: WebhookCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Create a new notification webhook"""
     try:
@@ -98,7 +100,8 @@ async def create_webhook(
 @router.get("/webhooks", response_model=List[WebhookResponse])
 async def list_webhooks(
     active_only: bool = Query(False),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """List all notification webhooks"""
     query = db.query(NotificationWebhookDB)
@@ -113,7 +116,8 @@ async def list_webhooks(
 @router.get("/webhooks/{webhook_id}", response_model=WebhookResponse)
 async def get_webhook(
     webhook_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Get a specific webhook by ID"""
     webhook = db.query(NotificationWebhookDB).filter(
@@ -130,7 +134,8 @@ async def get_webhook(
 async def update_webhook(
     webhook_id: int,
     webhook_update: WebhookUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Update a webhook"""
     webhook = db.query(NotificationWebhookDB).filter(
@@ -164,7 +169,8 @@ async def update_webhook(
 @router.delete("/webhooks/{webhook_id}")
 async def delete_webhook(
     webhook_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Delete a webhook"""
     webhook = db.query(NotificationWebhookDB).filter(
@@ -187,7 +193,8 @@ async def delete_webhook(
 async def test_webhook(
     webhook_id: int,
     test_request: TestWebhookRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Test a webhook by sending a test notification"""
     webhook = db.query(NotificationWebhookDB).filter(
@@ -221,7 +228,8 @@ async def test_webhook(
 async def get_notification_history(
     webhook_id: Optional[int] = Query(None),
     limit: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Get notification history"""
     query = db.query(NotificationHistoryDB)
@@ -235,7 +243,8 @@ async def get_notification_history(
 
 @router.get("/stats")
 async def get_notification_stats(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("webhooks"))
 ):
     """Get notification statistics"""
     total_webhooks = db.query(NotificationWebhookDB).count()

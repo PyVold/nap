@@ -11,6 +11,7 @@ from datetime import datetime
 from api.deps import get_db
 from db_models import HardwareInventoryDB, DeviceDB
 from services.hardware_inventory_service import HardwareInventoryService
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/hardware", tags=["hardware"])
 
@@ -81,7 +82,8 @@ class ScanResponse(BaseModel):
 def list_inventory_summary(
     vendor: Optional[str] = Query(None, description="Filter by vendor (nokia, cisco)"),
     chassis_model: Optional[str] = Query(None, description="Filter by chassis model"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
 ):
     """
     Get inventory summary for all devices with filtering
@@ -146,7 +148,8 @@ def list_inventory_summary(
 @router.get("/chassis-models", response_model=List[ChassisModelSummary])
 def list_chassis_models(
     vendor: Optional[str] = Query(None, description="Filter by vendor"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
 ):
     """
     Get list of chassis models with device counts
@@ -215,7 +218,8 @@ def list_chassis_models(
 def get_device_inventory(
     device_id: int,
     component_type: Optional[str] = Query(None, description="Filter by component type"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
 ):
     """Get detailed hardware inventory for a specific device"""
     try:
@@ -237,7 +241,8 @@ def get_device_inventory(
 @router.post("/scan/{device_id}", response_model=ScanResponse)
 async def scan_device(
     device_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
 ):
     """Trigger a hardware inventory scan for a specific device"""
     try:
@@ -249,7 +254,10 @@ async def scan_device(
 
 
 @router.post("/scan-all")
-async def scan_all_devices(db: Session = Depends(get_db)):
+async def scan_all_devices(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("devices"))
+):
     """Trigger hardware inventory scan for all devices"""
     try:
         devices = db.query(DeviceDB).all()

@@ -12,6 +12,7 @@ from services.device_service import DeviceService
 from services.device_group_service import DeviceGroupService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
+from shared.license_middleware import require_license_module
 from utils.logger import setup_logger
 
 router = APIRouter()
@@ -24,13 +25,20 @@ rule_service = RuleService()
 
 
 @router.get("/", response_model=List[AuditSchedule])
-async def get_all_audit_schedules(db: Session = Depends(get_db)):
+async def get_all_audit_schedules(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
+):
     """Get all audit schedules"""
     return audit_schedule_service.get_all_schedules(db)
 
 
 @router.get("/{schedule_id}", response_model=AuditSchedule)
-async def get_audit_schedule(schedule_id: int, db: Session = Depends(get_db)):
+async def get_audit_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
+):
     """Get a specific audit schedule by ID"""
     schedule = audit_schedule_service.get_schedule_by_id(db, schedule_id)
     if not schedule:
@@ -44,7 +52,8 @@ async def get_audit_schedule(schedule_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=AuditSchedule, status_code=status.HTTP_201_CREATED)
 async def create_audit_schedule(
     schedule_create: AuditScheduleCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
 ):
     """Create a new audit schedule"""
     try:
@@ -61,7 +70,8 @@ async def create_audit_schedule(
 async def update_audit_schedule(
     schedule_id: int,
     schedule_update: AuditScheduleUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
 ):
     """Update an existing audit schedule"""
     try:
@@ -80,7 +90,11 @@ async def update_audit_schedule(
 
 
 @router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_audit_schedule(schedule_id: int, db: Session = Depends(get_db)):
+async def delete_audit_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
+):
     """Delete an audit schedule"""
     try:
         audit_schedule_service.delete_schedule(db, schedule_id)
@@ -95,7 +109,8 @@ async def delete_audit_schedule(schedule_id: int, db: Session = Depends(get_db))
 async def run_audit_schedule_now(
     schedule_id: int,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("scheduled_audits"))
 ):
     """Run an audit schedule immediately"""
     schedule = audit_schedule_service.get_schedule_by_id(db, schedule_id)

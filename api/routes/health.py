@@ -10,6 +10,7 @@ from database import get_db, SessionLocal
 from services.health_service import HealthService
 from services.device_service import DeviceService
 from utils.logger import setup_logger
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/health", tags=["health"])
 logger = setup_logger(__name__)
@@ -22,7 +23,8 @@ device_service = DeviceService()
 async def check_device_health(
     device_id: int,
     force: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("health_checks"))
 ):
     """
     Perform health check on a specific device
@@ -48,7 +50,8 @@ async def check_device_health(
 @router.post("/check-all")
 async def check_all_devices_health(
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("health_checks"))
 ):
     """Perform health check on all devices"""
     devices = device_service.get_all_devices(db)
@@ -78,7 +81,8 @@ async def check_all_devices_health(
 def get_device_health_history(
     device_id: int,
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("health_checks"))
 ):
     """Get health check history for a device"""
     device = device_service.get_device_by_id(db, device_id)
@@ -94,7 +98,10 @@ def get_device_health_history(
 
 
 @router.get("/summary")
-def get_health_summary(db: Session = Depends(get_db)):
+def get_health_summary(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("health_checks"))
+):
     """Get overall health summary for all devices"""
     summary = health_service.get_health_summary(db)
     return summary

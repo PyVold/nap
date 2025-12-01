@@ -11,18 +11,26 @@ from api.deps import get_db, require_admin_or_operator, require_any_authenticate
 from models.rule import AuditRule, AuditRuleCreate, AuditRuleUpdate
 from services.rule_service import RuleService
 from utils.exceptions import RuleNotFoundError
+from shared.license_middleware import require_license_module
 
 router = APIRouter()
 
 rule_service = RuleService()
 
 @router.get("/", response_model=List[AuditRule])
-async def get_all_rules(db: Session = Depends(get_db)):
+async def get_all_rules(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("basic_rules"))
+):
     """Get all audit rules"""
     return rule_service.get_all_rules(db)
 
 @router.get("/{rule_id}", response_model=AuditRule)
-async def get_rule(rule_id: int, db: Session = Depends(get_db)):
+async def get_rule(
+    rule_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("basic_rules"))
+):
     """Get a specific rule by ID"""
     rule = rule_service.get_rule_by_id(db, rule_id)
     if not rule:
@@ -36,7 +44,8 @@ async def get_rule(rule_id: int, db: Session = Depends(get_db)):
 async def create_rule(
     rule_create: AuditRuleCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: dict = Depends(require_admin_or_operator),
+    _: None = Depends(require_license_module("basic_rules"))
 ):
     """Create a new audit rule (requires admin or operator role)"""
     try:
@@ -52,7 +61,8 @@ async def update_rule(
     rule_id: int,
     rule_update: AuditRuleUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: dict = Depends(require_admin_or_operator),
+    _: None = Depends(require_license_module("basic_rules"))
 ):
     """Update an existing rule (requires admin or operator role)"""
     try:
@@ -72,7 +82,8 @@ async def update_rule(
 async def delete_rule(
     rule_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: dict = Depends(require_admin_or_operator),
+    _: None = Depends(require_license_module("basic_rules"))
 ):
     """Delete a rule (requires admin or operator role)"""
     try:
@@ -87,7 +98,8 @@ async def delete_rule(
 async def toggle_rule(
     rule_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: dict = Depends(require_admin_or_operator),
+    _: None = Depends(require_license_module("basic_rules"))
 ):
     """Toggle rule enabled/disabled (requires admin or operator role)"""
     try:
@@ -99,12 +111,20 @@ async def toggle_rule(
         )
 
 @router.get("/category/{category}", response_model=List[AuditRule])
-async def get_rules_by_category(category: str, db: Session = Depends(get_db)):
+async def get_rules_by_category(
+    category: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("basic_rules"))
+):
     """Get rules filtered by category"""
     return rule_service.get_rules_by_category(db, category)
 
 @router.get("/vendor/{vendor}", response_model=List[AuditRule])
-async def get_rules_by_vendor(vendor: str, db: Session = Depends(get_db)):
+async def get_rules_by_vendor(
+    vendor: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("basic_rules"))
+):
     """Get rules applicable to a specific vendor"""
     return rule_service.get_rules_by_vendor(db, vendor)
 

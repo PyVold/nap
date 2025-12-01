@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from api.deps import get_db
 from db_models import IntegrationDB
+from shared.license_middleware import require_license_module
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -47,7 +48,8 @@ class IntegrationResponse(IntegrationBase):
 def list_integrations(
     integration_type: Optional[str] = None,
     enabled_only: bool = False,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
 ):
     """List all integrations"""
     query = db.query(IntegrationDB)
@@ -59,7 +61,11 @@ def list_integrations(
 
 
 @router.get("/{integration_id}", response_model=IntegrationResponse)
-def get_integration(integration_id: int, db: Session = Depends(get_db)):
+def get_integration(
+    integration_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Get integration by ID"""
     integration = db.query(IntegrationDB).filter(IntegrationDB.id == integration_id).first()
     if not integration:
@@ -68,7 +74,11 @@ def get_integration(integration_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=IntegrationResponse)
-def create_integration(integration: IntegrationCreate, db: Session = Depends(get_db)):
+def create_integration(
+    integration: IntegrationCreate,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Create a new integration"""
     existing = db.query(IntegrationDB).filter(IntegrationDB.name == integration.name).first()
     if existing:
@@ -85,7 +95,8 @@ def create_integration(integration: IntegrationCreate, db: Session = Depends(get
 def update_integration(
     integration_id: int,
     integration: IntegrationUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
 ):
     """Update an existing integration"""
     db_integration = db.query(IntegrationDB).filter(IntegrationDB.id == integration_id).first()
@@ -102,7 +113,11 @@ def update_integration(
 
 
 @router.delete("/{integration_id}")
-def delete_integration(integration_id: int, db: Session = Depends(get_db)):
+def delete_integration(
+    integration_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Delete an integration"""
     db_integration = db.query(IntegrationDB).filter(IntegrationDB.id == integration_id).first()
     if not db_integration:
@@ -115,7 +130,11 @@ def delete_integration(integration_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{integration_id}/test")
-def test_integration(integration_id: int, db: Session = Depends(get_db)):
+def test_integration(
+    integration_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Test integration connectivity"""
     integration = db.query(IntegrationDB).filter(IntegrationDB.id == integration_id).first()
     if not integration:
@@ -129,7 +148,11 @@ def test_integration(integration_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{integration_id}/sync")
-def sync_integration(integration_id: int, db: Session = Depends(get_db)):
+def sync_integration(
+    integration_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Trigger integration synchronization"""
     integration = db.query(IntegrationDB).filter(IntegrationDB.id == integration_id).first()
     if not integration:
@@ -147,7 +170,11 @@ def sync_integration(integration_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{integration_id}/logs")
-def get_integration_logs(integration_id: int, db: Session = Depends(get_db)):
+def get_integration_logs(
+    integration_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Get integration logs (placeholder)"""
     integration = db.query(IntegrationDB).filter(IntegrationDB.id == integration_id).first()
     if not integration:
@@ -157,7 +184,10 @@ def get_integration_logs(integration_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/prometheus/metrics")
-def export_prometheus_metrics(db: Session = Depends(get_db)):
+def export_prometheus_metrics(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_license_module("integrations"))
+):
     """Export metrics in Prometheus format"""
     from db_models import DeviceDB
     from fastapi.responses import Response
