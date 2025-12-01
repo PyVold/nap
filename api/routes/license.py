@@ -112,22 +112,23 @@ async def activate_license(
         # Extract license data
         license_data = validation["data"]
         
+        # ALWAYS deactivate all licenses first (single license mode)
+        db.query(db_models.LicenseDB).update({"is_active": False})
+        db.flush()  # Ensure deactivation is committed before proceeding
+
         # Check if this license already exists
         existing_license = db.query(db_models.LicenseDB).filter(
             db_models.LicenseDB.license_key == request.license_key
         ).first()
-        
+
         if existing_license:
             # Reactivate existing license
             existing_license.is_active = True
             existing_license.last_validated = datetime.utcnow()
             db.commit()
-            
-            logger.info(f"Reactivated existing license for {existing_license.customer_email}")
+
+            logger.info(f"Reactivated existing {existing_license.license_tier} license for {existing_license.customer_email}")
         else:
-            # Deactivate all other licenses (single license mode)
-            db.query(db_models.LicenseDB).update({"is_active": False})
-            
             # Create new license record
             new_license = db_models.LicenseDB(
                 customer_name=license_data.get("customer_name", "Unknown"),
