@@ -94,7 +94,7 @@ ROUTE_MODULE_MAP = {
     "devices": "devices",
     "device_groups": "device_groups",
     "discovery_groups": "discovery",
-    "device_import": "devices",  # Part of device management
+    "device_import": "discovery",  # Device import/export comes with discovery
 
     # Auditing
     "audit": "manual_audits",
@@ -112,6 +112,8 @@ ROUTE_MODULE_MAP = {
     # Monitoring & Notifications
     "notifications": "webhooks",
     "health": "health_checks",
+    "health_checks": "health_checks",  # Both forms map to same module
+    "health_monitoring": "health_checks",  # Alternative name
     "hardware_inventory": "hardware_inventory",  # Enterprise only
 
     # Advanced Features
