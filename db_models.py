@@ -21,6 +21,9 @@ class DeviceDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Protocol and system metadata (collected during discovery)
+    metadata = Column(JSON, nullable=True)
+
     # Exponential backoff tracking
     consecutive_failures = Column(Integer, default=0)
     last_check_attempt = Column(DateTime, nullable=True)
