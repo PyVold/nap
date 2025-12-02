@@ -169,6 +169,15 @@ class UserGroupService:
 
     def create_user(self, db: Session, user_create: UserCreate, created_by: str = "admin") -> User:
         """Create a new user"""
+        # Check license quota for users
+        from db_models import LicenseDB
+
+        active_license = db.query(LicenseDB).filter(LicenseDB.is_active == True).first()
+        if active_license:
+            current_user_count = db.query(UserDB).count()
+            if current_user_count >= active_license.max_users:
+                raise ValueError(f"User quota exceeded. Your license allows {active_license.max_users} users. Please upgrade your license.")
+
         # Check if username or email already exists
         existing_user = db.query(UserDB).filter(
             (UserDB.username == user_create.username) | (UserDB.email == user_create.email)
