@@ -5,15 +5,17 @@
 
 import subprocess
 import asyncio
+import json
 from typing import Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
 from models.device import Device
 from models.enums import DeviceStatus
-from db_models import HealthCheckDB, DeviceDB
+from db_models import HealthCheckDB, DeviceDB, SystemConfigDB
 from connectors.netconf_connector import NetconfConnector
 from shared.logger import setup_logger
 from shared.backoff import BackoffManager
+from shared.notification_service import notification_service
 
 logger = setup_logger(__name__)
 
@@ -93,6 +95,7 @@ class HealthService:
         device_db.updated_at = datetime.utcnow()
 
         # Update backoff state based on check result
+        prev_consecutive_failures = device_db.consecutive_failures
         if overall_status == "healthy":
             # Fully functional - reset failures
             BackoffManager.record_success(db, device_db)
@@ -100,6 +103,55 @@ class HealthService:
             # Any failure (degraded or unreachable) should be recorded
             # This ensures devices with persistent NETCONF/SSH issues will back off
             BackoffManager.record_failure(db, device_db)
+
+        # Send email notifications if configured
+        try:
+            notif_config = db.query(SystemConfigDB).filter(
+                SystemConfigDB.key == "notification_settings"
+            ).first()
+
+            if notif_config:
+                notif_settings = json.loads(notif_config.value)
+
+                # Check if email notifications are enabled
+                if notif_settings.get('emailEnabled', True):
+                    # Health check failure notification
+                    if notif_settings.get('notifyOnHealthCheckFailure', True) and overall_status != "healthy":
+                        details = []
+                        if not ping_status:
+                            details.append("Ping failed")
+                        if not netconf_status:
+                            details.append(f"NETCONF: {netconf_message}")
+                        if not ssh_status:
+                            details.append(f"SSH: {ssh_message}")
+
+                        notification_service.send_health_check_failure_notification(
+                            device.hostname,
+                            overall_status,
+                            "; ".join(details),
+                            db
+                        )
+                        logger.info(f"Sent health check failure notification for {device.hostname}")
+
+                    # Device offline notification (after threshold consecutive failures)
+                    threshold = notif_settings.get('deviceOfflineAfterFailures', 3)
+                    if (notif_settings.get('notifyOnDeviceOffline', True) and
+                        device_status == DeviceStatus.OFFLINE and
+                        device_db.consecutive_failures >= threshold and
+                        prev_consecutive_failures < threshold):  # Only notify on threshold crossing
+
+                        last_seen = device_db.last_check_attempt.strftime('%Y-%m-%d %H:%M:%S UTC') if device_db.last_check_attempt else 'Unknown'
+                        notification_service.send_device_offline_notification(
+                            device.hostname,
+                            last_seen,
+                            device_db.consecutive_failures,
+                            db
+                        )
+                        logger.info(f"Sent device offline notification for {device.hostname}")
+
+        except Exception as e:
+            logger.error(f"Error sending health check notifications: {e}")
+            # Don't fail the health check if notification fails
 
         db.commit()
 

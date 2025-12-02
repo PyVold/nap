@@ -26,6 +26,7 @@ class NotificationService:
         self.smtp_username = None
         self.smtp_password = None
         self.smtp_enabled = False
+        self.use_localhost = False  # Use local mail server (no auth)
         self.default_recipients = []
 
     def load_smtp_settings(self, db: Session):
@@ -41,12 +42,13 @@ class NotificationService:
             if config:
                 settings = json.loads(config.value)
                 self.smtp_enabled = settings.get('smtpEnabled', False)
-                self.smtp_server = settings.get('smtpServer')
-                self.smtp_port = settings.get('smtpPort', 587)
+                self.use_localhost = settings.get('useLocalhost', False)
+                self.smtp_server = settings.get('smtpServer', 'localhost' if self.use_localhost else None)
+                self.smtp_port = settings.get('smtpPort', 25 if self.use_localhost else 587)
                 self.smtp_username = settings.get('smtpUsername')
                 self.smtp_password = settings.get('smtpPassword')
 
-                logger.info(f"SMTP settings loaded: enabled={self.smtp_enabled}, server={self.smtp_server}")
+                logger.info(f"SMTP settings loaded: enabled={self.smtp_enabled}, localhost={self.use_localhost}, server={self.smtp_server}")
             else:
                 logger.warning("No SMTP settings found in database")
 
@@ -98,12 +100,18 @@ class NotificationService:
             }
 
         # Validate SMTP configuration
-        if not self.smtp_server or not self.smtp_username:
-            logger.error("SMTP configuration incomplete")
-            return {
-                "success": False,
-                "message": "SMTP configuration is incomplete (missing server or username)"
-            }
+        # For localhost mode, we don't need username/password
+        if not self.use_localhost:
+            if not self.smtp_server or not self.smtp_username:
+                logger.error("SMTP configuration incomplete")
+                return {
+                    "success": False,
+                    "message": "SMTP configuration is incomplete (missing server or username)"
+                }
+        elif not self.smtp_server:
+            # Localhost mode but no server specified, default to localhost
+            self.smtp_server = 'localhost'
+            self.smtp_port = 25
 
         # Use default recipients if none provided
         if not recipients:
@@ -120,7 +128,7 @@ class NotificationService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = self.smtp_username
+            msg['From'] = self.smtp_username if self.smtp_username else 'nap@localhost'
             msg['To'] = ', '.join(recipients)
             msg['Date'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S +0000')
 
@@ -132,21 +140,25 @@ class NotificationService:
             msg.attach(part)
 
             # Connect to SMTP server and send
-            logger.info(f"Connecting to SMTP server: {self.smtp_server}:{self.smtp_port}")
+            logger.info(f"Connecting to SMTP server: {self.smtp_server}:{self.smtp_port} (localhost={self.use_localhost})")
 
             with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10) as server:
                 server.ehlo()
 
-                # Try STARTTLS if supported
-                if server.has_extn('STARTTLS'):
-                    logger.info("Starting TLS...")
-                    server.starttls()
-                    server.ehlo()
+                # For localhost, skip TLS and authentication
+                if not self.use_localhost:
+                    # Try STARTTLS if supported
+                    if server.has_extn('STARTTLS'):
+                        logger.info("Starting TLS...")
+                        server.starttls()
+                        server.ehlo()
 
-                # Login if credentials provided
-                if self.smtp_password:
-                    logger.info(f"Logging in as: {self.smtp_username}")
-                    server.login(self.smtp_username, self.smtp_password)
+                    # Login if credentials provided
+                    if self.smtp_password:
+                        logger.info(f"Logging in as: {self.smtp_username}")
+                        server.login(self.smtp_username, self.smtp_password)
+                else:
+                    logger.info("Using local mail server (no authentication)")
 
                 # Send email
                 logger.info(f"Sending email to: {recipients}")
@@ -291,6 +303,90 @@ Network Audit Platform
 """
 
         return self.send_email(subject, body, recipients=[recipient], db=db)
+
+    def send_health_check_failure_notification(
+        self,
+        device_hostname: str,
+        status: str,
+        details: str,
+        db: Session
+    ):
+        """Send notification about health check failure"""
+        subject = f"[NAP] Health Check Failed: {device_hostname}"
+
+        body = f"""
+Health Check Failure
+
+Device: {device_hostname}
+Status: {status.upper()}
+Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+Details: {details}
+
+Please check the device connectivity and network configuration.
+
+This is an automated notification from Network Audit Platform.
+"""
+
+        return self.send_email(subject, body, db=db)
+
+    def send_device_offline_notification(
+        self,
+        device_hostname: str,
+        last_seen: str,
+        consecutive_failures: int,
+        db: Session
+    ):
+        """Send notification when device goes offline"""
+        subject = f"[NAP] Device Offline: {device_hostname}"
+
+        body = f"""
+Device Offline Alert
+
+Device: {device_hostname}
+Status: OFFLINE
+Last Seen: {last_seen}
+Consecutive Failures: {consecutive_failures}
+Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+The device has been unreachable after multiple connection attempts.
+Please check:
+- Network connectivity
+- Device power status
+- Firewall rules
+- Device credentials
+
+This is an automated notification from Network Audit Platform.
+"""
+
+        return self.send_email(subject, body, db=db)
+
+    def send_compliance_issue_notification(
+        self,
+        device_hostname: str,
+        compliance_score: float,
+        threshold: float,
+        critical_findings: int,
+        db: Session
+    ):
+        """Send notification about compliance issues"""
+        subject = f"[NAP] Compliance Alert: {device_hostname} ({compliance_score:.1f}%)"
+
+        body = f"""
+Compliance Issue Detected
+
+Device: {device_hostname}
+Compliance Score: {compliance_score:.1f}%
+Alert Threshold: {threshold:.1f}%
+Critical Findings: {critical_findings}
+Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+The device compliance score has fallen below the configured threshold.
+Please review the audit findings and take corrective action.
+
+This is an automated notification from Network Audit Platform.
+"""
+
+        return self.send_email(subject, body, db=db)
 
 
 # Singleton instance
