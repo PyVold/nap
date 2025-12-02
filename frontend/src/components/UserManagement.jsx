@@ -87,6 +87,7 @@ export default function UserManagement() {
     full_name: '',
     is_active: true,
     is_superuser: false,
+    group_ids: [],  // Required by backend UserCreate model
   });
 
   // User detail dialog state
@@ -163,6 +164,7 @@ export default function UserManagement() {
         full_name: user.full_name || '',
         is_active: user.is_active,
         is_superuser: user.is_superuser,
+        group_ids: user.groups?.map(g => g.id) || [],  // Map group objects to IDs
       });
     } else {
       setUserForm({
@@ -172,6 +174,7 @@ export default function UserManagement() {
         full_name: '',
         is_active: true,
         is_superuser: false,
+        group_ids: [],
       });
     }
     setUserDialog({ open: true, user });
@@ -186,6 +189,7 @@ export default function UserManagement() {
       full_name: '',
       is_active: true,
       is_superuser: false,
+      group_ids: [],
     });
   };
 
