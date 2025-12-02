@@ -205,6 +205,11 @@ export default function LicenseManagement() {
       description: 'Automatic network device discovery',
       icon: '🔎'
     },
+    hardware_inventory: {
+      name: 'Hardware Inventory',
+      description: 'Detailed hardware component tracking and inventory',
+      icon: '💾'
+    },
     workflow_automation: {
       name: 'Workflow Automation',
       description: 'Visual workflow builder and auto-remediation',
