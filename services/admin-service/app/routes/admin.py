@@ -9,7 +9,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 from deps import get_db
-from db_models import UserDB, SystemModuleDB, AuditLogDB
+from db_models import UserDB, SystemModuleDB, AuditLogDB, LicenseDB
 from shared.auth import (
     get_password_hash,
     verify_password,
@@ -61,6 +61,7 @@ class UserResponse(BaseModel):
     full_name: Optional[str]
     role: str
     is_active: bool
+    is_superuser: bool
     created_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
 
@@ -181,6 +182,18 @@ def create_user(
     db: Session = Depends(get_db)
 ):
     """Create a new user (admin only)"""
+    # Check license quota for users
+    from shared.license_manager import license_manager
+
+    active_license = db.query(LicenseDB).filter(LicenseDB.is_active == True).first()
+    if active_license:
+        current_user_count = db.query(UserDB).count()
+        if current_user_count >= active_license.max_users:
+            raise HTTPException(
+                status_code=403,
+                detail=f"User quota exceeded. Your license allows {active_license.max_users} users. Please upgrade your license."
+            )
+
     # Check if username exists
     if db.query(UserDB).filter(UserDB.username == user_create.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")

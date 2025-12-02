@@ -253,6 +253,7 @@ def delete_user(
     """Delete user (requires delete_users permission)"""
     try:
         user_group_service.delete_user(db, user_id)
+        return None
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
