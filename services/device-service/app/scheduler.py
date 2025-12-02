@@ -54,7 +54,12 @@ async def run_scheduled_discoveries():
                 )
 
                 # Merge discovered devices
-                added_count = device_service.merge_discovered_devices(db, discovered)
+                added_count, device_ids = device_service.merge_discovered_devices(db, discovered)
+
+                # Collect metadata for discovered/updated devices
+                if device_ids:
+                    logger.info(f"Scheduled discovery '{group.name}': Collecting metadata for {len(device_ids)} devices")
+                    await device_service.collect_metadata_for_discovered_devices(db, device_ids)
 
                 # Update timestamps
                 discovery_group_service.update_run_timestamps(db, group.id)

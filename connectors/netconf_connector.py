@@ -3,6 +3,9 @@
 # ============================================================================
 
 import asyncio
+import paramiko
+import time
+import re
 from typing import Optional, Dict, Any
 from ncclient import manager
 from ncclient.operations import RPCError
@@ -246,6 +249,108 @@ class NetconfConnector(BaseConnector):
         except Exception as e:
             logger.error(f"Failed to apply config to {self.device.hostname}: {str(e)}")
             raise
+
+    async def run_command(self, command: str) -> str:
+        """
+        Run a CLI command on the device using SSH
+        NETCONF doesn't support CLI commands, so we use SSH as fallback
+
+        Args:
+            command: CLI command to execute
+
+        Returns:
+            Command output as string
+        """
+        try:
+            loop = asyncio.get_event_loop()
+            logger.debug(f"Running CLI command on {self.device.hostname} via SSH: {command}")
+
+            # Run SSH command in executor to avoid blocking
+            result = await loop.run_in_executor(
+                None,
+                self._run_ssh_command_sync,
+                command
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to run command on {self.device.hostname}: {str(e)}")
+            raise
+
+    def _run_ssh_command_sync(self, command: str) -> str:
+        """
+        Synchronous SSH command execution for Cisco IOS-XR
+        """
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            # Use port 22 for SSH (not the NETCONF port)
+            ssh.connect(
+                hostname=self.device.ip or self.device.hostname,
+                port=22,
+                username=self.device.username,
+                password=self.device.password,
+                look_for_keys=False,
+                allow_agent=False,
+                timeout=10
+            )
+
+            # Invoke shell for interactive commands
+            chan = ssh.invoke_shell(term='vt100', width=200, height=200)
+            time.sleep(1)
+
+            # Clear initial output
+            if chan.recv_ready():
+                chan.recv(65535)
+
+            # Disable pagination for Cisco
+            chan.send("terminal length 0\n")
+            time.sleep(0.5)
+            if chan.recv_ready():
+                chan.recv(65535)
+
+            # Send command
+            chan.send(command + "\n")
+            time.sleep(1)
+
+            # Collect output
+            output = []
+            last = time.time()
+
+            while True:
+                if chan.recv_ready():
+                    chunk = chan.recv(65535).decode(errors="ignore")
+                    output.append(chunk)
+                    last = time.time()
+
+                    # Check for prompt (ends with # or >)
+                    if chunk.strip().endswith('#') or chunk.strip().endswith('>'):
+                        break
+                else:
+                    # If no data for 2 seconds, consider finished
+                    if time.time() - last > 2:
+                        break
+                    time.sleep(0.2)
+
+            ssh.close()
+
+            text = "".join(output)
+            # Remove ANSI escape codes
+            text = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
+            text = text.replace("\r", "")
+
+            return text
+
+        except Exception as e:
+            logger.error(f"SSH command execution failed: {str(e)}")
+            raise
+        finally:
+            try:
+                ssh.close()
+            except:
+                pass
 
     async def disconnect(self):
         """Close NETCONF connection"""

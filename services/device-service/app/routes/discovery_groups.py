@@ -117,7 +117,13 @@ async def run_discovery_for_group(
                 port=group.port,
                 excluded_ips=group.excluded_ips
             )
-            added_count = device_service.merge_discovered_devices(task_db, discovered)
+            added_count, device_ids = device_service.merge_discovered_devices(task_db, discovered)
+
+            # Collect metadata for discovered/updated devices
+            if device_ids:
+                logger.info(f"Discovery group {group_id}: Collecting metadata for {len(device_ids)} devices")
+                await device_service.collect_metadata_for_discovered_devices(task_db, device_ids)
+
             discovery_group_service.update_run_timestamps(task_db, group_id)
             logger.info(f"Discovery group {group_id}: found {len(discovered)}, added {added_count}")
         except Exception as e:
