@@ -8,11 +8,12 @@ import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from models.device import Device
 from models.rule import AuditRule
 from models.audit import AuditResult, AuditFinding
 from models.enums import AuditStatus, DeviceStatus, SeverityLevel
-from db_models import AuditResultDB, DeviceDB, SystemConfigDB
+from db_models import AuditResultDB, DeviceDB
 from engine.audit_engine import AuditEngine
 from services.notification_service import NotificationService
 from shared.logger import setup_logger
@@ -70,12 +71,13 @@ class AuditService:
                         sys.path.insert(0, '/app')
                         from shared.notification_service import notification_service as email_notification_service
 
-                        notif_config = db.query(SystemConfigDB).filter(
-                            SystemConfigDB.key == "notification_settings"
-                        ).first()
+                        # Query notification settings directly from database
+                        result_row = db.execute(
+                            text("SELECT value FROM system_config WHERE key = 'notification_settings'")
+                        ).fetchone()
 
-                        if notif_config:
-                            notif_settings = json.loads(notif_config.value)
+                        if result_row:
+                            notif_settings = json.loads(result_row[0])
 
                             # Check if email notifications are enabled and compliance issue notification is on
                             if (notif_settings.get('emailEnabled', True) and
