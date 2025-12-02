@@ -379,19 +379,24 @@ class UserGroupService:
             logger.warning(f"[GET_USER_MODULES] User {user_id} has no groups - no module access")
             return set()
 
-        # Get all module access from all groups (these are also backend module names)
+        # Get all module access from all groups (these may be frontend route names)
         module_access = db.query(GroupModuleAccessDB).filter(
             GroupModuleAccessDB.group_id.in_(group_ids),
             GroupModuleAccessDB.can_access == True
         ).all()
 
-        group_modules = set(m.module_name for m in module_access)
+        group_modules_raw = set(m.module_name for m in module_access)
+
+        # Convert frontend route names to backend license module names
+        # e.g., "audit" -> "manual_audits", "rules" -> "basic_rules"
+        from shared.license_manager import get_module_for_route
+        group_modules = set(get_module_for_route(m) for m in group_modules_raw)
 
         # Intersect user's group modules with license-allowed modules
         # User can only access modules that are BOTH in their groups AND in the license
         allowed_modules = group_modules.intersection(license_modules)
 
-        logger.info(f"[GET_USER_MODULES] User {user_id} - Groups: {group_ids}, Group modules: {group_modules}, License modules: {license_modules}, Allowed: {allowed_modules}")
+        logger.info(f"[GET_USER_MODULES] User {user_id} - Groups: {group_ids}, Group modules (raw): {group_modules_raw}, Group modules (mapped): {group_modules}, License modules: {license_modules}, Allowed: {allowed_modules}")
 
         return allowed_modules
 
