@@ -26,6 +26,8 @@ import {
   CircularProgress,
   Paper,
   Grid,
+  Collapse,
+  Tooltip,
 } from '@mui/material';
 import {
   Add,
@@ -37,6 +39,9 @@ import {
   Timer,
   CheckCircle,
   Warning,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  Info,
 } from '@mui/icons-material';
 import { devicesAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
@@ -51,6 +56,7 @@ const DeviceManagement = () => {
   const [openDiscoveryDialog, setOpenDiscoveryDialog] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
   const [discovering, setDiscovering] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
   const [formData, setFormData] = useState({
     hostname: '',
     vendor: 'cisco_xr',
@@ -149,6 +155,186 @@ const DeviceManagement = () => {
         setError(err.message);
       }
     }
+  };
+
+  const handleToggleExpand = (deviceId) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [deviceId]: !prev[deviceId]
+    }));
+  };
+
+  const renderMetadata = (device) => {
+    if (!device.metadata) {
+      return (
+        <Box p={2}>
+          <Typography variant="body2" color="text.secondary">
+            No metadata available for this device yet. Metadata will be collected during the next discovery.
+          </Typography>
+        </Box>
+      );
+    }
+
+    const metadata = typeof device.metadata === 'string'
+      ? JSON.parse(device.metadata)
+      : device.metadata;
+
+    return (
+      <Box p={2}>
+        <Typography variant="subtitle1" gutterBottom fontWeight="bold" color="primary">
+          <Info fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+          Device Protocol Metadata
+        </Typography>
+
+        <Grid container spacing={2}>
+          {/* BGP Information */}
+          {metadata.bgp && Object.keys(metadata.bgp).length > 0 && (
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom color="primary">
+                    BGP Information
+                  </Typography>
+                  {metadata.bgp.as_number && (
+                    <Typography variant="body2">
+                      <strong>AS Number:</strong> {metadata.bgp.as_number}
+                    </Typography>
+                  )}
+                  {metadata.bgp.router_id && (
+                    <Typography variant="body2">
+                      <strong>Router ID:</strong> {metadata.bgp.router_id}
+                    </Typography>
+                  )}
+                  {metadata.bgp.neighbor_count !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Neighbors:</strong> {metadata.bgp.neighbor_count}
+                    </Typography>
+                  )}
+                  {metadata.bgp.established_sessions !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Established Sessions:</strong> {metadata.bgp.established_sessions}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {/* IGP Information */}
+          {metadata.igp && Object.keys(metadata.igp).length > 0 && (
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom color="primary">
+                    IGP Information
+                  </Typography>
+                  {metadata.igp.type && (
+                    <Typography variant="body2">
+                      <strong>Protocol:</strong> {metadata.igp.type}
+                    </Typography>
+                  )}
+                  {metadata.igp.router_id && (
+                    <Typography variant="body2">
+                      <strong>Router ID:</strong> {metadata.igp.router_id}
+                    </Typography>
+                  )}
+                  {metadata.igp.isis_level && (
+                    <Typography variant="body2">
+                      <strong>ISIS Level:</strong> {metadata.igp.isis_level}
+                    </Typography>
+                  )}
+                  {metadata.igp.adjacency_count !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Adjacencies:</strong> {metadata.igp.adjacency_count}
+                    </Typography>
+                  )}
+                  {metadata.igp.neighbor_count !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Neighbors:</strong> {metadata.igp.neighbor_count}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {/* LDP Information */}
+          {metadata.ldp && Object.keys(metadata.ldp).length > 0 && (
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom color="primary">
+                    LDP Information
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Enabled:</strong> {metadata.ldp.enabled ? 'Yes' : 'No'}
+                  </Typography>
+                  {metadata.ldp.enabled && metadata.ldp.router_id && (
+                    <Typography variant="body2">
+                      <strong>Router ID:</strong> {metadata.ldp.router_id}
+                    </Typography>
+                  )}
+                  {metadata.ldp.enabled && metadata.ldp.session_count !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Sessions:</strong> {metadata.ldp.session_count}
+                    </Typography>
+                  )}
+                  {metadata.ldp.enabled && metadata.ldp.neighbor_count !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Neighbors:</strong> {metadata.ldp.neighbor_count}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {/* MPLS Information */}
+          {metadata.mpls && Object.keys(metadata.mpls).length > 0 && (
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom color="primary">
+                    MPLS Information
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Enabled:</strong> {metadata.mpls.enabled ? 'Yes' : 'No'}
+                  </Typography>
+                  {metadata.mpls.segment_routing !== undefined && (
+                    <Typography variant="body2">
+                      <strong>Segment Routing:</strong> {metadata.mpls.segment_routing ? 'Yes' : 'No'}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {/* System Information */}
+          {metadata.system && Object.keys(metadata.system).length > 0 && (
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom color="primary">
+                    System Information
+                  </Typography>
+                  {metadata.system.ip_address && (
+                    <Typography variant="body2">
+                      <strong>System IP:</strong> {metadata.system.ip_address}
+                    </Typography>
+                  )}
+                  {metadata.system.loopback0_ip && (
+                    <Typography variant="body2">
+                      <strong>Loopback0 IP:</strong> {metadata.system.loopback0_ip}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
+      </Box>
+    );
   };
 
   const handleOpenDiscoveryDialog = () => {
@@ -311,6 +497,7 @@ const DeviceManagement = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+              <TableCell width={50} />
               <TableCell><strong>Hostname</strong></TableCell>
               <TableCell><strong>IP Address</strong></TableCell>
               <TableCell><strong>Vendor</strong></TableCell>
@@ -324,7 +511,18 @@ const DeviceManagement = () => {
           </TableHead>
           <TableBody>
             {devices.map((device) => (
-              <TableRow key={device.id} hover>
+              <React.Fragment key={device.id}>
+              <TableRow hover>
+                <TableCell>
+                  <Tooltip title={expandedRows[device.id] ? "Hide metadata" : "Show metadata"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleToggleExpand(device.id)}
+                    >
+                      {expandedRows[device.id] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
                 <TableCell>{device.hostname}</TableCell>
                 <TableCell>{device.ip || 'N/A'}</TableCell>
                 <TableCell>
@@ -424,10 +622,18 @@ const DeviceManagement = () => {
                   )}
                 </TableCell>
               </TableRow>
+              <TableRow>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={10}>
+                  <Collapse in={expandedRows[device.id]} timeout="auto" unmountOnExit>
+                    {renderMetadata(device)}
+                  </Collapse>
+                </TableCell>
+              </TableRow>
+              </React.Fragment>
             ))}
             {devices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={10} align="center">
                   <Typography variant="body2" color="textSecondary">
                     No devices found. Click "Add Device" or "Discover Devices" to get started.
                   </Typography>
