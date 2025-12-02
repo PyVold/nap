@@ -1,0 +1,48 @@
+# Base image for all Python services
+# Pre-installs all system packages and Python dependencies
+# Build once, use for all services in offline environments
+
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    libssl-dev \
+    libffi-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy ALL service requirements files
+COPY services/admin-service/requirements.txt /tmp/admin-requirements.txt
+COPY services/device-service/requirements.txt /tmp/device-requirements.txt
+COPY services/backup-service/requirements.txt /tmp/backup-requirements.txt
+COPY services/inventory-service/requirements.txt /tmp/inventory-requirements.txt
+COPY services/analytics-service/requirements.txt /tmp/analytics-requirements.txt
+COPY services/rule-service/requirements.txt /tmp/rule-requirements.txt
+COPY services/api-gateway/requirements.txt /tmp/api-gateway-requirements.txt
+
+# Install all Python dependencies from all services
+# This ensures all dependencies are available in the base image
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /tmp/admin-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/device-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/backup-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/inventory-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/analytics-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/rule-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/api-gateway-requirements.txt && \
+    rm -rf /tmp/*.txt
+
+# Set Python environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# This base image is ready for any service to use
+# Services just need to COPY their code and run
