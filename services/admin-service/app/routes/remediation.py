@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 
-from deps import get_db
-from shared.deps import require_admin_or_operator
+from deps import get_db, require_apply_fix, require_view_remediation
+from db_models import UserDB
 from services.remediation_service import RemediationService
 from shared.logger import setup_logger
 
@@ -34,12 +34,12 @@ class RemediationResponse(BaseModel):
 async def push_remediation(
     request: RemediationRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: UserDB = Depends(require_apply_fix)
 ):
     """
     Push remediation configurations to devices based on failed audit checks
 
-    **Requires**: admin or operator role
+    **Requires**: apply_fix permission
 
     **Process**:
     1. Fetches latest audit results for specified devices
@@ -82,12 +82,12 @@ async def push_remediation(
 async def get_remediation_status(
     device_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: UserDB = Depends(require_view_remediation)
 ):
     """
     Get remediation status/history for a device
 
-    **Requires**: admin or operator role
+    **Requires**: view_remediation permission
     """
     from db_models import ConfigBackupDB
 

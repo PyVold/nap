@@ -133,3 +133,7 @@ require_create_groups = require_permission("create_groups")
 require_modify_groups = require_permission("modify_groups")
 require_delete_groups = require_permission("delete_groups")
 require_view_groups = require_permission("view_groups")
+
+# Remediation permission dependencies
+require_apply_fix = require_permission("apply_fix")
+require_view_remediation = require_permission("view_remediation")
