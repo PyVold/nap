@@ -63,16 +63,41 @@ export const AuthProvider = ({ children }) => {
     if (storedToken && storedUser) {
       setToken(storedToken);
       const userData = JSON.parse(storedUser);
-      setUser(userData);
+
       // Add token to axios default headers
       api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
-      // Fetch user modules and permissions if user_id is available
-      if (userData.user_id) {
-        fetchUserAccessInfo(userData.user_id);
-      } else {
-        setAccessInfoLoaded(true);
-      }
+      // Refresh user data from /me endpoint to get latest info including is_superuser
+      api.get('/me')
+        .then(response => {
+          const freshUserData = {
+            username: userData.username,
+            role: userData.role,
+            user_id: response.data.id,
+            is_superuser: response.data.is_superuser,
+            email: response.data.email,
+            full_name: response.data.full_name
+          };
+          setUser(freshUserData);
+          localStorage.setItem('auth_user', JSON.stringify(freshUserData));
+
+          // Fetch user modules and permissions
+          if (freshUserData.user_id) {
+            fetchUserAccessInfo(freshUserData.user_id);
+          } else {
+            setAccessInfoLoaded(true);
+          }
+        })
+        .catch(error => {
+          console.error('Error refreshing user data:', error);
+          // Fall back to stored data if refresh fails
+          setUser(userData);
+          if (userData.user_id) {
+            fetchUserAccessInfo(userData.user_id);
+          } else {
+            setAccessInfoLoaded(true);
+          }
+        });
     }
     setLoading(false);
   }, []);
@@ -85,12 +110,15 @@ export const AuthProvider = ({ children }) => {
       // Add token to axios default headers first
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
-      // Get user info to get user_id
+      // Get user info to get user_id and is_superuser
       const userInfoResponse = await api.get('/me');
       const userData = {
         username: authUsername,
         role,
-        user_id: userInfoResponse.data.id
+        user_id: userInfoResponse.data.id,
+        is_superuser: userInfoResponse.data.is_superuser,  // ← ADD THIS!
+        email: userInfoResponse.data.email,
+        full_name: userInfoResponse.data.full_name
       };
 
       setToken(access_token);
