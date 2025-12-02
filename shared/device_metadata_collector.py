@@ -43,7 +43,9 @@ class DeviceMetadataCollector:
                 bgp_data = await connection.get_operational_state(xpath=bgp_xpath)
 
                 if bgp_data:
+                    logger.debug(f"BGP raw response (first 500 chars): {bgp_data[:500]}")
                     bgp_json = json.loads(bgp_data)
+                    logger.debug(f"BGP JSON keys: {bgp_json.keys() if isinstance(bgp_json, dict) else type(bgp_json)}")
 
                     # Navigate through the JSON structure
                     if 'data' in bgp_json and 'state' in bgp_json['data']:
@@ -85,7 +87,9 @@ class DeviceMetadataCollector:
                 isis_data = await connection.get_operational_state(xpath=isis_xpath)
 
                 if isis_data:
+                    logger.debug(f"ISIS raw response (first 500 chars): {isis_data[:500]}")
                     isis_json = json.loads(isis_data)
+                    logger.debug(f"ISIS JSON type: {type(isis_json)}, keys: {isis_json.keys() if isinstance(isis_json, dict) else 'N/A'}")
 
                     if 'data' in isis_json and 'state' in isis_json['data']:
                         state = isis_json['data']['state']
