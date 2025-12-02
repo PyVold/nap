@@ -301,15 +301,29 @@ class UserGroupService:
         Returns BACKEND LICENSE MODULE NAMES (e.g., 'manual_audits', 'scheduled_audits').
         Frontend will map these to route names using ROUTE_MODULE_MAP.
         """
-        from shared.license_middleware import license_enforcer
+        # Import here to avoid module path issues in microservices
+        import sys
+        sys.path.insert(0, '/app')
         from shared.license_manager import license_manager
+        from db_models import LicenseDB
 
-        # Get active license data - if no license, no modules available
-        license_data = license_enforcer.get_active_license_data(db)
+        # Get active license directly from database (simpler than using license_enforcer)
+        active_license = db.query(LicenseDB).filter(LicenseDB.is_active == True).first()
 
-        if not license_data:
+        if not active_license:
             logger.warning(f"No active license - user {user_id} has no module access")
             return set()
+
+        # Validate the license
+        validation = license_manager.validate_license(active_license.license_key)
+        if not validation["valid"]:
+            logger.warning(f"Active license is invalid: {validation['message']}")
+            # Deactivate invalid license
+            active_license.is_active = False
+            db.commit()
+            return set()
+
+        license_data = validation["data"]
 
         # Get tier and available modules from license
         tier = license_data.get("tier", "starter")
