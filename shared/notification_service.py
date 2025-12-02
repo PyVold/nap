@@ -130,7 +130,7 @@ class NotificationService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = self.smtp_username if self.smtp_username else 'nap@localhost'
+            msg['From'] = self.smtp_username if self.smtp_username else 'no-reply@audit.tool'
             msg['To'] = ', '.join(recipients)
             msg['Date'] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S +0000')
 
