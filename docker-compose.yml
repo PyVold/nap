@@ -125,6 +125,8 @@ services:
       - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
       - SERVICE_PORT=3005
       - LOG_LEVEL=info
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Analytics Service
   analytics-service:
