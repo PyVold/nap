@@ -4,16 +4,18 @@
 # ============================================================================
 
 import asyncio
+import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models.device import Device
 from models.rule import AuditRule
 from models.audit import AuditResult, AuditFinding
-from models.enums import AuditStatus, DeviceStatus
-from db_models import AuditResultDB, DeviceDB
+from models.enums import AuditStatus, DeviceStatus, SeverityLevel
+from db_models import AuditResultDB, DeviceDB, SystemConfigDB
 from engine.audit_engine import AuditEngine
 from services.notification_service import NotificationService
+from shared.notification_service import notification_service as email_notification_service
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -59,8 +61,45 @@ class AuditService:
                 # Update device last_audit and compliance
                 device_db = db.query(DeviceDB).filter(DeviceDB.id == result.device_id).first()
                 if device_db:
+                    prev_compliance = device_db.compliance
                     device_db.last_audit = datetime.utcnow()
                     device_db.compliance = result.compliance
+
+                    # Send email notification for compliance issues
+                    try:
+                        notif_config = db.query(SystemConfigDB).filter(
+                            SystemConfigDB.key == "notification_settings"
+                        ).first()
+
+                        if notif_config:
+                            notif_settings = json.loads(notif_config.value)
+
+                            # Check if email notifications are enabled and compliance issue notification is on
+                            if (notif_settings.get('emailEnabled', True) and
+                                notif_settings.get('notifyOnComplianceIssue', True)):
+
+                                compliance_threshold = notif_settings.get('complianceThreshold', 80.0)
+
+                                # Send notification if compliance is below threshold
+                                if result.compliance < compliance_threshold:
+                                    # Count critical findings
+                                    critical_findings = sum(
+                                        1 for f in result.findings
+                                        if hasattr(f, 'severity') and f.severity == SeverityLevel.CRITICAL
+                                    )
+
+                                    email_notification_service.send_compliance_issue_notification(
+                                        result.device_name,
+                                        result.compliance,
+                                        compliance_threshold,
+                                        critical_findings,
+                                        db
+                                    )
+                                    logger.info(f"Sent compliance issue notification for {result.device_name} ({result.compliance:.1f}%)")
+
+                    except Exception as e:
+                        logger.error(f"Error sending compliance notification: {e}")
+                        # Don't fail the audit if notification fails
 
                 successful_results.append(result)
             else:

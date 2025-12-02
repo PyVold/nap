@@ -53,6 +53,7 @@ class SystemSettingsRequest(BaseModel):
     """General system settings"""
     platformName: str = Field("Network Audit Platform", max_length=100)
     smtpEnabled: bool = False
+    useLocalhost: bool = False  # Use local mail server (localhost:25)
     smtpServer: Optional[str] = None
     smtpPort: int = Field(587, ge=1, le=65535)
     smtpUsername: Optional[str] = None
@@ -66,6 +67,7 @@ class SystemSettingsResponse(BaseModel):
     """Current system settings"""
     platformName: str
     smtpEnabled: bool
+    useLocalhost: bool
     smtpServer: Optional[str]
     smtpPort: int
     smtpUsername: Optional[str]
@@ -188,6 +190,7 @@ async def get_system_settings(
         return SystemSettingsResponse(
             platformName="Network Audit Platform",
             smtpEnabled=False,
+            useLocalhost=False,
             smtpServer=None,
             smtpPort=587,
             smtpUsername=None,
@@ -313,6 +316,12 @@ class NotificationSettingsRequest(BaseModel):
     notifyOnLicenseExpiry: bool = True
     notifyOnQuotaExceeded: bool = True
     notifyOnAuditFailure: bool = True
+    notifyOnHealthCheckFailure: bool = True
+    notifyOnDeviceOffline: bool = True
+    notifyOnComplianceIssue: bool = True
+    # Configurable thresholds
+    complianceThreshold: float = 80.0  # Alert when compliance < this %
+    deviceOfflineAfterFailures: int = 3  # Alert after this many consecutive failures
 
 
 class NotificationSettingsResponse(BaseModel):
@@ -323,6 +332,11 @@ class NotificationSettingsResponse(BaseModel):
     notifyOnLicenseExpiry: bool
     notifyOnQuotaExceeded: bool
     notifyOnAuditFailure: bool
+    notifyOnHealthCheckFailure: bool
+    notifyOnDeviceOffline: bool
+    notifyOnComplianceIssue: bool
+    complianceThreshold: float
+    deviceOfflineAfterFailures: int
 
 
 @router.get("/notification-settings", response_model=NotificationSettingsResponse)
@@ -350,7 +364,12 @@ async def get_notification_settings(
             notifyOnBackupFailure=True,
             notifyOnLicenseExpiry=True,
             notifyOnQuotaExceeded=True,
-            notifyOnAuditFailure=True
+            notifyOnAuditFailure=True,
+            notifyOnHealthCheckFailure=True,
+            notifyOnDeviceOffline=True,
+            notifyOnComplianceIssue=True,
+            complianceThreshold=80.0,
+            deviceOfflineAfterFailures=3
         )
 
     import json
