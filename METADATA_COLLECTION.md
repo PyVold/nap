@@ -250,7 +250,7 @@ Future enhancements:
 
 ## Code Locations
 
-- **Metadata Collector:** `services/device_metadata_collector.py`
+- **Metadata Collector:** `shared/device_metadata_collector.py`
 - **Nokia Connector:** `connectors/nokia_sros_connector.py` (run_command method)
 - **Cisco Connector:** `connectors/netconf_connector.py` (run_command method)
 - **Device Service:** `services/device-service/app/services/device_service.py`

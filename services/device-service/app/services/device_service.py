@@ -13,12 +13,8 @@ from shared.logger import setup_logger
 from shared.exceptions import DeviceNotFoundError
 from shared.validators import validate_hostname, validate_ip
 from shared.backoff import BackoffManager
-import sys
+from shared.device_metadata_collector import DeviceMetadataCollector
 import json
-
-# Add parent directory to path to import device_metadata_collector
-sys.path.insert(0, '/app')
-from services.device_metadata_collector import DeviceMetadataCollector
 
 logger = setup_logger(__name__)
 
