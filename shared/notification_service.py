@@ -43,7 +43,9 @@ class NotificationService:
                 settings = json.loads(config.value)
                 self.smtp_enabled = settings.get('smtpEnabled', False)
                 self.use_localhost = settings.get('useLocalhost', False)
-                self.smtp_server = settings.get('smtpServer', 'localhost' if self.use_localhost else None)
+                # Use host.docker.internal for Docker environments to reach host's mail server
+                default_localhost = 'host.docker.internal' if self.use_localhost else None
+                self.smtp_server = settings.get('smtpServer', default_localhost)
                 self.smtp_port = settings.get('smtpPort', 25 if self.use_localhost else 587)
                 self.smtp_username = settings.get('smtpUsername')
                 self.smtp_password = settings.get('smtpPassword')
@@ -109,8 +111,8 @@ class NotificationService:
                     "message": "SMTP configuration is incomplete (missing server or username)"
                 }
         elif not self.smtp_server:
-            # Localhost mode but no server specified, default to localhost
-            self.smtp_server = 'localhost'
+            # Localhost mode but no server specified, default to host.docker.internal for Docker
+            self.smtp_server = 'host.docker.internal'
             self.smtp_port = 25
 
         # Use default recipients if none provided
