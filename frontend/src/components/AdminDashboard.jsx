@@ -151,19 +151,23 @@ export default function AdminDashboard() {
 
   const loadUsers = async () => {
     try {
-      const response = await api.get('/user-management/users/');
-      setUsers(response.data.users || []);
+      const response = await api.get('/user-management/users');
+      // Backend returns array directly, not wrapped in {users: [...]}
+      setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to load users:', err);
+      setError(`Failed to load users: ${err.response?.data?.detail || err.message}`);
     }
   };
 
   const loadGroups = async () => {
     try {
-      const response = await api.get('/user-management/groups/');
-      setGroups(response.data.groups || []);
+      const response = await api.get('/user-management/groups');
+      // Backend returns array directly, not wrapped in {groups: [...]}
+      setGroups(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to load groups:', err);
+      setError(`Failed to load groups: ${err.response?.data?.detail || err.message}`);
     }
   };
 
