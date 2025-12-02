@@ -14,7 +14,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import time
 
-from deps import get_db, get_current_user
+from deps import get_db, get_current_user_db
 import db_models
 import logging
 
@@ -82,7 +82,7 @@ class SystemSettingsResponse(BaseModel):
 @router.get("/backup-config", response_model=BackupConfigResponse)
 async def get_backup_config(
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Get current backup configuration
@@ -118,7 +118,7 @@ async def get_backup_config(
 async def save_backup_config(
     request: BackupConfigRequest,
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Save backup configuration
@@ -169,7 +169,7 @@ async def save_backup_config(
 @router.get("/system-settings", response_model=SystemSettingsResponse)
 async def get_system_settings(
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Get current system settings
@@ -211,7 +211,7 @@ async def get_system_settings(
 async def save_system_settings(
     request: SystemSettingsRequest,
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Save system settings
@@ -260,7 +260,7 @@ async def save_system_settings(
 @router.post("/test-email")
 async def test_email_config(
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Test SMTP email configuration
@@ -328,7 +328,7 @@ class NotificationSettingsResponse(BaseModel):
 @router.get("/notification-settings", response_model=NotificationSettingsResponse)
 async def get_notification_settings(
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Get current notification settings
@@ -362,7 +362,7 @@ async def get_notification_settings(
 async def save_notification_settings(
     request: NotificationSettingsRequest,
     db: Session = Depends(get_db),
-    current_user: db_models.UserDB = Depends(get_current_user)
+    current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
     """
     Save notification settings
