@@ -58,69 +58,9 @@ Or if you have separate requirements per service, add to:
 - `/home/user/nap/services/admin-service/requirements.txt`
 - `/home/user/nap/services/backup-service/requirements.txt` (if exists)
 
-### Step 3: Run Database Migration
+### Step 3: Rebuild and Start Containers
 
-```bash
-cd /home/user/nap
-
-# Make migration script executable
-chmod +x run_migration.sh
-
-# Run migration
-./run_migration.sh migrations/001_add_system_config_table.sql
-```
-
-**Expected Output:**
-```
-✅ Migration completed successfully!
-config_count: 3
-```
-
-**Manual Alternative:**
-```bash
-docker-compose exec database psql -U nap_user -d nap_db < migrations/001_add_system_config_table.sql
-```
-
-### Step 4: Initialize Backup Scheduler in Admin Service
-
-Add to `/home/user/nap/services/admin-service/app/main.py` in the startup event:
-
-```python
-@app.on_event("startup")
-async def startup_event():
-    # ... existing code ...
-
-    # Initialize backup scheduler
-    try:
-        import sys
-        sys.path.insert(0, '/app')
-        from shared.backup_scheduler import backup_scheduler
-        from shared.database import SessionLocal
-
-        db = SessionLocal()
-        backup_scheduler.load_and_update_schedule(db)
-        db.close()
-
-        logger.info("✅ Backup scheduler initialized")
-    except Exception as e:
-        logger.error(f"❌ Error initializing backup scheduler: {e}")
-```
-
-And in the shutdown event:
-
-```python
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    try:
-        from shared.backup_scheduler import backup_scheduler
-        backup_scheduler.shutdown()
-        logger.info("Backup scheduler shutdown")
-    except Exception as e:
-        logger.error(f"Error shutting down scheduler: {e}")
-```
-
-### Step 5: Rebuild Containers
+**🎉 Migrations now run automatically on admin-service startup!**
 
 ```bash
 cd /home/user/nap
@@ -134,19 +74,37 @@ docker-compose build admin-service frontend
 # Start everything
 docker-compose up -d
 
-# Check logs
-docker-compose logs -f admin-service | grep -E "scheduler|Backup"
+# Check logs to verify migration and scheduler
+docker-compose logs -f admin-service | grep -E "migration|scheduler|Backup"
 ```
 
 **Expected in logs:**
 ```
+✅ Database migrations already applied (or "Migration completed successfully!")
 ✅ Backup scheduler initialized
 Scheduled daily backups at 02:00
 ```
 
-### Step 6: Verify Deployment
+### Step 3b: Manual Migration (Optional)
 
-#### 6.1 Check Database Migration
+If you prefer to run migrations manually before starting services:
+
+```bash
+# Make migration script executable
+chmod +x run_migration.sh
+
+# Run migration (only if admin-service is NOT running)
+./run_migration.sh migrations/001_add_system_config_table.sql
+```
+
+**Manual Alternative:**
+```bash
+docker-compose exec database psql -U nap_user -d nap_db < migrations/001_add_system_config_table.sql
+```
+
+### Step 4: Verify Deployment
+
+#### 4.1 Check Database Migration
 
 ```bash
 docker-compose exec database psql -U nap_user -d nap_db -c \
@@ -162,13 +120,13 @@ docker-compose exec database psql -U nap_user -d nap_db -c \
  notification_settings| Email notification settings
 ```
 
-#### 6.2 Access Admin Dashboard
+#### 4.2 Access Admin Dashboard
 
 1. Navigate to: `http://localhost:8080/admin`
 2. **Login as admin** (must be superuser)
 3. You should see 6 tabs
 
-#### 6.3 Test Backup Configuration
+#### 4.3 Test Backup Configuration
 
 1. Go to **Admin Dashboard → Backup Config** tab
 2. Configure schedule (e.g., Daily at 02:00)
@@ -179,9 +137,9 @@ docker-compose exec database psql -U nap_user -d nap_db -c \
 docker-compose logs admin-service | grep "Scheduled"
 ```
 
-Should show: `Scheduled daily backups at 02:00`
+Should show: `✅ Backup scheduler reloaded with new configuration`
 
-#### 6.4 Test Email Notifications
+#### 4.4 Test Email Notifications
 
 1. Go to **Admin Dashboard → System Settings** tab
 2. Enable SMTP
@@ -195,7 +153,7 @@ Should show: `Scheduled daily backups at 02:00`
 
 **Expected:** Email arrives with subject `[NAP] Test Email - SMTP Configuration`
 
-#### 6.5 Configure Notification Recipients
+#### 4.5 Configure Notification Recipients
 
 1. Create `/admin/notification-settings` tab in frontend (TODO)
 2. Or manually via API:
