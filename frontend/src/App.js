@@ -66,6 +66,7 @@ import UserManagement from './components/UserManagement';
 import Workflows from './components/Workflows';
 import HardwareInventory from './components/HardwareInventory';
 import LicenseManagement from './components/LicenseManagement';
+import AdminDashboard from './components/AdminDashboard';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
@@ -220,7 +221,7 @@ function AppContent() {
     { text: 'divider', isDivider: true },
     { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
-    { text: 'Admin Panel', icon: <AdminIcon />, path: '/admin', module: null, adminOnly: true }, // Admin only
+    { text: 'Admin Dashboard', icon: <AdminIcon />, path: '/admin', module: null, adminOnly: true }, // Admin only
   ];
 
   // Filter menu items based on user role and module access
@@ -409,7 +410,7 @@ function AppContent() {
             <Route path="/integrations" element={<LicenseGuard><ModuleGuard module="integrations"><Integrations /></ModuleGuard></LicenseGuard>} />
             <Route path="/workflows" element={<LicenseGuard><ModuleGuard module="workflows"><Workflows /></ModuleGuard></LicenseGuard>} />
             <Route path="/analytics" element={<LicenseGuard><ModuleGuard module="analytics"><Analytics /></ModuleGuard></LicenseGuard>} />
-            <Route path="/admin" element={<LicenseGuard><AdminPanel /></LicenseGuard>} />
+            <Route path="/admin" element={<LicenseGuard><AdminDashboard /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

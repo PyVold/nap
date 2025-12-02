@@ -11,7 +11,7 @@ Provides endpoints for:
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import time
 
 from deps import get_db, get_current_user
@@ -276,12 +276,115 @@ async def test_email_config(
     if not settings.get('smtpEnabled'):
         raise HTTPException(status_code=400, detail="SMTP is not enabled")
 
-    # TODO: Implement actual email sending
-    # import smtplib
-    # from email.mime.text import MIMEText
-    # ...
+    # Send test email using notification service
+    try:
+        import sys
+        sys.path.insert(0, '/app')
+        from shared.notification_service import notification_service
 
-    return {
-        "success": True,
-        "message": f"Test email sent to {current_user.email}"
-    }
+        result = notification_service.send_test_email(current_user.email, db)
+
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=500, detail=result["message"])
+
+    except Exception as e:
+        logger.error(f"Error sending test email: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send test email: {str(e)}")
+
+# ============================================================================
+# Notification Settings
+# ============================================================================
+
+class NotificationSettingsRequest(BaseModel):
+    """Email notification settings"""
+    emailEnabled: bool = True
+    emailRecipients: List[EmailStr] = []
+    notifyOnBackupFailure: bool = True
+    notifyOnLicenseExpiry: bool = True
+    notifyOnQuotaExceeded: bool = True
+    notifyOnAuditFailure: bool = True
+
+
+class NotificationSettingsResponse(BaseModel):
+    """Current notification settings"""
+    emailEnabled: bool
+    emailRecipients: List[str]
+    notifyOnBackupFailure: bool
+    notifyOnLicenseExpiry: bool
+    notifyOnQuotaExceeded: bool
+    notifyOnAuditFailure: bool
+
+
+@router.get("/notification-settings", response_model=NotificationSettingsResponse)
+async def get_notification_settings(
+    db: Session = Depends(get_db),
+    current_user: db_models.UserDB = Depends(get_current_user)
+):
+    """
+    Get current notification settings
+
+    Returns email notification configuration
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    config = db.query(db_models.SystemConfigDB).filter(
+        db_models.SystemConfigDB.key == "notification_settings"
+    ).first()
+
+    if not config:
+        # Return defaults
+        return NotificationSettingsResponse(
+            emailEnabled=True,
+            emailRecipients=[],
+            notifyOnBackupFailure=True,
+            notifyOnLicenseExpiry=True,
+            notifyOnQuotaExceeded=True,
+            notifyOnAuditFailure=True
+        )
+
+    import json
+    settings = json.loads(config.value)
+    return NotificationSettingsResponse(**settings)
+
+
+@router.post("/notification-settings", response_model=NotificationSettingsResponse)
+async def save_notification_settings(
+    request: NotificationSettingsRequest,
+    db: Session = Depends(get_db),
+    current_user: db_models.UserDB = Depends(get_current_user)
+):
+    """
+    Save notification settings
+
+    Updates email notification configuration
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    import json
+
+    config = db.query(db_models.SystemConfigDB).filter(
+        db_models.SystemConfigDB.key == "notification_settings"
+    ).first()
+
+    config_dict = request.dict()
+
+    if config:
+        config.value = json.dumps(config_dict)
+    else:
+        config = db_models.SystemConfigDB(
+            key="notification_settings",
+            value=json.dumps(config_dict),
+            description="Email notification settings"
+        )
+        db.add(config)
+
+    db.commit()
+    db.refresh(config)
+
+    logger.info(f"Notification settings updated by {current_user.username}")
+
+    return NotificationSettingsResponse(**config_dict)
