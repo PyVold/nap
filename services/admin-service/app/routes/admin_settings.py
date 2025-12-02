@@ -264,9 +264,14 @@ async def save_system_settings(
     return SystemSettingsResponse(**config_dict)
 
 
+class TestEmailRequest(BaseModel):
+    """Request body for test email"""
+    recipient: EmailStr
+
+
 @router.post("/test-email")
 async def test_email_config(
-    request: dict,
+    request: TestEmailRequest,
     db: Session = Depends(get_db),
     current_user: db_models.UserDB = Depends(get_current_user_db)
 ):
@@ -277,11 +282,6 @@ async def test_email_config(
     """
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Admin access required")
-
-    # Get recipient from request body
-    recipient = request.get('recipient')
-    if not recipient:
-        raise HTTPException(status_code=400, detail="Recipient email is required")
 
     # Get SMTP settings
     config = db.query(db_models.SystemConfigDB).filter(
@@ -303,7 +303,7 @@ async def test_email_config(
         sys.path.insert(0, '/app')
         from shared.notification_service import notification_service
 
-        result = notification_service.send_test_email(recipient, db)
+        result = notification_service.send_test_email(request.recipient, db)
 
         if result["success"]:
             return result
