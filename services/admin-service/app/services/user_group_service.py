@@ -71,6 +71,8 @@ class UserGroupService:
         if not db_group:
             raise ValueError(f"User group {group_id} not found")
 
+        logger.info(f"[UPDATE_GROUP] Group {group_id} ({db_group.name}) - Received update: permissions={group_update.permissions}, modules={group_update.module_access}")
+
         update_data = group_update.dict(exclude_unset=True, exclude={'permissions', 'module_access'})
 
         # Update basic fields
@@ -81,14 +83,22 @@ class UserGroupService:
 
         # Update permissions if provided
         if group_update.permissions is not None:
+            logger.info(f"[UPDATE_GROUP] Updating permissions for group {group_id}: {group_update.permissions}")
             self._update_group_permissions(db, group_id, group_update.permissions)
 
         # Update module access if provided
         if group_update.module_access is not None:
+            logger.info(f"[UPDATE_GROUP] Updating module access for group {group_id}: {group_update.module_access}")
             self._update_group_modules(db, group_id, group_update.module_access)
 
         db.commit()
         db.refresh(db_group)
+
+        # Verify what was saved
+        saved_perms = db.query(GroupPermissionDB).filter(GroupPermissionDB.group_id == group_id).all()
+        saved_modules = db.query(GroupModuleAccessDB).filter(GroupModuleAccessDB.group_id == group_id).all()
+        logger.info(f"[UPDATE_GROUP] SAVED permissions: {[p.permission for p in saved_perms]}")
+        logger.info(f"[UPDATE_GROUP] SAVED modules: {[m.module_name for m in saved_modules]}")
 
         logger.info(f"Updated user group: {db_group.name}")
         return self._group_to_pydantic(db, db_group)
@@ -283,6 +293,7 @@ class UserGroupService:
         # Check if superuser
         db_user = db.query(UserDB).filter(UserDB.id == user_id).first()
         if db_user and db_user.is_superuser:
+            logger.debug(f"[GET_USER_PERMS] User {user_id} is superuser - granting all permissions")
             return set(Permission.all_permissions())
 
         # Get user's groups
@@ -291,7 +302,10 @@ class UserGroupService:
         ).all()
         group_ids = [m.group_id for m in memberships]
 
+        logger.info(f"[GET_USER_PERMS] User {user_id} belongs to groups: {group_ids}")
+
         if not group_ids:
+            logger.warning(f"[GET_USER_PERMS] User {user_id} has no groups - no permissions")
             return set()
 
         # Get all permissions from all groups
@@ -300,7 +314,10 @@ class UserGroupService:
             GroupPermissionDB.granted == True
         ).all()
 
-        return set(p.permission for p in permissions)
+        result = set(p.permission for p in permissions)
+        logger.info(f"[GET_USER_PERMS] User {user_id} permissions from groups {group_ids}: {result}")
+
+        return result
 
     def get_user_modules(self, db: Session, user_id: int) -> Set[str]:
         """
@@ -356,8 +373,10 @@ class UserGroupService:
         ).all()
         group_ids = [m.group_id for m in memberships]
 
+        logger.info(f"[GET_USER_MODULES] User {user_id} belongs to groups: {group_ids}")
+
         if not group_ids:
-            logger.debug(f"User {user_id} has no groups - no module access")
+            logger.warning(f"[GET_USER_MODULES] User {user_id} has no groups - no module access")
             return set()
 
         # Get all module access from all groups (these are also backend module names)
@@ -372,7 +391,7 @@ class UserGroupService:
         # User can only access modules that are BOTH in their groups AND in the license
         allowed_modules = group_modules.intersection(license_modules)
 
-        logger.debug(f"User {user_id} modules: group={group_modules}, license={license_modules}, allowed={allowed_modules}")
+        logger.info(f"[GET_USER_MODULES] User {user_id} - Groups: {group_ids}, Group modules: {group_modules}, License modules: {license_modules}, Allowed: {allowed_modules}")
 
         return allowed_modules
 
@@ -391,29 +410,37 @@ class UserGroupService:
     def _update_group_permissions(self, db: Session, group_id: int, permissions: List[str]):
         """Replace all permissions for a group"""
         # Remove existing permissions
-        db.query(GroupPermissionDB).filter(
+        deleted_count = db.query(GroupPermissionDB).filter(
             GroupPermissionDB.group_id == group_id
         ).delete()
+
+        logger.info(f"[UPDATE_PERMS] Deleted {deleted_count} existing permissions for group {group_id}")
 
         # Add new permissions
         for permission in permissions:
             perm = GroupPermissionDB(group_id=group_id, permission=permission, granted=True)
             db.add(perm)
+            logger.debug(f"[UPDATE_PERMS] Added permission '{permission}' to group {group_id}")
 
+        logger.info(f"[UPDATE_PERMS] Added {len(permissions)} new permissions for group {group_id}")
         db.flush()
 
     def _update_group_modules(self, db: Session, group_id: int, modules: List[str]):
         """Replace all module access for a group"""
         # Remove existing module access
-        db.query(GroupModuleAccessDB).filter(
+        deleted_count = db.query(GroupModuleAccessDB).filter(
             GroupModuleAccessDB.group_id == group_id
         ).delete()
+
+        logger.info(f"[UPDATE_MODULES] Deleted {deleted_count} existing modules for group {group_id}")
 
         # Add new module access
         for module in modules:
             access = GroupModuleAccessDB(group_id=group_id, module_name=module, can_access=True)
             db.add(access)
+            logger.debug(f"[UPDATE_MODULES] Added module '{module}' to group {group_id}")
 
+        logger.info(f"[UPDATE_MODULES] Added {len(modules)} new modules for group {group_id}")
         db.flush()
 
     def _group_to_pydantic(self, db: Session, db_group: UserGroupDB) -> UserGroup:
