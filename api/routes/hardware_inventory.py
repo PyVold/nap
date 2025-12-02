@@ -13,6 +13,8 @@ from db_models import HardwareInventoryDB, DeviceDB
 from services.hardware_inventory_service import HardwareInventoryService
 from shared.license_middleware import require_license_module
 
+# Hardware Inventory is an Enterprise-only feature
+
 router = APIRouter(prefix="/hardware", tags=["hardware"])
 
 
@@ -83,7 +85,7 @@ def list_inventory_summary(
     vendor: Optional[str] = Query(None, description="Filter by vendor (nokia, cisco)"),
     chassis_model: Optional[str] = Query(None, description="Filter by chassis model"),
     db: Session = Depends(get_db),
-    _: None = Depends(require_license_module("devices"))
+    _: None = Depends(require_license_module("hardware_inventory"))
 ):
     """
     Get inventory summary for all devices with filtering
@@ -149,7 +151,7 @@ def list_inventory_summary(
 def list_chassis_models(
     vendor: Optional[str] = Query(None, description="Filter by vendor"),
     db: Session = Depends(get_db),
-    _: None = Depends(require_license_module("devices"))
+    _: None = Depends(require_license_module("hardware_inventory"))
 ):
     """
     Get list of chassis models with device counts
@@ -219,7 +221,7 @@ def get_device_inventory(
     device_id: int,
     component_type: Optional[str] = Query(None, description="Filter by component type"),
     db: Session = Depends(get_db),
-    _: None = Depends(require_license_module("devices"))
+    _: None = Depends(require_license_module("hardware_inventory"))
 ):
     """Get detailed hardware inventory for a specific device"""
     try:
@@ -242,7 +244,7 @@ def get_device_inventory(
 async def scan_device(
     device_id: int,
     db: Session = Depends(get_db),
-    _: None = Depends(require_license_module("devices"))
+    _: None = Depends(require_license_module("hardware_inventory"))
 ):
     """Trigger a hardware inventory scan for a specific device"""
     try:
@@ -256,7 +258,7 @@ async def scan_device(
 @router.post("/scan-all")
 async def scan_all_devices(
     db: Session = Depends(get_db),
-    _: None = Depends(require_license_module("devices"))
+    _: None = Depends(require_license_module("hardware_inventory"))
 ):
     """Trigger hardware inventory scan for all devices"""
     try:

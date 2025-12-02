@@ -234,10 +234,17 @@ async def get_license_status(db: Session = Depends(get_db)):
         # Get current usage
         device_count = db.query(db_models.DeviceDB).count()
         user_count = db.query(db_models.UserDB).count()
-        
+
+        # Calculate storage usage from config backups
+        storage_bytes = db.query(
+            db.func.coalesce(db.func.sum(db_models.ConfigBackupDB.size_bytes), 0)
+        ).scalar()
+        storage_gb = float(storage_bytes) / (1024 * 1024 * 1024)  # Convert to GB
+
         # Update current usage in license record
         active_license.current_devices = device_count
         active_license.current_users = user_count
+        active_license.current_storage_gb = storage_gb
         db.commit()
         
         # Calculate quotas

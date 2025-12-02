@@ -12,7 +12,7 @@ from shared.config import settings
 from shared.logger import setup_logger
 from routes import (
     admin, user_management, integrations, notifications, remediation,
-    workflows, license
+    workflows, license, admin_settings
 )
 
 logger = setup_logger(__name__)
@@ -178,6 +178,7 @@ app.include_router(integrations.router, tags=["Integrations"])
 app.include_router(notifications.router, tags=["Notifications"])
 app.include_router(remediation.router, tags=["Remediation"])
 app.include_router(license.router, tags=["License"])
+app.include_router(admin_settings.router, tags=["Admin Settings"])
 # Stub routes for unimplemented features
 app.include_router(workflows.router, tags=["Workflows"])
 
