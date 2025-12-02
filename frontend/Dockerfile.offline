@@ -1,0 +1,30 @@
+# Offline-ready Dockerfile for frontend
+# Uses pre-built base image with node_modules installed
+# No network access required during build
+
+# Build stage - uses base image with node_modules
+FROM nap-frontend-base:latest as build
+
+WORKDIR /app
+
+# node_modules already installed in base image
+# Just copy source and build
+COPY frontend/public ./public
+COPY frontend/src ./src
+COPY frontend/package*.json ./
+
+# Build the React app (no npm install needed)
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy built app from build stage
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
