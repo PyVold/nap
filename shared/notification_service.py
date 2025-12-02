@@ -32,15 +32,15 @@ class NotificationService:
     def load_smtp_settings(self, db: Session):
         """Load SMTP settings from database"""
         try:
-            from db_models import SystemConfigDB
+            from sqlalchemy import text
 
-            # Get system settings
-            config = db.query(SystemConfigDB).filter(
-                SystemConfigDB.key == "system_settings"
-            ).first()
+            # Query system settings directly without model
+            result = db.execute(
+                text("SELECT value FROM system_config WHERE key = 'system_settings'")
+            ).fetchone()
 
-            if config:
-                settings = json.loads(config.value)
+            if result:
+                settings = json.loads(result[0])
                 self.smtp_enabled = settings.get('smtpEnabled', False)
                 self.use_localhost = settings.get('useLocalhost', False)
                 # Use host.docker.internal for Docker environments to reach host's mail server
@@ -55,12 +55,12 @@ class NotificationService:
                 logger.warning("No SMTP settings found in database")
 
             # Get notification settings for default recipients
-            notif_config = db.query(SystemConfigDB).filter(
-                SystemConfigDB.key == "notification_settings"
-            ).first()
+            notif_result = db.execute(
+                text("SELECT value FROM system_config WHERE key = 'notification_settings'")
+            ).fetchone()
 
-            if notif_config:
-                notif_settings = json.loads(notif_config.value)
+            if notif_result:
+                notif_settings = json.loads(notif_result[0])
                 self.default_recipients = notif_settings.get('emailRecipients', [])
                 logger.info(f"Default recipients loaded: {len(self.default_recipients)}")
 
