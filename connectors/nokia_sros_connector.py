@@ -98,11 +98,11 @@ class NokiaSROSConnector(BaseConnector):
                     # pysros Container with .data attribute
                     return convert_pysros_to_dict(obj.data)
                 elif isinstance(obj, dict):
-                    # Convert dict, handling tuple keys by converting them to strings
+                    # Convert dict, handling all non-string keys by converting to strings
                     result = {}
                     for k, v in obj.items():
-                        # Convert tuple keys to string representation
-                        key = str(k) if isinstance(k, tuple) else k
+                        # Convert any non-string key to string (handles int, tuple, etc.)
+                        key = str(k) if not isinstance(k, str) else k
                         result[key] = convert_pysros_to_dict(v)
                     return result
                 elif isinstance(obj, (list, tuple)):
@@ -169,11 +169,11 @@ class NokiaSROSConnector(BaseConnector):
                     # pysros Container with .data attribute
                     return convert_pysros_to_dict(obj.data)
                 elif isinstance(obj, dict):
-                    # Convert dict, handling tuple keys by converting them to strings
+                    # Convert dict, handling all non-string keys by converting to strings
                     result = {}
                     for k, v in obj.items():
-                        # Convert tuple keys to string representation
-                        key = str(k) if isinstance(k, tuple) else k
+                        # Convert any non-string key to string (handles int, tuple, etc.)
+                        key = str(k) if not isinstance(k, str) else k
                         result[key] = convert_pysros_to_dict(v)
                     return result
                 elif isinstance(obj, (list, tuple)):
