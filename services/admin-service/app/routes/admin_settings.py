@@ -152,8 +152,16 @@ async def save_backup_config(
 
     logger.info(f"Backup config updated by {current_user.username}")
 
-    # TODO: Update cron job or scheduler based on new settings
-    # This would involve updating a celery beat schedule or cron job
+    # Reload backup scheduler with new settings
+    try:
+        import sys
+        sys.path.insert(0, '/app')
+        from shared.backup_scheduler import backup_scheduler
+        backup_scheduler.load_and_update_schedule(db)
+        logger.info("✅ Backup scheduler reloaded with new configuration")
+    except Exception as e:
+        logger.error(f"❌ Error reloading backup scheduler: {e}")
+        # Don't fail the request if scheduler reload fails
 
     return BackupConfigResponse(**config_dict)
 
