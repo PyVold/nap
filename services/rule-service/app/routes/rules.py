@@ -7,7 +7,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from shared.deps import get_db, require_admin_or_operator, require_any_authenticated
+from shared.deps import get_db, require_view_rules, require_modify_rules, require_delete_rules
+from db_models import UserDB
 from models.rule import AuditRule, AuditRuleCreate, AuditRuleUpdate
 from services.rule_service import RuleService
 from shared.exceptions import RuleNotFoundError
@@ -36,9 +37,9 @@ async def get_rule(rule_id: int, db: Session = Depends(get_db)):
 async def create_rule(
     rule_create: AuditRuleCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: UserDB = Depends(require_modify_rules)
 ):
-    """Create a new audit rule (requires admin or operator role)"""
+    """Create a new audit rule (requires modify_rules permission)"""
     try:
         return rule_service.create_rule(db, rule_create)
     except ValueError as e:
@@ -52,9 +53,9 @@ async def update_rule(
     rule_id: int,
     rule_update: AuditRuleUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: UserDB = Depends(require_modify_rules)
 ):
-    """Update an existing rule (requires admin or operator role)"""
+    """Update an existing rule (requires modify_rules permission)"""
     try:
         return rule_service.update_rule(db, rule_id, rule_update)
     except RuleNotFoundError as e:
@@ -72,9 +73,9 @@ async def update_rule(
 async def delete_rule(
     rule_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: UserDB = Depends(require_delete_rules)
 ):
-    """Delete a rule (requires admin or operator role)"""
+    """Delete a rule (requires delete_rules permission)"""
     try:
         rule_service.delete_rule(db, rule_id)
     except RuleNotFoundError as e:
@@ -87,9 +88,9 @@ async def delete_rule(
 async def toggle_rule(
     rule_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin_or_operator)
+    current_user: UserDB = Depends(require_modify_rules)
 ):
-    """Toggle rule enabled/disabled (requires admin or operator role)"""
+    """Toggle rule enabled/disabled (requires modify_rules permission)"""
     try:
         return rule_service.toggle_rule(db, rule_id)
     except RuleNotFoundError as e:

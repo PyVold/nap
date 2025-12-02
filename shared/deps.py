@@ -148,9 +148,34 @@ def require_permission(permission: str):
         if db_user.is_superuser:
             return db_user
 
-        # TODO: Implement granular permission checking with user groups
-        # For now, all authenticated users have basic permissions
-        # Full RBAC is handled by admin-service
+        # Check user's permissions from groups
+        from db_models import UserGroupMembershipDB, GroupPermissionDB
+
+        # Get user's groups
+        memberships = db.query(UserGroupMembershipDB).filter(
+            UserGroupMembershipDB.user_id == db_user.id
+        ).all()
+        group_ids = [m.group_id for m in memberships]
+
+        if not group_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied. Required permission: {permission}",
+            )
+
+        # Check if user has the required permission through any of their groups
+        has_permission = db.query(GroupPermissionDB).filter(
+            GroupPermissionDB.group_id.in_(group_ids),
+            GroupPermissionDB.permission == permission,
+            GroupPermissionDB.granted == True
+        ).first() is not None
+
+        if not has_permission:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied. Required permission: {permission}",
+            )
+
         return db_user
 
     return permission_checker
@@ -176,8 +201,34 @@ def require_any_permission(*permissions: str):
         if db_user.is_superuser:
             return db_user
 
-        # TODO: Implement granular permission checking with user groups
-        # For now, all authenticated users have basic permissions
+        # Check user's permissions from groups
+        from db_models import UserGroupMembershipDB, GroupPermissionDB
+
+        # Get user's groups
+        memberships = db.query(UserGroupMembershipDB).filter(
+            UserGroupMembershipDB.user_id == db_user.id
+        ).all()
+        group_ids = [m.group_id for m in memberships]
+
+        if not group_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied. Required one of: {', '.join(permissions)}",
+            )
+
+        # Check if user has at least one of the required permissions
+        has_permission = db.query(GroupPermissionDB).filter(
+            GroupPermissionDB.group_id.in_(group_ids),
+            GroupPermissionDB.permission.in_(permissions),
+            GroupPermissionDB.granted == True
+        ).first() is not None
+
+        if not has_permission:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied. Required one of: {', '.join(permissions)}",
+            )
+
         return db_user
 
     return permission_checker
