@@ -90,32 +90,53 @@ class NokiaSROSConnector(BaseConnector):
 
             def convert_pysros_to_dict(obj):
                 """Recursively convert pysros Container objects to dictionaries"""
+                # Get the type name for pysros objects
+                type_name = type(obj).__name__
+
                 # Check for pysros _Empty type (represents no data)
-                if obj is None or type(obj).__name__ == '_Empty':
+                if obj is None or type_name == '_Empty':
                     return {}
 
-                if hasattr(obj, 'data'):
-                    # pysros Container with .data attribute
-                    return convert_pysros_to_dict(obj.data)
-                elif isinstance(obj, dict):
-                    # Convert dict, handling all non-string keys by converting to strings
+                # Handle pysros Container objects
+                if type_name == 'Container' or hasattr(obj, 'data'):
+                    # Container wraps a dict - unwrap it
+                    if hasattr(obj, 'data'):
+                        return convert_pysros_to_dict(obj.data)
+                    # Some Containers are dict-like
+                    elif isinstance(obj, dict):
+                        result = {}
+                        for k, v in obj.items():
+                            key = str(k) if not isinstance(k, str) else k
+                            result[key] = convert_pysros_to_dict(v)
+                        return result
+                    return {}
+
+                # Handle pysros Leaf objects (primitive values)
+                if type_name == 'Leaf':
+                    # Leaf wraps a primitive value
+                    return str(obj) if obj is not None else None
+
+                # Handle regular dicts (including from unwrapped Containers)
+                if isinstance(obj, dict):
                     result = {}
                     for k, v in obj.items():
                         # Convert any non-string key to string (handles int, tuple, etc.)
                         key = str(k) if not isinstance(k, str) else k
                         result[key] = convert_pysros_to_dict(v)
                     return result
-                elif isinstance(obj, (list, tuple)):
+
+                # Handle lists and tuples
+                if isinstance(obj, (list, tuple)):
                     return [convert_pysros_to_dict(item) for item in obj]
-                else:
-                    # Try to convert to primitive types
-                    try:
-                        # Check if it's JSON serializable
-                        json.dumps(obj)
-                        return obj
-                    except (TypeError, ValueError):
-                        # If not serializable, convert to string
-                        return str(obj)
+
+                # Handle primitive types
+                try:
+                    # Check if it's JSON serializable
+                    json.dumps(obj)
+                    return obj
+                except (TypeError, ValueError):
+                    # If not serializable, convert to string
+                    return str(obj)
 
             # Convert to dictionary then to JSON string
             config_dict = convert_pysros_to_dict(result)
@@ -161,32 +182,53 @@ class NokiaSROSConnector(BaseConnector):
 
             def convert_pysros_to_dict(obj):
                 """Recursively convert pysros Container objects to dictionaries"""
+                # Get the type name for pysros objects
+                type_name = type(obj).__name__
+
                 # Check for pysros _Empty type (represents no data)
-                if obj is None or type(obj).__name__ == '_Empty':
+                if obj is None or type_name == '_Empty':
                     return {}
 
-                if hasattr(obj, 'data'):
-                    # pysros Container with .data attribute
-                    return convert_pysros_to_dict(obj.data)
-                elif isinstance(obj, dict):
-                    # Convert dict, handling all non-string keys by converting to strings
+                # Handle pysros Container objects
+                if type_name == 'Container' or hasattr(obj, 'data'):
+                    # Container wraps a dict - unwrap it
+                    if hasattr(obj, 'data'):
+                        return convert_pysros_to_dict(obj.data)
+                    # Some Containers are dict-like
+                    elif isinstance(obj, dict):
+                        result = {}
+                        for k, v in obj.items():
+                            key = str(k) if not isinstance(k, str) else k
+                            result[key] = convert_pysros_to_dict(v)
+                        return result
+                    return {}
+
+                # Handle pysros Leaf objects (primitive values)
+                if type_name == 'Leaf':
+                    # Leaf wraps a primitive value
+                    return str(obj) if obj is not None else None
+
+                # Handle regular dicts (including from unwrapped Containers)
+                if isinstance(obj, dict):
                     result = {}
                     for k, v in obj.items():
                         # Convert any non-string key to string (handles int, tuple, etc.)
                         key = str(k) if not isinstance(k, str) else k
                         result[key] = convert_pysros_to_dict(v)
                     return result
-                elif isinstance(obj, (list, tuple)):
+
+                # Handle lists and tuples
+                if isinstance(obj, (list, tuple)):
                     return [convert_pysros_to_dict(item) for item in obj]
-                else:
-                    # Try to convert to primitive types
-                    try:
-                        # Check if it's JSON serializable
-                        json.dumps(obj)
-                        return obj
-                    except (TypeError, ValueError):
-                        # If not serializable, convert to string
-                        return str(obj)
+
+                # Handle primitive types
+                try:
+                    # Check if it's JSON serializable
+                    json.dumps(obj)
+                    return obj
+                except (TypeError, ValueError):
+                    # If not serializable, convert to string
+                    return str(obj)
 
             # Convert to dictionary then to JSON string
             state_dict = convert_pysros_to_dict(result)
