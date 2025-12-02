@@ -78,6 +78,7 @@ MODULE_DISPLAY_NAMES = {
     "device_groups": "Device Groups",
     "discovery": "Device Discovery",
     "health_checks": "Health Monitoring",
+    "hardware_inventory": "Hardware Inventory",
     "workflow_automation": "Workflow Automation",
     "topology": "Network Topology Maps",
     "ai_features": "AI-Powered Features",
@@ -111,7 +112,7 @@ ROUTE_MODULE_MAP = {
     # Monitoring & Notifications
     "notifications": "webhooks",
     "health": "health_checks",
-    "hardware_inventory": "devices",  # Part of device management
+    "hardware_inventory": "hardware_inventory",  # Enterprise only
 
     # Advanced Features
     "integrations": "integrations",

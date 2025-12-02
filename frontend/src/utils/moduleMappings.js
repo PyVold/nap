@@ -106,7 +106,7 @@ function getDefaultMappings() {
       // Monitoring & Notifications
       'notifications': 'webhooks',
       'health': 'health_checks',
-      'hardware_inventory': 'devices',
+      'hardware_inventory': 'hardware_inventory',  // Enterprise only
 
       // Advanced Features
       'integrations': 'integrations',
