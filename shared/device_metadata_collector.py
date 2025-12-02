@@ -43,41 +43,25 @@ class DeviceMetadataCollector:
                 bgp_data = await connection.get_operational_state(xpath=bgp_xpath)
 
                 if bgp_data:
-                    logger.debug(f"BGP raw response (first 500 chars): {bgp_data[:500]}")
                     bgp_json = json.loads(bgp_data)
-                    logger.debug(f"BGP JSON keys: {bgp_json.keys() if isinstance(bgp_json, dict) else type(bgp_json)}")
 
-                    # Navigate through the JSON structure
-                    if 'data' in bgp_json and 'state' in bgp_json['data']:
-                        state = bgp_json['data']['state']
-                        if 'router' in state:
-                            router = state['router']
-                            if isinstance(router, list):
-                                router = router[0] if router else {}
+                    # BGP data is returned directly as a dict with fields
+                    # Count neighbors
+                    if 'neighbor' in bgp_json and isinstance(bgp_json['neighbor'], dict):
+                        neighbors = bgp_json['neighbor']
+                        metadata["bgp"]["neighbor_count"] = len(neighbors)
 
-                            if 'bgp' in router:
-                                bgp = router['bgp']
+                        # Count established sessions
+                        established = 0
+                        for neighbor_ip, neighbor_data in neighbors.items():
+                            if isinstance(neighbor_data, dict):
+                                stats = neighbor_data.get('statistics', {})
+                                if stats.get('session-state') == 'Established':
+                                    established += 1
+                        metadata["bgp"]["established_sessions"] = established
 
-                                # Extract AS number
-                                if 'autonomous-system' in bgp:
-                                    metadata["bgp"]["as_number"] = bgp['autonomous-system']
-
-                                # Extract Router ID
-                                if 'router-id' in bgp:
-                                    metadata["bgp"]["router_id"] = bgp['router-id']
-
-                                # Count neighbors and established sessions
-                                if 'neighbor' in bgp:
-                                    neighbors = bgp['neighbor']
-                                    if isinstance(neighbors, dict):
-                                        neighbors = [neighbors]
-
-                                    metadata["bgp"]["neighbor_count"] = len(neighbors)
-                                    established = sum(1 for n in neighbors if n.get('session-state') == 'established')
-                                    metadata["bgp"]["established_sessions"] = established
-
-                logger.info(f"Collected BGP metadata: AS{metadata['bgp'].get('as_number')}, "
-                           f"{metadata['bgp'].get('established_sessions', 0)} established sessions")
+                logger.info(f"Collected BGP metadata: {metadata['bgp'].get('neighbor_count', 0)} neighbors, "
+                           f"{metadata['bgp'].get('established_sessions', 0)} established")
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
 
@@ -87,38 +71,45 @@ class DeviceMetadataCollector:
                 isis_data = await connection.get_operational_state(xpath=isis_xpath)
 
                 if isis_data:
-                    logger.debug(f"ISIS raw response (first 500 chars): {isis_data[:500]}")
                     isis_json = json.loads(isis_data)
-                    logger.debug(f"ISIS JSON type: {type(isis_json)}, keys: {isis_json.keys() if isinstance(isis_json, dict) else 'N/A'}")
 
-                    if 'data' in isis_json and 'state' in isis_json['data']:
-                        state = isis_json['data']['state']
-                        if 'router' in state:
-                            router = state['router']
-                            if isinstance(router, list):
-                                router = router[0] if router else {}
+                    # ISIS returns a dict with instance keys (integers converted to strings)
+                    # Get the first instance (usually '0')
+                    if isis_json and isinstance(isis_json, dict):
+                        # Find the first instance
+                        instance_key = next(iter(isis_json.keys())) if isis_json else None
+                        if instance_key:
+                            instance = isis_json[instance_key]
 
-                            if 'isis' in router and router['isis']:
-                                isis = router['isis']
-                                if isinstance(isis, list):
-                                    isis = isis[0] if isis else {}
+                            metadata["igp"]["type"] = "ISIS"
 
-                                metadata["igp"]["type"] = "ISIS"
+                            # Extract System ID
+                            if 'oper-system-id' in instance:
+                                metadata["igp"]["router_id"] = instance['oper-system-id']
 
-                                # Extract System ID
-                                if 'system-id' in isis:
-                                    metadata["igp"]["router_id"] = isis['system-id']
+                            # Extract router ID (optional, some use this instead)
+                            if 'oper-router-id' in instance:
+                                if not metadata["igp"].get("router_id"):
+                                    metadata["igp"]["router_id"] = instance['oper-router-id']
 
-                                # Extract level capability
-                                if 'level-capability' in isis:
-                                    metadata["igp"]["isis_level"] = isis['level-capability']
+                            # Determine level capability from level data
+                            if 'level' in instance and isinstance(instance['level'], dict):
+                                levels = instance['level']
+                                if '1' in levels and '2' in levels:
+                                    metadata["igp"]["isis_level"] = "L1/L2"
+                                elif '2' in levels:
+                                    metadata["igp"]["isis_level"] = "L2"
+                                elif '1' in levels:
+                                    metadata["igp"]["isis_level"] = "L1"
 
-                                # Count adjacencies
-                                if 'adjacency' in isis:
-                                    adjacencies = isis['adjacency']
-                                    if isinstance(adjacencies, dict):
-                                        adjacencies = [adjacencies]
-                                    metadata["igp"]["adjacency_count"] = len(adjacencies)
+                            # Count adjacencies by looking at interfaces
+                            adjacency_count = 0
+                            if 'interface' in instance and isinstance(instance['interface'], dict):
+                                for intf_name, intf_data in instance['interface'].items():
+                                    if isinstance(intf_data, dict) and 'adjacency' in intf_data:
+                                        if isinstance(intf_data['adjacency'], dict):
+                                            adjacency_count += len(intf_data['adjacency'])
+                            metadata["igp"]["adjacency_count"] = adjacency_count
 
                 logger.info(f"Collected ISIS metadata: {metadata['igp'].get('isis_level')}, "
                            f"{metadata['igp'].get('adjacency_count', 0)} adjacencies")
@@ -134,30 +125,22 @@ class DeviceMetadataCollector:
                     if ospf_data:
                         ospf_json = json.loads(ospf_data)
 
-                        if 'data' in ospf_json and 'state' in ospf_json['data']:
-                            state = ospf_json['data']['state']
-                            if 'router' in state:
-                                router = state['router']
-                                if isinstance(router, list):
-                                    router = router[0] if router else {}
+                        # Similar structure to ISIS
+                        if ospf_json and isinstance(ospf_json, dict):
+                            instance_key = next(iter(ospf_json.keys())) if ospf_json else None
+                            if instance_key:
+                                instance = ospf_json[instance_key]
 
-                                if 'ospf' in router and router['ospf']:
-                                    ospf = router['ospf']
-                                    if isinstance(ospf, list):
-                                        ospf = ospf[0] if ospf else {}
+                                metadata["igp"]["type"] = "OSPF"
 
-                                    metadata["igp"]["type"] = "OSPF"
+                                if 'router-id' in instance:
+                                    metadata["igp"]["router_id"] = instance['router-id']
 
-                                    # Extract Router ID
-                                    if 'router-id' in ospf:
-                                        metadata["igp"]["router_id"] = ospf['router-id']
-
-                                    # Count neighbors
-                                    if 'neighbor' in ospf:
-                                        neighbors = ospf['neighbor']
-                                        if isinstance(neighbors, dict):
-                                            neighbors = [neighbors]
-                                        metadata["igp"]["neighbor_count"] = len(neighbors)
+                                # Count neighbors
+                                neighbor_count = 0
+                                if 'neighbor' in instance and isinstance(instance['neighbor'], dict):
+                                    neighbor_count = len(instance['neighbor'])
+                                metadata["igp"]["neighbor_count"] = neighbor_count
 
                     logger.info(f"Collected OSPF metadata: {metadata['igp'].get('neighbor_count', 0)} neighbors")
                 except Exception as e:
@@ -171,29 +154,19 @@ class DeviceMetadataCollector:
                 if ldp_data:
                     ldp_json = json.loads(ldp_data)
 
-                    if 'data' in ldp_json and 'state' in ldp_json['data']:
-                        state = ldp_json['data']['state']
-                        if 'router' in state:
-                            router = state['router']
-                            if isinstance(router, list):
-                                router = router[0] if router else {}
+                    if ldp_json and isinstance(ldp_json, dict):
+                        # Check if LDP is configured
+                        metadata["ldp"]["enabled"] = True if ldp_json else False
 
-                            if 'ldp' in router and router['ldp']:
-                                ldp = router['ldp']
-                                metadata["ldp"]["enabled"] = True
+                        # Try to get router ID
+                        if 'router-id' in ldp_json:
+                            metadata["ldp"]["router_id"] = ldp_json['router-id']
 
-                                # Extract Router ID
-                                if 'router-id' in ldp:
-                                    metadata["ldp"]["router_id"] = ldp['router-id']
-
-                                # Count sessions
-                                if 'session' in ldp:
-                                    sessions = ldp['session']
-                                    if isinstance(sessions, dict):
-                                        sessions = [sessions]
-                                    metadata["ldp"]["session_count"] = len(sessions)
-                            else:
-                                metadata["ldp"]["enabled"] = False
+                        # Count sessions
+                        if 'session' in ldp_json and isinstance(ldp_json['session'], dict):
+                            metadata["ldp"]["session_count"] = len(ldp_json['session'])
+                    else:
+                        metadata["ldp"]["enabled"] = False
 
                 logger.info(f"Collected LDP metadata: enabled={metadata['ldp'].get('enabled')}, "
                            f"{metadata['ldp'].get('session_count', 0)} sessions")
@@ -208,20 +181,9 @@ class DeviceMetadataCollector:
                 if system_data:
                     system_json = json.loads(system_data)
 
-                    if 'data' in system_json and 'state' in system_json['data']:
-                        state = system_json['data']['state']
-                        if 'system' in state:
-                            system = state['system']
-
-                            # Try to get system interface IP
-                            if 'management-interface' in system:
-                                mgmt = system['management-interface']
-                                if 'netconf' in mgmt and 'admin-state' in mgmt['netconf']:
-                                    # Get the first available IP
-                                    if 'ip-address' in mgmt['netconf']:
-                                        ip = mgmt['netconf']['ip-address']
-                                        if isinstance(ip, dict) and 'address' in ip:
-                                            metadata["system"]["ip_address"] = ip['address']
+                    # Try to get system interface IP or router ID
+                    if 'router-id' in system_json:
+                        metadata["system"]["ip_address"] = system_json['router-id']
 
                 logger.info(f"Collected system metadata: IP={metadata['system'].get('ip_address')}")
             except Exception as e:
@@ -235,24 +197,16 @@ class DeviceMetadataCollector:
                 if mpls_data:
                     mpls_json = json.loads(mpls_data)
 
-                    if 'data' in mpls_json and 'state' in mpls_json['data']:
-                        state = mpls_json['data']['state']
-                        if 'router' in state:
-                            router = state['router']
-                            if isinstance(router, list):
-                                router = router[0] if router else {}
+                    if mpls_json and isinstance(mpls_json, dict):
+                        metadata["mpls"]["enabled"] = True
 
-                            if 'mpls' in router and router['mpls']:
-                                metadata["mpls"]["enabled"] = True
-                                mpls = router['mpls']
-
-                                # Check for Segment Routing
-                                if 'segment-routing' in mpls:
-                                    metadata["mpls"]["segment_routing"] = True
-                                else:
-                                    metadata["mpls"]["segment_routing"] = False
-                            else:
-                                metadata["mpls"]["enabled"] = False
+                        # Check for Segment Routing
+                        if 'segment-routing' in mpls_json:
+                            metadata["mpls"]["segment_routing"] = True
+                        else:
+                            metadata["mpls"]["segment_routing"] = False
+                    else:
+                        metadata["mpls"]["enabled"] = False
 
                 logger.info(f"Collected MPLS metadata: enabled={metadata['mpls'].get('enabled')}, "
                            f"SR={metadata['mpls'].get('segment_routing')}")
