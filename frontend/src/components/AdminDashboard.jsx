@@ -160,6 +160,7 @@ export default function AdminDashboard() {
       await Promise.all([
         loadUsers(),
         loadGroups(),
+        loadSystemSettings(),
         loadBackupConfig(),
         loadSystemHealth(),
         loadNotificationSettings(),
@@ -210,6 +211,17 @@ export default function AdminDashboard() {
       setSystemHealth(response.data);
     } catch (err) {
       console.error('Failed to load system health:', err);
+    }
+  };
+
+  const loadSystemSettings = async () => {
+    try {
+      const response = await api.get('/admin/system-settings');
+      if (response.data) {
+        setSystemSettings(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to load system settings:', err);
     }
   };
 
