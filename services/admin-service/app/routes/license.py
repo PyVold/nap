@@ -10,6 +10,7 @@ Endpoints for:
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 from datetime import datetime
@@ -237,7 +238,7 @@ async def get_license_status(db: Session = Depends(get_db)):
 
         # Calculate storage usage from config backups
         storage_bytes = db.query(
-            db.func.coalesce(db.func.sum(db_models.ConfigBackupDB.size_bytes), 0)
+            func.coalesce(func.sum(db_models.ConfigBackupDB.size_bytes), 0)
         ).scalar()
         storage_gb = float(storage_bytes) / (1024 * 1024 * 1024)  # Convert to GB
 
