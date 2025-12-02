@@ -396,35 +396,6 @@ class NokiaSROSConnector(BaseConnector):
                 pass
             raise
 
-    async def run_command(self, command: str) -> str:
-        """
-        Run a CLI command on the device
-
-        Args:
-            command: CLI command to execute
-
-        Returns:
-            Command output as string
-        """
-        if not self.connection:
-            raise DeviceConnectionError("Not connected to device")
-
-        try:
-            loop = asyncio.get_event_loop()
-            logger.debug(f"Running CLI command on {self.device.hostname}: {command}")
-
-            # Execute CLI command using pysros
-            result = await loop.run_in_executor(
-                None,
-                lambda: self.connection.cli(command)
-            )
-
-            return result if result else ""
-
-        except Exception as e:
-            logger.error(f"Failed to run command on {self.device.hostname}: {str(e)}")
-            raise
-
     async def disconnect(self):
         """Close connection to Nokia SROS device"""
         if self.connection:

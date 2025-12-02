@@ -2,10 +2,11 @@
 Device Metadata Collector
 
 Collects protocol and system metadata from network devices during discovery.
-Supports vendor-specific metadata extraction for BGP, IGP, MPLS/LDP, and system info.
+Uses XPath queries for Nokia SR OS and NETCONF for Cisco IOS-XR.
 """
 
 import re
+import json
 from typing import Dict, Any, Optional
 from shared.logger import setup_logger
 
@@ -13,12 +14,12 @@ logger = setup_logger(__name__)
 
 
 class DeviceMetadataCollector:
-    """Collect protocol metadata from network devices"""
+    """Collect protocol metadata from network devices using XPath/NETCONF"""
 
     @staticmethod
     async def collect_nokia_sros_metadata(connection) -> Dict[str, Any]:
         """
-        Collect metadata from Nokia SR OS device
+        Collect metadata from Nokia SR OS device using XPath queries
 
         Collects:
         - BGP AS number and router ID
@@ -38,260 +39,317 @@ class DeviceMetadataCollector:
         try:
             # BGP Information
             try:
-                bgp_output = await connection.run_command("show router bgp summary")
+                bgp_xpath = '/state/router[router-name="Base"]/bgp'
+                bgp_data = await connection.get_operational_state(xpath=bgp_xpath)
 
-                # Extract BGP AS number
-                as_match = re.search(r'AS\s+:\s+(\d+)', bgp_output)
-                if as_match:
-                    metadata["bgp"]["as_number"] = int(as_match.group(1))
+                if bgp_data:
+                    bgp_json = json.loads(bgp_data)
 
-                # Extract BGP Router ID
-                router_id_match = re.search(r'Router ID\s+:\s+([\d\.]+)', bgp_output)
-                if router_id_match:
-                    metadata["bgp"]["router_id"] = router_id_match.group(1)
+                    # Navigate through the JSON structure
+                    if 'data' in bgp_json and 'state' in bgp_json['data']:
+                        state = bgp_json['data']['state']
+                        if 'router' in state:
+                            router = state['router']
+                            if isinstance(router, list):
+                                router = router[0] if router else {}
 
-                # Count BGP neighbors
-                neighbor_count = len(re.findall(r'^\d+\.\d+\.\d+\.\d+', bgp_output, re.MULTILINE))
-                metadata["bgp"]["neighbor_count"] = neighbor_count
+                            if 'bgp' in router:
+                                bgp = router['bgp']
 
-                # Count established sessions
-                established_count = len(re.findall(r'Established', bgp_output))
-                metadata["bgp"]["established_sessions"] = established_count
+                                # Extract AS number
+                                if 'autonomous-system' in bgp:
+                                    metadata["bgp"]["as_number"] = bgp['autonomous-system']
 
-                logger.info(f"Collected BGP metadata: AS{metadata['bgp'].get('as_number')}, {established_count} sessions")
+                                # Extract Router ID
+                                if 'router-id' in bgp:
+                                    metadata["bgp"]["router_id"] = bgp['router-id']
+
+                                # Count neighbors and established sessions
+                                if 'neighbor' in bgp:
+                                    neighbors = bgp['neighbor']
+                                    if isinstance(neighbors, dict):
+                                        neighbors = [neighbors]
+
+                                    metadata["bgp"]["neighbor_count"] = len(neighbors)
+                                    established = sum(1 for n in neighbors if n.get('session-state') == 'established')
+                                    metadata["bgp"]["established_sessions"] = established
+
+                logger.info(f"Collected BGP metadata: AS{metadata['bgp'].get('as_number')}, "
+                           f"{metadata['bgp'].get('established_sessions', 0)} established sessions")
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
 
             # IGP Information (ISIS)
             try:
-                isis_output = await connection.run_command("show router isis status")
+                isis_xpath = '/state/router[router-name="Base"]/isis'
+                isis_data = await connection.get_operational_state(xpath=isis_xpath)
 
-                if "No ISIS instances configured" not in isis_output:
-                    metadata["igp"]["type"] = "ISIS"
+                if isis_data:
+                    isis_json = json.loads(isis_data)
 
-                    # Extract ISIS Router ID / System ID
-                    system_id_match = re.search(r'System Id\s+:\s+([\w\.:-]+)', isis_output)
-                    if system_id_match:
-                        metadata["igp"]["router_id"] = system_id_match.group(1)
+                    if 'data' in isis_json and 'state' in isis_json['data']:
+                        state = isis_json['data']['state']
+                        if 'router' in state:
+                            router = state['router']
+                            if isinstance(router, list):
+                                router = router[0] if router else {}
 
-                    # Extract ISIS level
-                    level_match = re.search(r'Level Capability\s+:\s+(\S+)', isis_output)
-                    if level_match:
-                        metadata["igp"]["isis_level"] = level_match.group(1)
+                            if 'isis' in router and router['isis']:
+                                isis = router['isis']
+                                if isinstance(isis, list):
+                                    isis = isis[0] if isis else {}
 
-                    # Count ISIS adjacencies
-                    adj_output = await connection.run_command("show router isis adjacency")
-                    adj_count = len(re.findall(r'Up', adj_output))
-                    metadata["igp"]["adjacency_count"] = adj_count
+                                metadata["igp"]["type"] = "ISIS"
 
-                    logger.info(f"Collected ISIS metadata: {metadata['igp'].get('isis_level')}, {adj_count} adjacencies")
+                                # Extract System ID
+                                if 'system-id' in isis:
+                                    metadata["igp"]["router_id"] = isis['system-id']
+
+                                # Extract level capability
+                                if 'level-capability' in isis:
+                                    metadata["igp"]["isis_level"] = isis['level-capability']
+
+                                # Count adjacencies
+                                if 'adjacency' in isis:
+                                    adjacencies = isis['adjacency']
+                                    if isinstance(adjacencies, dict):
+                                        adjacencies = [adjacencies]
+                                    metadata["igp"]["adjacency_count"] = len(adjacencies)
+
+                logger.info(f"Collected ISIS metadata: {metadata['igp'].get('isis_level')}, "
+                           f"{metadata['igp'].get('adjacency_count', 0)} adjacencies")
             except Exception as e:
                 logger.warning(f"Failed to collect ISIS metadata: {e}")
 
             # Try OSPF if ISIS not found
             if metadata["igp"].get("type") != "ISIS":
                 try:
-                    ospf_output = await connection.run_command("show router ospf status")
+                    ospf_xpath = '/state/router[router-name="Base"]/ospf'
+                    ospf_data = await connection.get_operational_state(xpath=ospf_xpath)
 
-                    if "No OSPF instances configured" not in ospf_output:
-                        metadata["igp"]["type"] = "OSPF"
+                    if ospf_data:
+                        ospf_json = json.loads(ospf_data)
 
-                        # Extract OSPF Router ID
-                        router_id_match = re.search(r'Router Id\s+:\s+([\d\.]+)', ospf_output)
-                        if router_id_match:
-                            metadata["igp"]["router_id"] = router_id_match.group(1)
+                        if 'data' in ospf_json and 'state' in ospf_json['data']:
+                            state = ospf_json['data']['state']
+                            if 'router' in state:
+                                router = state['router']
+                                if isinstance(router, list):
+                                    router = router[0] if router else {}
 
-                        # Count OSPF neighbors
-                        neighbor_output = await connection.run_command("show router ospf neighbor")
-                        neighbor_count = len(re.findall(r'Full', neighbor_output))
-                        metadata["igp"]["neighbor_count"] = neighbor_count
+                                if 'ospf' in router and router['ospf']:
+                                    ospf = router['ospf']
+                                    if isinstance(ospf, list):
+                                        ospf = ospf[0] if ospf else {}
 
-                        logger.info(f"Collected OSPF metadata: {neighbor_count} neighbors")
+                                    metadata["igp"]["type"] = "OSPF"
+
+                                    # Extract Router ID
+                                    if 'router-id' in ospf:
+                                        metadata["igp"]["router_id"] = ospf['router-id']
+
+                                    # Count neighbors
+                                    if 'neighbor' in ospf:
+                                        neighbors = ospf['neighbor']
+                                        if isinstance(neighbors, dict):
+                                            neighbors = [neighbors]
+                                        metadata["igp"]["neighbor_count"] = len(neighbors)
+
+                    logger.info(f"Collected OSPF metadata: {metadata['igp'].get('neighbor_count', 0)} neighbors")
                 except Exception as e:
                     logger.warning(f"Failed to collect OSPF metadata: {e}")
 
             # LDP Information
             try:
-                ldp_output = await connection.run_command("show router ldp status")
+                ldp_xpath = '/state/router[router-name="Base"]/ldp'
+                ldp_data = await connection.get_operational_state(xpath=ldp_xpath)
 
-                if "LDP instance not active" not in ldp_output:
-                    metadata["ldp"]["enabled"] = True
+                if ldp_data:
+                    ldp_json = json.loads(ldp_data)
 
-                    # Extract LDP Router ID
-                    router_id_match = re.search(r'Router Id\s+:\s+([\d\.]+)', ldp_output)
-                    if router_id_match:
-                        metadata["ldp"]["router_id"] = router_id_match.group(1)
+                    if 'data' in ldp_json and 'state' in ldp_json['data']:
+                        state = ldp_json['data']['state']
+                        if 'router' in state:
+                            router = state['router']
+                            if isinstance(router, list):
+                                router = router[0] if router else {}
 
-                    # Count LDP sessions
-                    session_output = await connection.run_command("show router ldp session")
-                    session_count = len(re.findall(r'Operational', session_output))
-                    metadata["ldp"]["session_count"] = session_count
+                            if 'ldp' in router and router['ldp']:
+                                ldp = router['ldp']
+                                metadata["ldp"]["enabled"] = True
 
-                    logger.info(f"Collected LDP metadata: {session_count} sessions")
-                else:
-                    metadata["ldp"]["enabled"] = False
+                                # Extract Router ID
+                                if 'router-id' in ldp:
+                                    metadata["ldp"]["router_id"] = ldp['router-id']
+
+                                # Count sessions
+                                if 'session' in ldp:
+                                    sessions = ldp['session']
+                                    if isinstance(sessions, dict):
+                                        sessions = [sessions]
+                                    metadata["ldp"]["session_count"] = len(sessions)
+                            else:
+                                metadata["ldp"]["enabled"] = False
+
+                logger.info(f"Collected LDP metadata: enabled={metadata['ldp'].get('enabled')}, "
+                           f"{metadata['ldp'].get('session_count', 0)} sessions")
             except Exception as e:
                 logger.warning(f"Failed to collect LDP metadata: {e}")
-                metadata["ldp"]["enabled"] = False
 
-            # System Interface (Loopback) Information
+            # System Information
             try:
-                system_output = await connection.run_command("show router interface system")
+                system_xpath = '/state/system'
+                system_data = await connection.get_operational_state(xpath=system_xpath)
 
-                # Extract system interface IP
-                ip_match = re.search(r'IP Addr/mask\s+:\s+([\d\.]+)/\d+', system_output)
-                if ip_match:
-                    metadata["system"]["ip_address"] = ip_match.group(1)
-                    logger.info(f"Collected system IP: {metadata['system']['ip_address']}")
+                if system_data:
+                    system_json = json.loads(system_data)
+
+                    if 'data' in system_json and 'state' in system_json['data']:
+                        state = system_json['data']['state']
+                        if 'system' in state:
+                            system = state['system']
+
+                            # Try to get system interface IP
+                            if 'management-interface' in system:
+                                mgmt = system['management-interface']
+                                if 'netconf' in mgmt and 'admin-state' in mgmt['netconf']:
+                                    # Get the first available IP
+                                    if 'ip-address' in mgmt['netconf']:
+                                        ip = mgmt['netconf']['ip-address']
+                                        if isinstance(ip, dict) and 'address' in ip:
+                                            metadata["system"]["ip_address"] = ip['address']
+
+                logger.info(f"Collected system metadata: IP={metadata['system'].get('ip_address')}")
             except Exception as e:
                 logger.warning(f"Failed to collect system interface info: {e}")
 
-            # MPLS/Segment Routing Information
+            # MPLS/SR Information
             try:
-                mpls_output = await connection.run_command("show router mpls status")
-                metadata["mpls"]["enabled"] = "Admin State         : Up" in mpls_output
+                mpls_xpath = '/state/router[router-name="Base"]/mpls'
+                mpls_data = await connection.get_operational_state(xpath=mpls_xpath)
 
-                # Check for Segment Routing
-                try:
-                    sr_output = await connection.run_command("show router segment-routing prefix-sids")
-                    metadata["mpls"]["segment_routing"] = "Prefix" in sr_output
-                except:
-                    metadata["mpls"]["segment_routing"] = False
+                if mpls_data:
+                    mpls_json = json.loads(mpls_data)
 
-                logger.info(f"Collected MPLS metadata: enabled={metadata['mpls']['enabled']}, SR={metadata['mpls']['segment_routing']}")
+                    if 'data' in mpls_json and 'state' in mpls_json['data']:
+                        state = mpls_json['data']['state']
+                        if 'router' in state:
+                            router = state['router']
+                            if isinstance(router, list):
+                                router = router[0] if router else {}
+
+                            if 'mpls' in router and router['mpls']:
+                                metadata["mpls"]["enabled"] = True
+                                mpls = router['mpls']
+
+                                # Check for Segment Routing
+                                if 'segment-routing' in mpls:
+                                    metadata["mpls"]["segment_routing"] = True
+                                else:
+                                    metadata["mpls"]["segment_routing"] = False
+                            else:
+                                metadata["mpls"]["enabled"] = False
+
+                logger.info(f"Collected MPLS metadata: enabled={metadata['mpls'].get('enabled')}, "
+                           f"SR={metadata['mpls'].get('segment_routing')}")
             except Exception as e:
                 logger.warning(f"Failed to collect MPLS metadata: {e}")
 
         except Exception as e:
-            logger.error(f"Error collecting Nokia SR OS metadata: {e}")
+            logger.error(f"Error collecting Nokia SROS metadata: {e}")
 
         return metadata
 
     @staticmethod
-    async def collect_cisco_iosxr_metadata(connection) -> Dict[str, Any]:
+    async def collect_cisco_xr_metadata(connection) -> Dict[str, Any]:
         """
-        Collect metadata from Cisco IOS-XR device
+        Collect metadata from Cisco IOS-XR device using NETCONF
 
         Collects:
         - BGP AS number and router ID
-        - IGP type (OSPF/ISIS) and router ID
-        - LDP status and neighbors
+        - OSPF/ISIS router ID
+        - LDP neighbors
         - Loopback0 IP
-        - MPLS status
         """
         metadata = {
             "bgp": {},
             "igp": {},
             "ldp": {},
-            "mpls": {},
             "system": {}
         }
 
         try:
             # BGP Information
             try:
-                bgp_output = await connection.run_command("show bgp summary")
+                bgp_filter = """
+                <bgp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-bgp-oper">
+                    <instances>
+                        <instance>
+                            <instance-name>default</instance-name>
+                            <instance-active>
+                                <default-vrf>
+                                    <global-process-info/>
+                                </default-vrf>
+                            </instance-active>
+                        </instance>
+                    </instances>
+                </bgp>
+                """
 
-                # Extract BGP AS number
-                as_match = re.search(r'BGP router identifier ([\d\.]+), local AS number (\d+)', bgp_output)
-                if as_match:
-                    metadata["bgp"]["router_id"] = as_match.group(1)
-                    metadata["bgp"]["as_number"] = int(as_match.group(2))
+                bgp_data = await connection.get_config(filter_data=bgp_filter)
 
-                # Count neighbors
-                neighbor_lines = re.findall(r'^\d+\.\d+\.\d+\.\d+', bgp_output, re.MULTILINE)
-                metadata["bgp"]["neighbor_count"] = len(neighbor_lines)
+                # Parse BGP data (simplified - may need adjustment based on actual response)
+                if bgp_data and 'default-vrf' in bgp_data:
+                    if 'as' in bgp_data:
+                        metadata["bgp"]["as_number"] = int(bgp_data['as'])
+                    if 'router-id' in bgp_data:
+                        metadata["bgp"]["router_id"] = bgp_data['router-id']
 
-                logger.info(f"Collected BGP metadata: AS{metadata['bgp'].get('as_number')}")
+                logger.info(f"Collected Cisco BGP metadata")
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
 
-            # OSPF Information
+            # System/Loopback Information
             try:
-                ospf_output = await connection.run_command("show ospf")
+                # Try to get Loopback0 IP
+                intf_filter = """
+                <interfaces xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-pfi-im-cmd-oper">
+                    <interface-summary/>
+                </interfaces>
+                """
 
-                if "Routing Process" in ospf_output:
-                    metadata["igp"]["type"] = "OSPF"
+                intf_data = await connection.get_config(filter_data=intf_filter)
+                # Parse interface data to find Loopback0 IP
 
-                    # Extract Router ID
-                    router_id_match = re.search(r'Router Id: ([\d\.]+)', ospf_output)
-                    if router_id_match:
-                        metadata["igp"]["router_id"] = router_id_match.group(1)
-
-                    logger.info(f"Collected OSPF metadata")
+                logger.info(f"Collected Cisco system metadata")
             except Exception as e:
-                logger.warning(f"Failed to collect OSPF metadata: {e}")
-
-            # ISIS Information (if OSPF not found)
-            if metadata["igp"].get("type") != "OSPF":
-                try:
-                    isis_output = await connection.run_command("show isis")
-
-                    if "IS-IS" in isis_output:
-                        metadata["igp"]["type"] = "ISIS"
-
-                        # Extract System ID
-                        system_id_match = re.search(r'System Id: ([\w\.]+)', isis_output)
-                        if system_id_match:
-                            metadata["igp"]["router_id"] = system_id_match.group(1)
-
-                        logger.info(f"Collected ISIS metadata")
-                except Exception as e:
-                    logger.warning(f"Failed to collect ISIS metadata: {e}")
-
-            # LDP Information
-            try:
-                ldp_output = await connection.run_command("show mpls ldp summary")
-
-                metadata["ldp"]["enabled"] = "LDP instance" in ldp_output or "Neighbors" in ldp_output
-
-                if metadata["ldp"]["enabled"]:
-                    # Count LDP neighbors
-                    neighbor_count = len(re.findall(r'\d+\.\d+\.\d+\.\d+:\d+', ldp_output))
-                    metadata["ldp"]["neighbor_count"] = neighbor_count
-
-                    logger.info(f"Collected LDP metadata: {neighbor_count} neighbors")
-            except Exception as e:
-                logger.warning(f"Failed to collect LDP metadata: {e}")
-                metadata["ldp"]["enabled"] = False
-
-            # Loopback0 IP
-            try:
-                loopback_output = await connection.run_command("show ipv4 interface loopback0 brief")
-
-                ip_match = re.search(r'Loopback0\s+([\d\.]+)', loopback_output)
-                if ip_match:
-                    metadata["system"]["loopback0_ip"] = ip_match.group(1)
-                    logger.info(f"Collected Loopback0 IP: {metadata['system']['loopback0_ip']}")
-            except Exception as e:
-                logger.warning(f"Failed to collect Loopback0 info: {e}")
+                logger.warning(f"Failed to collect system interface info: {e}")
 
         except Exception as e:
             logger.error(f"Error collecting Cisco IOS-XR metadata: {e}")
 
         return metadata
 
-
     @staticmethod
     async def collect_metadata(vendor: str, connection) -> Optional[Dict[str, Any]]:
         """
-        Collect metadata based on device vendor
+        Collect metadata for a device based on vendor type
 
         Args:
-            vendor: Device vendor (nokia_sros, cisco_iosxr, etc.)
-            connection: Active device connection
+            vendor: Device vendor (nokia_sros or cisco_xr)
+            connection: Device connection object
 
         Returns:
-            Dictionary of metadata or None if collection fails
+            Dictionary containing device metadata, or None if collection failed
         """
         try:
             if vendor.lower() == "nokia_sros":
                 return await DeviceMetadataCollector.collect_nokia_sros_metadata(connection)
-            elif vendor.lower() == "cisco_iosxr":
-                return await DeviceMetadataCollector.collect_cisco_iosxr_metadata(connection)
+            elif vendor.lower() == "cisco_xr":
+                return await DeviceMetadataCollector.collect_cisco_xr_metadata(connection)
             else:
-                logger.warning(f"Metadata collection not implemented for vendor: {vendor}")
+                logger.warning(f"Unsupported vendor for metadata collection: {vendor}")
                 return None
         except Exception as e:
-            logger.error(f"Failed to collect metadata for {vendor}: {e}")
+            logger.error(f"Failed to collect metadata: {e}")
             return None
