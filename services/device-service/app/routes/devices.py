@@ -92,7 +92,12 @@ async def discover_devices(
             password=discovery_request.password,
             port=discovery_request.port
         )
-        added_count = device_service.merge_discovered_devices(db, discovered)
+        added_count, device_ids = device_service.merge_discovered_devices(db, discovered)
+
+        # Collect metadata for discovered/updated devices
+        if device_ids:
+            logger.info(f"Starting metadata collection for {len(device_ids)} devices")
+            await device_service.collect_metadata_for_discovered_devices(db, device_ids)
 
         return {
             "status": "success",
