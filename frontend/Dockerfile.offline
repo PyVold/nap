@@ -3,7 +3,7 @@
 # No network access required during build
 
 # Build stage - uses base image with node_modules
-FROM nap-frontend-base:latest as build
+FROM nap-frontend-base:latest AS build
 
 WORKDIR /app
 

@@ -36,17 +36,17 @@ echo ""
 
 # Stop all services
 echo "🛑 Stopping all services..."
-docker compose down
+sudo docker-compose down
 
 echo ""
 echo "🔨 Rebuilding services with environment..."
 
 # Rebuild and start with explicit env file
-docker compose --env-file .env build
+sudo docker-compose --env-file .env build
 
 echo ""
 echo "🚀 Starting services..."
-docker compose --env-file .env up -d
+sudo docker-compose --env-file .env up -d
 
 echo ""
 echo "⏳ Waiting for services to start (15 seconds)..."
@@ -54,7 +54,7 @@ sleep 15
 
 echo ""
 echo "✅ Checking service status..."
-docker compose ps
+sudo docker ps
 
 echo ""
 echo "🔍 Verifying environment in device-service..."

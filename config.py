@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # Config Backup Settings
     config_backup_enabled: bool = True
-    config_backup_interval_minutes: int = 3  # How often to run automated config backups (default: hourly)
+    config_backup_interval_minutes: int = 360  # How often to run automated config backups (default: hourly)
     nokia_backup_format: str = "cli"  # Options: "json" (NETCONF) or "cli" (SSH)
 
     # Security

@@ -17,13 +17,13 @@ echo ""
 # Check current container status
 echo "Step 2: Check current container status"
 echo "docker-compose ps"
-docker-compose ps
+sudo docker-compose ps
 echo ""
 
 # Rebuild frontend container
 echo "Step 3: Rebuild frontend container with fix"
 echo "docker-compose up -d --build frontend"
-docker-compose up -d --build frontend
+sudo docker-compose up -d --build frontend
 echo ""
 
 # Wait for container to be ready
@@ -33,7 +33,7 @@ echo ""
 
 # Check if frontend is running
 echo "Step 5: Verify frontend is running"
-docker-compose ps frontend
+sudo docker-compose ps frontend
 echo ""
 
 # Test the fix

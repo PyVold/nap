@@ -1,0 +1,783 @@
+Attaching to nap_api-gateway_1
+[36mapi-gateway_1        |[0m 2025-11-27 10:06:59 - __main__ - INFO - Starting API Gateway on port 3000
+[36mapi-gateway_1        |[0m INFO:     Started server process [1]
+[36mapi-gateway_1        |[0m INFO:     Waiting for application startup.
+[36mapi-gateway_1        |[0m INFO:     Application startup complete.
+[36mapi-gateway_1        |[0m INFO:     Uvicorn running on http://0.0.0.0:3000 (Press CTRL+C to quit)
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52776 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52766 - "GET /health/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52816 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52784 - "GET /user-management/users/1/modules HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52798 - "GET /user-management/users/1/permissions HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52810 - "GET /health/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52830 - "GET /user-management/users/1/permissions HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52828 - "GET /user-management/users/1/modules HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52848 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52836 - "GET /health/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52852 - "GET /user-management/users/1/modules HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52864 - "GET /user-management/users/1/permissions HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52882 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:52874 - "GET /health/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:33956 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:33950 - "GET /health/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:51870 - "GET /device-groups/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:51882 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56294 - "GET /discovery-groups/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56310 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56320 - "GET /rules/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56330 - "GET /device-groups/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56356 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56342 - "GET /audit-schedules/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:56364 - "GET /rules/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53628 - "GET /rules/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53636 - "GET /config-backups/devices/summary?include_auto=true HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53652 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53648 - "GET /drift-detection/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53656 - "GET /notifications/webhooks HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53670 - "GET /notifications/stats HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53676 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:53674 - "GET /drift-detection/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:43198 - "GET /notifications/stats HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:43196 - "GET /notifications/webhooks HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:43208 - "GET /devices/ HTTP/1.1" 307 Temporary Redirect
+[36mapi-gateway_1        |[0m ERROR:    Exception in ASGI application
+[36mapi-gateway_1        |[0m Traceback (most recent call last):
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+[36mapi-gateway_1        |[0m     result = await app(  # type: ignore[func-returns-value]
+[36mapi-gateway_1        |[0m              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+[36mapi-gateway_1        |[0m     return await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1106, in __call__
+[36mapi-gateway_1        |[0m     await super().__call__(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 122, in __call__
+[36mapi-gateway_1        |[0m     await self.middleware_stack(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 184, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 162, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, _send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 83, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 79, in __call__
+[36mapi-gateway_1        |[0m     raise exc
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 68, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, sender)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 20, in __call__
+[36mapi-gateway_1        |[0m     raise e
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 17, in __call__
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 718, in __call__
+[36mapi-gateway_1        |[0m     await route.handle(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+[36mapi-gateway_1        |[0m     await self.app(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 69, in app
+[36mapi-gateway_1        |[0m     await response(scope, receive, send)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/responses.py", line 171, in __call__
+[36mapi-gateway_1        |[0m     await send({"type": "http.response.body", "body": self.body})
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in sender
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 159, in _send
+[36mapi-gateway_1        |[0m     await send(message)
+[36mapi-gateway_1        |[0m   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 560, in send
+[36mapi-gateway_1        |[0m     raise RuntimeError("Response content longer than Content-Length")
+[36mapi-gateway_1        |[0m RuntimeError: Response content longer than Content-Length
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:43206 - "GET /health/summary HTTP/1.1" 200 OK
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:43218 - "GET /hardware/inventory HTTP/1.1" 404 Not Found
+[36mapi-gateway_1        |[0m INFO:     172.18.0.9:43220 - "GET /hardware/chassis-models HTTP/1.1" 404 Not Found

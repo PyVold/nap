@@ -1,9 +1,5 @@
 version: '3.8'
 
-# Docker Compose for Offline/Air-Gapped Deployment
-# Uses pre-built base images with all dependencies installed
-# No internet access required during build or runtime
-
 services:
   # Database
   database:
@@ -26,7 +22,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: services/api-gateway/Dockerfile.offline
+      dockerfile: services/api-gateway/Dockerfile
     ports:
       - "3000:3000"
     depends_on:
@@ -43,7 +39,7 @@ services:
   device-service:
     build:
       context: .
-      dockerfile: services/device-service/Dockerfile.offline
+      dockerfile: services/device-service/Dockerfile
     env_file:
       - .env
     ports:
@@ -60,7 +56,7 @@ services:
   rule-service:
     build:
       context: .
-      dockerfile: services/rule-service/Dockerfile.offline
+      dockerfile: services/rule-service/Dockerfile
     env_file:
       - .env
     ports:
@@ -77,7 +73,7 @@ services:
   backup-service:
     build:
       context: .
-      dockerfile: services/backup-service/Dockerfile.offline
+      dockerfile: services/backup-service/Dockerfile
     env_file:
       - .env
     ports:
@@ -95,7 +91,7 @@ services:
   inventory-service:
     build:
       context: .
-      dockerfile: services/inventory-service/Dockerfile.offline
+      dockerfile: services/inventory-service/Dockerfile
     env_file:
       - .env
     ports:
@@ -113,7 +109,7 @@ services:
   admin-service:
     build:
       context: .
-      dockerfile: services/admin-service/Dockerfile.offline
+      dockerfile: services/admin-service/Dockerfile
     env_file:
       - .env
     ports:
@@ -130,7 +126,7 @@ services:
   analytics-service:
     build:
       context: .
-      dockerfile: services/analytics-service/Dockerfile.offline
+      dockerfile: services/analytics-service/Dockerfile
     ports:
       - "3006:3006"
     depends_on:
@@ -146,8 +142,8 @@ services:
   # Frontend
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile.offline
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     depends_on:

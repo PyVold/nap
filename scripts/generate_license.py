@@ -261,7 +261,7 @@ def save_license(license_key: str, license_data: dict, output_dir: str = "licens
         f.write("2. Navigate to Settings > License\n")
         f.write("3. Paste the license key above\n")
         f.write("4. Click 'Activate'\n")
-        f.write("\nFor support: support@yourcompany.com\n")
+        f.write("\nFor support: support@ipdevops.com\n")
         f.write("="*80 + "\n")
     
     # Save metadata (for your records)
