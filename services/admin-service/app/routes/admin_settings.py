@@ -203,6 +203,10 @@ async def get_system_settings(
     import json
     settings = json.loads(config.value)
 
+    # Ensure backward compatibility with new fields
+    if 'useLocalhost' not in settings:
+        settings['useLocalhost'] = False
+
     # Don't return actual password
     if 'smtpPassword' in settings:
         settings['smtpPassword'] = '********' if settings['smtpPassword'] else None
@@ -374,6 +378,19 @@ async def get_notification_settings(
 
     import json
     settings = json.loads(config.value)
+
+    # Ensure backward compatibility with new fields
+    if 'notifyOnHealthCheckFailure' not in settings:
+        settings['notifyOnHealthCheckFailure'] = True
+    if 'notifyOnDeviceOffline' not in settings:
+        settings['notifyOnDeviceOffline'] = True
+    if 'notifyOnComplianceIssue' not in settings:
+        settings['notifyOnComplianceIssue'] = True
+    if 'complianceThreshold' not in settings:
+        settings['complianceThreshold'] = 80.0
+    if 'deviceOfflineAfterFailures' not in settings:
+        settings['deviceOfflineAfterFailures'] = 3
+
     return NotificationSettingsResponse(**settings)
 
 
