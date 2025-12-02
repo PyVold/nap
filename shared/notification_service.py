@@ -144,27 +144,43 @@ class NotificationService:
             # Connect to SMTP server and send
             logger.info(f"Connecting to SMTP server: {self.smtp_server}:{self.smtp_port} (localhost={self.use_localhost})")
 
-            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10) as server:
-                server.ehlo()
-
-                # For localhost, skip TLS and authentication
-                if not self.use_localhost:
-                    # Try STARTTLS if supported
-                    if server.has_extn('STARTTLS'):
-                        logger.info("Starting TLS...")
-                        server.starttls()
-                        server.ehlo()
+            # Port 465 uses implicit SSL (SMTP_SSL), other ports use STARTTLS
+            if self.smtp_port == 465 and not self.use_localhost:
+                # Use SMTP_SSL for port 465 (implicit SSL)
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=10) as server:
+                    server.ehlo()
 
                     # Login if credentials provided
                     if self.smtp_password:
                         logger.info(f"Logging in as: {self.smtp_username}")
                         server.login(self.smtp_username, self.smtp_password)
-                else:
-                    logger.info("Using local mail server (no authentication)")
 
-                # Send email
-                logger.info(f"Sending email to: {recipients}")
-                server.send_message(msg)
+                    # Send email
+                    logger.info(f"Sending email to: {recipients}")
+                    server.send_message(msg)
+            else:
+                # Use regular SMTP with optional STARTTLS for other ports
+                with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10) as server:
+                    server.ehlo()
+
+                    # For localhost, skip TLS and authentication
+                    if not self.use_localhost:
+                        # Try STARTTLS if supported
+                        if server.has_extn('STARTTLS'):
+                            logger.info("Starting TLS...")
+                            server.starttls()
+                            server.ehlo()
+
+                        # Login if credentials provided
+                        if self.smtp_password:
+                            logger.info(f"Logging in as: {self.smtp_username}")
+                            server.login(self.smtp_username, self.smtp_password)
+                    else:
+                        logger.info("Using local mail server (no authentication)")
+
+                    # Send email
+                    logger.info(f"Sending email to: {recipients}")
+                    server.send_message(msg)
 
             logger.info(f"Email sent successfully to {len(recipients)} recipient(s)")
 
