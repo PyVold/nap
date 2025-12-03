@@ -121,7 +121,75 @@ class DeviceService:
         added_count = 0
         device_ids_for_metadata = []
 
+        # Phase 1: Detect hostname/IP swaps and handle them with temporary names
+        # This prevents incorrectly deleting devices when they swap identifiers
+        swap_candidates = []
+
         for new_device in discovered:
+            if not new_device.ip:
+                continue
+
+            existing_by_ip = db.query(DeviceDB).filter(DeviceDB.ip == new_device.ip).first()
+
+            if existing_by_ip and existing_by_ip.hostname != new_device.hostname:
+                # This device's hostname changed - check if it's part of a swap
+                conflict_device = db.query(DeviceDB).filter(
+                    DeviceDB.hostname == new_device.hostname,
+                    DeviceDB.id != existing_by_ip.id
+                ).first()
+
+                if conflict_device:
+                    # Check if this is a swap: does the conflict device want our old hostname?
+                    reverse_discovery = next(
+                        (d for d in discovered if d.ip == conflict_device.ip and d.hostname == existing_by_ip.hostname),
+                        None
+                    )
+
+                    if reverse_discovery:
+                        # This is a hostname SWAP between two devices
+                        logger.info(f"Detected hostname swap: {existing_by_ip.hostname} <-> {conflict_device.hostname} between IPs {existing_by_ip.ip} and {conflict_device.ip}")
+                        swap_candidates.append((existing_by_ip, conflict_device, new_device.hostname, existing_by_ip.hostname))
+
+        # Handle swaps using temporary hostnames to avoid UNIQUE constraint violations
+        temp_hostname_map = {}
+        for device_a, device_b, hostname_a_wants, hostname_b_wants in swap_candidates:
+            temp_name_a = f"__temp_swap_{device_a.id}_{datetime.utcnow().timestamp()}"
+            temp_name_b = f"__temp_swap_{device_b.id}_{datetime.utcnow().timestamp()}"
+
+            logger.info(f"Swapping hostnames: Device {device_a.id} ({device_a.hostname} -> {hostname_a_wants}), Device {device_b.id} ({device_b.hostname} -> {hostname_b_wants})")
+
+            # Temporarily rename both to avoid conflicts
+            device_a.hostname = temp_name_a
+            device_b.hostname = temp_name_b
+            db.flush()
+
+            # Now assign final hostnames
+            device_a.hostname = hostname_a_wants
+            device_b.hostname = hostname_b_wants
+            db.flush()
+
+            # Track that these were already handled
+            temp_hostname_map[device_a.ip] = device_a.id
+            temp_hostname_map[device_b.ip] = device_b.id
+
+        # Phase 2: Process all discovered devices normally
+        for new_device in discovered:
+            # Skip devices already handled in swap phase
+            if new_device.ip in temp_hostname_map:
+                device_id = temp_hostname_map[new_device.ip]
+                existing = db.query(DeviceDB).filter(DeviceDB.id == device_id).first()
+                if existing:
+                    # Update other fields that might have changed
+                    existing.vendor = new_device.vendor
+                    existing.port = new_device.port or 830
+                    existing.username = new_device.username
+                    existing.password = new_device.password
+                    existing.status = DeviceStatus.DISCOVERED
+                    existing.updated_at = datetime.utcnow()
+                    device_ids_for_metadata.append(existing.id)
+                    logger.info(f"Updated device {existing.hostname} at {existing.ip} (ID: {existing.id}) - hostname swapped in Phase 1")
+                continue
+
             # First check if a device with this IP already exists (primary match)
             existing_by_ip = None
             if new_device.ip:
@@ -141,7 +209,11 @@ class DeviceService:
                     ).first()
 
                     if conflict_device:
-                        logger.info(f"Removing stale device '{conflict_device.hostname}' at {conflict_device.ip} (ID: {conflict_device.id}) - hostname now belongs to {new_device.ip}")
+                        # Device conflict that wasn't a swap - this means the conflicting device is no longer discovered
+                        # Instead of deleting immediately, mark it for investigation
+                        logger.warning(f"Hostname conflict detected: device at {new_device.ip} wants hostname '{new_device.hostname}', but device {conflict_device.id} at {conflict_device.ip} already has it")
+                        logger.warning(f"Conflicting device {conflict_device.id} was not discovered in this scan - it may be offline or unreachable")
+                        logger.info(f"Removing device '{conflict_device.hostname}' at {conflict_device.ip} (ID: {conflict_device.id}) - not discovered and hostname claimed by {new_device.ip}")
                         db.delete(conflict_device)
                         db.flush()  # Flush to release the hostname constraint
 
@@ -159,6 +231,18 @@ class DeviceService:
                 logger.info(f"Updated existing device at {new_device.ip} (ID: {existing_by_ip.id})")
             elif existing_by_hostname:
                 # Device with this hostname exists but different IP - update IP
+                # Check if there's already a device at the new IP
+                ip_conflict = db.query(DeviceDB).filter(
+                    DeviceDB.ip == new_device.ip,
+                    DeviceDB.id != existing_by_hostname.id
+                ).first()
+
+                if ip_conflict:
+                    logger.warning(f"IP conflict: device '{new_device.hostname}' wants IP {new_device.ip}, but device {ip_conflict.id} ('{ip_conflict.hostname}') already has it")
+                    logger.warning(f"Conflicting device {ip_conflict.id} was not discovered - removing it")
+                    db.delete(ip_conflict)
+                    db.flush()
+
                 logger.info(f"IP changed for device {new_device.hostname}: {existing_by_hostname.ip} -> {new_device.ip}")
                 existing_by_hostname.ip = new_device.ip
                 existing_by_hostname.vendor = new_device.vendor
