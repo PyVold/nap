@@ -22,7 +22,8 @@ class DeviceDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Protocol and system metadata (collected during discovery)
-    metadata = Column(JSON, nullable=True)
+    # Note: Using 'device_metadata' as attribute name because 'metadata' is reserved by SQLAlchemy
+    device_metadata = Column('metadata', JSON, nullable=True)
 
     # Exponential backoff tracking
     consecutive_failures = Column(Integer, default=0)
