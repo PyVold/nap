@@ -16,7 +16,7 @@ from services.device_service import DeviceService
 from services.device_group_service import DeviceGroupService
 from services.rule_service import RuleService
 from services.audit_service import AuditService
-from engines.audit_engine import AuditEngine
+from engine.audit_engine import AuditEngine
 
 logger = setup_logger(__name__)
 
