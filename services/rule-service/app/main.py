@@ -10,6 +10,7 @@ from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
 from routes import rules, rule_templates, audits, audit_schedules
+from scheduler import get_scheduler
 
 logger = setup_logger(__name__)
 
@@ -22,6 +23,9 @@ app = FastAPI(
 # Initialize database
 init_db()
 logger.info("Database initialized")
+
+# Initialize scheduler
+scheduler = get_scheduler()
 
 # CORS middleware
 app.add_middleware(
@@ -37,6 +41,23 @@ app.include_router(rules.router, prefix="/rules", tags=["Rules"])
 app.include_router(rule_templates.router, tags=["Rule Templates"])  # Already has /rule-templates prefix
 app.include_router(audits.router, prefix="/audit", tags=["Audits"])
 app.include_router(audit_schedules.router, prefix="/audit-schedules", tags=["Audit Schedules"])
+
+
+# Application lifecycle events
+@app.on_event("startup")
+async def startup_event():
+    """Start background scheduler on application startup"""
+    logger.info("Starting rule service...")
+    scheduler.start()
+    logger.info("Rule service started with background scheduler")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop background scheduler on application shutdown"""
+    logger.info("Shutting down rule service...")
+    scheduler.shutdown()
+    logger.info("Rule service stopped")
 
 
 @app.get("/")
