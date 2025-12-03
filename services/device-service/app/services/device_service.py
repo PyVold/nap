@@ -371,6 +371,15 @@ class DeviceService:
 
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
+        # Parse metadata JSON if present
+        metadata = None
+        if db_device.metadata:
+            try:
+                metadata = json.loads(db_device.metadata) if isinstance(db_device.metadata, str) else db_device.metadata
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"Failed to parse metadata for device {db_device.hostname}: {e}")
+                metadata = None
+
         return Device(
             id=db_device.id,
             hostname=db_device.hostname,
@@ -382,5 +391,6 @@ class DeviceService:
             status=db_device.status,
             last_audit=db_device.last_audit.isoformat() if db_device.last_audit else None,
             compliance=int(db_device.compliance),
+            metadata=metadata,
             backoff_status=BackoffManager.get_backoff_status(db_device)
         )

@@ -129,14 +129,13 @@ class NokiaSROSConnector(BaseConnector):
                 if isinstance(obj, (list, tuple)):
                     return [convert_pysros_to_dict(item) for item in obj]
 
-                # Handle primitive types
-                try:
-                    # Check if it's JSON serializable
-                    json.dumps(obj)
+                # Handle primitive types that are JSON-safe
+                if isinstance(obj, (str, int, float, bool, type(None))):
                     return obj
-                except (TypeError, ValueError):
-                    # If not serializable, convert to string
-                    return str(obj)
+
+                # For any other type (including objects with tuple keys), convert to string
+                # This handles edge cases where pysros returns custom objects
+                return str(obj)
 
             # Convert to dictionary then to JSON string
             config_dict = convert_pysros_to_dict(result)
@@ -221,14 +220,13 @@ class NokiaSROSConnector(BaseConnector):
                 if isinstance(obj, (list, tuple)):
                     return [convert_pysros_to_dict(item) for item in obj]
 
-                # Handle primitive types
-                try:
-                    # Check if it's JSON serializable
-                    json.dumps(obj)
+                # Handle primitive types that are JSON-safe
+                if isinstance(obj, (str, int, float, bool, type(None))):
                     return obj
-                except (TypeError, ValueError):
-                    # If not serializable, convert to string
-                    return str(obj)
+
+                # For any other type (including objects with tuple keys), convert to string
+                # This handles edge cases where pysros returns custom objects
+                return str(obj)
 
             # Convert to dictionary then to JSON string
             state_dict = convert_pysros_to_dict(result)
