@@ -171,6 +171,9 @@ class AuditService:
         from sqlalchemy import func
         from sqlalchemy.sql import exists
 
+        # Get total device count (including unreachable ones)
+        total_devices = db.query(DeviceDB).count()
+
         # Get all devices with their latest audit results
         latest_results_subquery = db.query(
             AuditResultDB.device_id,
@@ -183,17 +186,24 @@ class AuditService:
             (AuditResultDB.timestamp == latest_results_subquery.c.max_timestamp)
         ).all()
 
+        # Get count of unreachable/offline devices
+        unreachable_count = db.query(DeviceDB).filter(
+            DeviceDB.status.in_([DeviceStatus.OFFLINE, DeviceStatus.ERROR])
+        ).count()
+
         if not latest_results:
             return {
                 "overall_compliance": 0,
-                "total_devices": db.query(DeviceDB).count(),
+                "total_devices": total_devices,
                 "audited_devices": 0,
+                "unreachable_devices": unreachable_count,
                 "critical_issues": 0,
                 "by_category": {},
                 "by_severity": {}
             }
 
-        # Calculate overall compliance
+        # Calculate overall compliance ONLY for audited devices
+        # Unreachable devices are explicitly excluded and reported separately
         overall_compliance = (
             int(sum(r.compliance for r in latest_results) / len(latest_results))
             if latest_results else 0
@@ -225,8 +235,9 @@ class AuditService:
 
         return {
             "overall_compliance": overall_compliance,
-            "total_devices": db.query(DeviceDB).count(),
+            "total_devices": total_devices,
             "audited_devices": len(latest_results),
+            "unreachable_devices": unreachable_count,
             "critical_issues": critical_issues,
             "by_category": {},
             "by_severity": by_severity
