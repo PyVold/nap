@@ -328,7 +328,7 @@ class DeviceService:
 
             if metadata:
                 # Store metadata in database
-                db_device.metadata = json.dumps(metadata)
+                db_device.device_metadata = json.dumps(metadata)
                 db.commit()
                 logger.info(f"Metadata collected and stored for {db_device.hostname}")
                 return True
@@ -373,9 +373,9 @@ class DeviceService:
         """Convert SQLAlchemy model to Pydantic model"""
         # Parse metadata JSON if present
         metadata = None
-        if db_device.metadata:
+        if db_device.device_metadata:
             try:
-                metadata = json.loads(db_device.metadata) if isinstance(db_device.metadata, str) else db_device.metadata
+                metadata = json.loads(db_device.device_metadata) if isinstance(db_device.device_metadata, str) else db_device.device_metadata
             except (json.JSONDecodeError, TypeError) as e:
                 logger.warning(f"Failed to parse metadata for device {db_device.hostname}: {e}")
                 metadata = None
