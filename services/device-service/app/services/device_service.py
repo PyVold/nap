@@ -119,7 +119,7 @@ class DeviceService:
             tuple: (added_count, device_ids_for_metadata_collection)
         """
         added_count = 0
-        device_ids_for_metadata = []
+        device_ids_for_metadata = set()  # Use set to prevent duplicate device IDs
 
         # Phase 1: Detect hostname/IP swaps and handle them with temporary names
         # This prevents incorrectly deleting devices when they swap identifiers
@@ -186,7 +186,7 @@ class DeviceService:
                     existing.password = new_device.password
                     existing.status = DeviceStatus.DISCOVERED
                     existing.updated_at = datetime.utcnow()
-                    device_ids_for_metadata.append(existing.id)
+                    device_ids_for_metadata.add(existing.id)
                     logger.info(f"Updated device {existing.hostname} at {existing.ip} (ID: {existing.id}) - hostname swapped in Phase 1")
                 continue
 
@@ -227,7 +227,8 @@ class DeviceService:
                 existing_by_ip.password = new_device.password
                 existing_by_ip.status = DeviceStatus.DISCOVERED
                 existing_by_ip.updated_at = datetime.utcnow()
-                device_ids_for_metadata.append(existing_by_ip.id)
+                db.flush()  # Flush so subsequent device queries see this update
+                device_ids_for_metadata.add(existing_by_ip.id)
                 logger.info(f"Updated existing device at {new_device.ip} (ID: {existing_by_ip.id})")
             elif existing_by_hostname:
                 # Device with this hostname exists but different IP - update IP
@@ -251,7 +252,8 @@ class DeviceService:
                 existing_by_hostname.password = new_device.password
                 existing_by_hostname.status = DeviceStatus.DISCOVERED
                 existing_by_hostname.updated_at = datetime.utcnow()
-                device_ids_for_metadata.append(existing_by_hostname.id)
+                db.flush()  # Flush so subsequent device queries see this update
+                device_ids_for_metadata.add(existing_by_hostname.id)
             else:
                 # Brand new device - add it
                 db_device = DeviceDB(
@@ -266,13 +268,13 @@ class DeviceService:
                 )
                 db.add(db_device)
                 db.flush()  # Flush to get the ID
-                device_ids_for_metadata.append(db_device.id)
+                device_ids_for_metadata.add(db_device.id)
                 added_count += 1
                 logger.info(f"Added new device: {new_device.hostname} at {new_device.ip}")
 
         db.commit()
         logger.info(f"Merged {added_count} new devices, {len(device_ids_for_metadata)} devices for metadata collection")
-        return added_count, device_ids_for_metadata
+        return added_count, list(device_ids_for_metadata)
 
     async def collect_device_metadata(self, db: Session, device_id: int) -> bool:
         """
