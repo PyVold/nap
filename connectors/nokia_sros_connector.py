@@ -3,6 +3,7 @@
 # ============================================================================
 
 import asyncio
+import os
 from typing import Optional
 from pysros.management import connect, sros
 from models.device import Device
@@ -11,6 +12,11 @@ from utils.logger import setup_logger
 from utils.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
+
+# Security: Hostkey verification is configurable via environment variable
+# Default to False for backward compatibility (lab/development environments)
+# Set HOSTKEY_VERIFY=true in production with proper known_hosts configured
+HOSTKEY_VERIFY = os.getenv("HOSTKEY_VERIFY", "false").lower() == "true"
 
 class NokiaSROSConnector(BaseConnector):
     """Nokia SROS connector using pysros library"""
@@ -31,7 +37,7 @@ class NokiaSROSConnector(BaseConnector):
                 'username': self.device.username,
                 'password': self.device.password,
                 'port': self.device.port,
-                'hostkey_verify': False,
+                'hostkey_verify': HOSTKEY_VERIFY,
             }
 
             # Connect using pysros (runs in executor since it's blocking)

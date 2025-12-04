@@ -40,10 +40,25 @@ class Settings(BaseSettings):
     nokia_backup_format: str = "cli"  # Options: "json" (NETCONF) or "cli" (SSH)
 
     # Security
+    # WARNING: In production, set enable_auth=true and configure proper JWT_SECRET
     enable_auth: bool = False
     api_key: Optional[str] = None
     jwt_secret: Optional[str] = None
     encryption_key: Optional[str] = None
+
+    # CORS Configuration
+    # WARNING: In production, set specific origins instead of "*"
+    cors_allowed_origins: str = "*"
+
+    # SSH/NETCONF Host Key Verification
+    # WARNING: In production, set to true with proper known_hosts configured
+    hostkey_verify: bool = False
+
+    # Rate limiting (requests per minute)
+    rate_limit_per_minute: int = 100
+
+    # Session timeout in minutes
+    session_timeout_minutes: int = 30
     
     # License System
     license_encryption_key: Optional[str] = None

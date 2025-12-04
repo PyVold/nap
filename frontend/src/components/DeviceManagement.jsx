@@ -318,6 +318,21 @@ const DeviceManagement = () => {
                   <Typography variant="subtitle2" gutterBottom color="primary">
                     System Information
                   </Typography>
+                  {metadata.system.software_version && (
+                    <Typography variant="body2">
+                      <strong>Software Version:</strong> {metadata.system.software_version}
+                    </Typography>
+                  )}
+                  {metadata.system.platform && (
+                    <Typography variant="body2">
+                      <strong>Platform:</strong> {metadata.system.platform}
+                    </Typography>
+                  )}
+                  {metadata.system.system_name && (
+                    <Typography variant="body2">
+                      <strong>System Name:</strong> {metadata.system.system_name}
+                    </Typography>
+                  )}
                   {metadata.system.router_id && (
                     <Typography variant="body2">
                       <strong>Router ID:</strong> {metadata.system.router_id}

@@ -406,11 +406,54 @@ debugpy.listen(("0.0.0.0", 5678))
 
 ## Security Considerations
 
-- Never commit `.env` files with real credentials
-- Encrypt device passwords before storing
-- Use HTTPS in production
-- Implement rate limiting for APIs
-- Regular security audits
+### Production Hardening Checklist
+
+Before deploying to production, configure the following environment variables:
+
+```bash
+# 1. CORS - Restrict to specific origins (required for production)
+CORS_ALLOWED_ORIGINS=https://nap.yourcompany.com,https://nap-admin.yourcompany.com
+
+# 2. Authentication - Must be enabled in production
+ENABLE_AUTH=true
+JWT_SECRET=<generate-secure-random-32-char-key>
+
+# 3. Encryption - Required for secure credential storage
+ENCRYPTION_KEY=<generate-secure-fernet-key>
+
+# 4. SSH/NETCONF Host Key Verification - Enable with proper known_hosts
+HOSTKEY_VERIFY=true
+
+# 5. Debug Mode - Must be disabled in production
+DEBUG_MODE=false
+```
+
+### Generate Secure Keys
+
+```bash
+# Generate JWT secret
+python -c 'import secrets; print(secrets.token_urlsafe(32))'
+
+# Generate Fernet encryption key
+python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
+```
+
+### Security Best Practices
+
+- **Never commit** `.env` files with real credentials
+- **Encrypt device passwords** before storing (handled automatically when ENCRYPTION_KEY is set)
+- **Use HTTPS** in production (configure reverse proxy like nginx)
+- **Rate limiting** is configurable via RATE_LIMIT_PER_MINUTE (default: 100)
+- **Session timeout** is configurable via SESSION_TIMEOUT_MINUTES (default: 30)
+- **Host key verification** should be enabled in production with proper known_hosts file
+- **Regular security audits** - review logs and access patterns
+
+### Network Security
+
+- Restrict API access to trusted networks
+- Use network segmentation for device management traffic
+- Monitor NETCONF/SSH connections for anomalies
+- Implement firewall rules to limit device access
 
 ---
 

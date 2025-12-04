@@ -192,25 +192,72 @@ class DeviceImportService:
         return output.getvalue()
 
     @staticmethod
-    def export_devices_to_csv(db: Session) -> str:
-        """Export all devices to CSV format"""
+    def export_devices_to_csv(db: Session, include_metadata: bool = True) -> str:
+        """Export all devices to CSV format
+
+        Args:
+            db: Database session
+            include_metadata: If True, include metadata fields in export (default True)
+
+        Returns:
+            CSV formatted string with device data
+        """
         devices = db.query(DeviceDB).all()
 
-        # Export fields that actually exist on DeviceDB
-        export_fields = ["hostname", "ip", "vendor", "port", "username", "password"]
+        # Base export fields
+        export_fields = ["hostname", "ip", "vendor", "port", "username", "password", "status", "compliance"]
+
+        # Metadata fields to extract
+        metadata_fields = [
+            "software_version",
+            "system_address",      # Nokia system interface IP
+            "loopback0_ip",        # Cisco Loopback0 IP
+            "router_id",
+            "bgp_as_number",
+            "bgp_router_id",
+            "igp_type",
+            "igp_router_id",
+            "platform"
+        ]
+
+        if include_metadata:
+            export_fields.extend(metadata_fields)
 
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=export_fields)
         writer.writeheader()
 
         for device in devices:
-            writer.writerow({
+            row = {
                 "hostname": device.hostname,
                 "ip": device.ip or "",
                 "vendor": device.vendor.value if hasattr(device.vendor, 'value') else str(device.vendor),
                 "port": device.port,
                 "username": device.username or "",
                 "password": "***REDACTED***",  # Don't export passwords
-            })
+                "status": device.status.value if hasattr(device.status, 'value') else str(device.status) if device.status else "",
+                "compliance": f"{device.compliance:.1f}" if device.compliance else "0.0",
+            }
+
+            # Extract metadata fields if present
+            if include_metadata:
+                metadata = device.device_metadata or {}
+                system_meta = metadata.get("system", {})
+                bgp_meta = metadata.get("bgp", {})
+                igp_meta = metadata.get("igp", {})
+
+                row.update({
+                    "software_version": system_meta.get("software_version", ""),
+                    "system_address": system_meta.get("system_address", ""),
+                    "loopback0_ip": system_meta.get("loopback0_ip", ""),
+                    "router_id": system_meta.get("router_id", ""),
+                    "bgp_as_number": str(bgp_meta.get("as_number", "")) if bgp_meta.get("as_number") else "",
+                    "bgp_router_id": bgp_meta.get("router_id", ""),
+                    "igp_type": igp_meta.get("type", ""),
+                    "igp_router_id": igp_meta.get("router_id", ""),
+                    "platform": system_meta.get("platform", ""),
+                })
+
+            writer.writerow(row)
 
         return output.getvalue()
