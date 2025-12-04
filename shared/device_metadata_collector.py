@@ -46,6 +46,14 @@ class DeviceMetadataCollector:
                     bgp_json = json.loads(bgp_data)
 
                     # BGP data is returned directly as a dict with fields
+                    # Extract BGP router-id
+                    if 'router-id' in bgp_json:
+                        metadata["bgp"]["router_id"] = bgp_json['router-id']
+
+                    # Extract AS number
+                    if 'autonomous-system' in bgp_json:
+                        metadata["bgp"]["as_number"] = bgp_json['autonomous-system']
+
                     # Count neighbors
                     if 'neighbor' in bgp_json and isinstance(bgp_json['neighbor'], dict):
                         neighbors = bgp_json['neighbor']
@@ -60,7 +68,9 @@ class DeviceMetadataCollector:
                                     established += 1
                         metadata["bgp"]["established_sessions"] = established
 
-                logger.info(f"Collected BGP metadata: {metadata['bgp'].get('neighbor_count', 0)} neighbors, "
+                logger.info(f"Collected BGP metadata: router-id={metadata['bgp'].get('router_id')}, "
+                           f"AS={metadata['bgp'].get('as_number')}, "
+                           f"{metadata['bgp'].get('neighbor_count', 0)} neighbors, "
                            f"{metadata['bgp'].get('established_sessions', 0)} established")
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
@@ -181,11 +191,34 @@ class DeviceMetadataCollector:
                 if system_data:
                     system_json = json.loads(system_data)
 
-                    # Try to get system interface IP or router ID
+                    # Get router ID (primary system identifier)
                     if 'router-id' in system_json:
-                        metadata["system"]["ip_address"] = system_json['router-id']
+                        metadata["system"]["router_id"] = system_json['router-id']
 
-                logger.info(f"Collected system metadata: IP={metadata['system'].get('ip_address')}")
+                # Try to get system address from management interface
+                try:
+                    system_addr_xpath = '/state/router[router-name="Base"]/interface[interface-name="system"]'
+                    system_addr_data = await connection.get_operational_state(xpath=system_addr_xpath)
+
+                    if system_addr_data:
+                        system_addr_json = json.loads(system_addr_data)
+
+                        # Extract primary IPv4 address from system interface
+                        if 'ipv4' in system_addr_json:
+                            ipv4_data = system_addr_json['ipv4']
+                            if 'primary' in ipv4_data:
+                                primary = ipv4_data['primary']
+                                if 'address' in primary:
+                                    # Remove /32 suffix if present
+                                    addr = primary['address']
+                                    if '/' in addr:
+                                        addr = addr.split('/')[0]
+                                    metadata["system"]["system_address"] = addr
+                except Exception as addr_e:
+                    logger.debug(f"Could not get system address: {addr_e}")
+
+                logger.info(f"Collected system metadata: router-id={metadata['system'].get('router_id')}, "
+                           f"system-address={metadata['system'].get('system_address')}")
             except Exception as e:
                 logger.warning(f"Failed to collect system interface info: {e}")
 
@@ -256,30 +289,51 @@ class DeviceMetadataCollector:
 
                 bgp_data = await connection.get_config(filter_data=bgp_filter)
 
-                # Parse BGP data (simplified - may need adjustment based on actual response)
-                if bgp_data and 'default-vrf' in bgp_data:
-                    if 'as' in bgp_data:
-                        metadata["bgp"]["as_number"] = int(bgp_data['as'])
-                    if 'router-id' in bgp_data:
-                        metadata["bgp"]["router_id"] = bgp_data['router-id']
+                # Parse BGP data
+                if bgp_data:
+                    # Try to extract from different possible structures
+                    if isinstance(bgp_data, dict):
+                        # Extract AS number
+                        if 'as' in bgp_data:
+                            metadata["bgp"]["as_number"] = int(bgp_data['as'])
+                        elif 'local-as' in bgp_data:
+                            metadata["bgp"]["as_number"] = int(bgp_data['local-as'])
 
-                logger.info(f"Collected Cisco BGP metadata")
+                        # Extract router-id
+                        if 'router-id' in bgp_data:
+                            metadata["bgp"]["router_id"] = bgp_data['router-id']
+                    else:
+                        # Try regex parsing for XML/string response
+                        import re
+                        as_match = re.search(r'<(?:local-)?as>(\d+)</(?:local-)?as>', str(bgp_data))
+                        if as_match:
+                            metadata["bgp"]["as_number"] = int(as_match.group(1))
+
+                        rid_match = re.search(r'<router-id>([\d.]+)</router-id>', str(bgp_data))
+                        if rid_match:
+                            metadata["bgp"]["router_id"] = rid_match.group(1)
+
+                logger.info(f"Collected Cisco BGP metadata: AS={metadata['bgp'].get('as_number')}, "
+                           f"router-id={metadata['bgp'].get('router_id')}")
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
 
             # System/Loopback Information
             try:
-                # Try to get Loopback0 IP
-                intf_filter = """
-                <interfaces xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-pfi-im-cmd-oper">
-                    <interface-summary/>
-                </interfaces>
-                """
+                # Try to get Loopback0 IP using XPath
+                loopback_xpath = '/interfaces-state/interface[name="Loopback0"]'
+                loopback_data = await connection.get_operational_state(xpath=loopback_xpath)
 
-                intf_data = await connection.get_config(filter_data=intf_filter)
-                # Parse interface data to find Loopback0 IP
+                if loopback_data:
+                    # Parse XML or JSON response for Loopback0 IP
+                    # The response format depends on the connector implementation
+                    import re
+                    # Try to extract IP address from response
+                    ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', loopback_data)
+                    if ip_match:
+                        metadata["system"]["loopback0_ip"] = ip_match.group(1)
 
-                logger.info(f"Collected Cisco system metadata")
+                logger.info(f"Collected Cisco system metadata: loopback0={metadata['system'].get('loopback0_ip')}")
             except Exception as e:
                 logger.warning(f"Failed to collect system interface info: {e}")
 
