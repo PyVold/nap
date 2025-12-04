@@ -318,14 +318,24 @@ const DeviceManagement = () => {
                   <Typography variant="subtitle2" gutterBottom color="primary">
                     System Information
                   </Typography>
-                  {metadata.system.ip_address && (
+                  {metadata.system.router_id && (
                     <Typography variant="body2">
-                      <strong>System IP:</strong> {metadata.system.ip_address}
+                      <strong>Router ID:</strong> {metadata.system.router_id}
+                    </Typography>
+                  )}
+                  {metadata.system.system_address && (
+                    <Typography variant="body2">
+                      <strong>System Address:</strong> {metadata.system.system_address}
                     </Typography>
                   )}
                   {metadata.system.loopback0_ip && (
                     <Typography variant="body2">
                       <strong>Loopback0 IP:</strong> {metadata.system.loopback0_ip}
+                    </Typography>
+                  )}
+                  {metadata.system.ip_address && (
+                    <Typography variant="body2">
+                      <strong>System IP:</strong> {metadata.system.ip_address}
                     </Typography>
                   )}
                 </CardContent>
