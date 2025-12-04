@@ -202,31 +202,50 @@ class DeviceMetadataCollector:
 
                 # Get system state for version info and other details
                 try:
-                    system_xpath = '/state/system'
+                    system_xpath = '/state/system/version'
                     system_data = await connection.get_operational_state(xpath=system_xpath)
+                    logger.debug(f"Version query response: {system_data}")
 
                     if system_data:
-                        system_json = json.loads(system_data)
+                        system_json = json.loads(system_data) if isinstance(system_data, str) else system_data
 
-                        # Extract software version
-                        if 'version' in system_json:
-                            version_info = system_json['version']
-                            if isinstance(version_info, dict):
-                                metadata["system"]["software_version"] = version_info.get('version-number', '')
-                                metadata["system"]["software_version_full"] = version_info.get('version-string', '')
-                            else:
-                                metadata["system"]["software_version"] = str(version_info)
-
-                        # Extract system name
-                        if 'oper-name' in system_json:
-                            metadata["system"]["system_name"] = system_json['oper-name']
-
-                        # Extract platform
-                        if 'platform' in system_json:
-                            metadata["system"]["platform"] = system_json['platform']
+                        # Extract software version - direct response from /state/system/version
+                        if isinstance(system_json, dict):
+                            if 'version-number' in system_json:
+                                metadata["system"]["software_version"] = system_json.get('version-number', '')
+                                metadata["system"]["software_version_full"] = system_json.get('version-string', '')
+                                logger.info(f"Collected Nokia software version: {metadata['system']['software_version']}")
+                            elif 'version' in system_json:
+                                # Nested version structure
+                                version_info = system_json['version']
+                                if isinstance(version_info, dict):
+                                    metadata["system"]["software_version"] = version_info.get('version-number', '')
+                                    metadata["system"]["software_version_full"] = version_info.get('version-string', '')
+                                else:
+                                    metadata["system"]["software_version"] = str(version_info)
+                                logger.info(f"Collected Nokia software version: {metadata['system'].get('software_version')}")
 
                 except Exception as ver_e:
-                    logger.debug(f"Could not get system version info: {ver_e}")
+                    logger.warning(f"Could not get system version info: {ver_e}")
+
+                # Get system name and platform from /state/system
+                try:
+                    system_info_xpath = '/state/system'
+                    system_info_data = await connection.get_operational_state(xpath=system_info_xpath)
+
+                    if system_info_data:
+                        system_info_json = json.loads(system_info_data) if isinstance(system_info_data, str) else system_info_data
+
+                        # Extract system name
+                        if 'oper-name' in system_info_json:
+                            metadata["system"]["system_name"] = system_info_json['oper-name']
+
+                        # Extract platform
+                        if 'platform' in system_info_json:
+                            metadata["system"]["platform"] = system_info_json['platform']
+
+                except Exception as sys_e:
+                    logger.debug(f"Could not get system info: {sys_e}")
 
                 # Try to get system address from system interface (loopback equivalent for Nokia)
                 try:
