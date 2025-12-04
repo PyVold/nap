@@ -195,7 +195,7 @@ class DeviceMetadataCollector:
                     if 'router-id' in system_json:
                         metadata["system"]["router_id"] = system_json['router-id']
 
-                # Try to get system address from management interface
+                # Try to get system address from system interface (loopback equivalent for Nokia)
                 try:
                     system_addr_xpath = '/state/router[router-name="Base"]/interface[interface-name="system"]'
                     system_addr_data = await connection.get_operational_state(xpath=system_addr_xpath)
@@ -204,16 +204,28 @@ class DeviceMetadataCollector:
                         system_addr_json = json.loads(system_addr_data)
 
                         # Extract primary IPv4 address from system interface
+                        # Handle both with and without namespace prefix (nokia-conf:ipv4 or ipv4)
+                        ipv4_data = None
                         if 'ipv4' in system_addr_json:
                             ipv4_data = system_addr_json['ipv4']
-                            if 'primary' in ipv4_data:
-                                primary = ipv4_data['primary']
-                                if 'address' in primary:
-                                    # Remove /32 suffix if present
-                                    addr = primary['address']
-                                    if '/' in addr:
-                                        addr = addr.split('/')[0]
-                                    metadata["system"]["system_address"] = addr
+                        elif 'nokia-conf:ipv4' in system_addr_json:
+                            ipv4_data = system_addr_json['nokia-conf:ipv4']
+                        else:
+                            # Try to find any key containing 'ipv4' (handles various namespace prefixes)
+                            for key in system_addr_json.keys():
+                                if 'ipv4' in key.lower():
+                                    ipv4_data = system_addr_json[key]
+                                    break
+
+                        if ipv4_data and 'primary' in ipv4_data:
+                            primary = ipv4_data['primary']
+                            if 'address' in primary:
+                                # Remove /32 suffix if present
+                                addr = primary['address']
+                                if '/' in addr:
+                                    addr = addr.split('/')[0]
+                                metadata["system"]["system_address"] = addr
+                                logger.info(f"Collected Nokia system interface IP: {addr}")
                 except Exception as addr_e:
                     logger.debug(f"Could not get system address: {addr_e}")
 
@@ -318,24 +330,85 @@ class DeviceMetadataCollector:
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
 
-            # System/Loopback Information
+            # System/Loopback0 Information
             try:
-                # Try to get Loopback0 IP using XPath
-                loopback_xpath = '/interfaces-state/interface[name="Loopback0"]'
-                loopback_data = await connection.get_operational_state(xpath=loopback_xpath)
+                # Try multiple approaches to get Loopback0 IP
+                loopback0_ip = None
 
-                if loopback_data:
-                    # Parse XML or JSON response for Loopback0 IP
-                    # The response format depends on the connector implementation
-                    import re
-                    # Try to extract IP address from response
-                    ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', loopback_data)
-                    if ip_match:
-                        metadata["system"]["loopback0_ip"] = ip_match.group(1)
+                # Approach 1: Use Cisco native YANG model for IPv4 interface addresses
+                try:
+                    ipv4_filter = """
+                    <ipv4-io-oper xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-io-oper">
+                        <nodes>
+                            <node>
+                                <addresses>
+                                    <vrf-addresses>
+                                        <vrf-address>
+                                            <vrf-name>default</vrf-name>
+                                            <interface-addresses>
+                                                <interface-address>
+                                                    <interface-name>Loopback0</interface-name>
+                                                </interface-address>
+                                            </interface-addresses>
+                                        </vrf-address>
+                                    </vrf-addresses>
+                                </addresses>
+                            </node>
+                        </nodes>
+                    </ipv4-io-oper>
+                    """
+                    loopback_data = await connection.get_operational_state(filter_data=ipv4_filter)
 
-                logger.info(f"Collected Cisco system metadata: loopback0={metadata['system'].get('loopback0_ip')}")
+                    if loopback_data:
+                        # Extract IP from Cisco native model response
+                        # Look for primary address pattern
+                        ip_match = re.search(r'<address>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</address>', loopback_data)
+                        if ip_match:
+                            loopback0_ip = ip_match.group(1)
+                except Exception as e1:
+                    logger.debug(f"Cisco native model query failed: {e1}")
+
+                # Approach 2: Use ietf-interfaces model if native model didn't work
+                if not loopback0_ip:
+                    try:
+                        ietf_filter = """
+                        <interfaces-state xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+                            <interface>
+                                <name>Loopback0</name>
+                            </interface>
+                        </interfaces-state>
+                        """
+                        loopback_data = await connection.get_operational_state(filter_data=ietf_filter)
+
+                        if loopback_data:
+                            # Try to extract IP address from response
+                            ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', loopback_data)
+                            if ip_match:
+                                loopback0_ip = ip_match.group(1)
+                    except Exception as e2:
+                        logger.debug(f"IETF interfaces model query failed: {e2}")
+
+                # Approach 3: Fallback using XPath query
+                if not loopback0_ip:
+                    try:
+                        loopback_xpath = '/interfaces-state/interface[name="Loopback0"]'
+                        loopback_data = await connection.get_operational_state(xpath=loopback_xpath)
+
+                        if loopback_data:
+                            ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', loopback_data)
+                            if ip_match:
+                                loopback0_ip = ip_match.group(1)
+                    except Exception as e3:
+                        logger.debug(f"XPath query for Loopback0 failed: {e3}")
+
+                if loopback0_ip:
+                    metadata["system"]["loopback0_ip"] = loopback0_ip
+                    logger.info(f"Collected Cisco Loopback0 IP: {loopback0_ip}")
+                else:
+                    logger.warning("Could not retrieve Loopback0 IP address")
+
             except Exception as e:
-                logger.warning(f"Failed to collect system interface info: {e}")
+                logger.warning(f"Failed to collect Loopback0 interface info: {e}")
 
         except Exception as e:
             logger.error(f"Error collecting Cisco IOS-XR metadata: {e}")
