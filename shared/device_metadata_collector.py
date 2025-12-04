@@ -200,6 +200,34 @@ class DeviceMetadataCollector:
                 if metadata["bgp"].get("router_id"):
                     metadata["system"]["router_id"] = metadata["bgp"]["router_id"]
 
+                # Get system state for version info and other details
+                try:
+                    system_xpath = '/state/system'
+                    system_data = await connection.get_operational_state(xpath=system_xpath)
+
+                    if system_data:
+                        system_json = json.loads(system_data)
+
+                        # Extract software version
+                        if 'version' in system_json:
+                            version_info = system_json['version']
+                            if isinstance(version_info, dict):
+                                metadata["system"]["software_version"] = version_info.get('version-number', '')
+                                metadata["system"]["software_version_full"] = version_info.get('version-string', '')
+                            else:
+                                metadata["system"]["software_version"] = str(version_info)
+
+                        # Extract system name
+                        if 'oper-name' in system_json:
+                            metadata["system"]["system_name"] = system_json['oper-name']
+
+                        # Extract platform
+                        if 'platform' in system_json:
+                            metadata["system"]["platform"] = system_json['platform']
+
+                except Exception as ver_e:
+                    logger.debug(f"Could not get system version info: {ver_e}")
+
                 # Try to get system address from system interface (loopback equivalent for Nokia)
                 try:
                     system_addr_xpath = '/state/router[router-name="Base"]/interface[interface-name="system"]'
@@ -339,6 +367,75 @@ class DeviceMetadataCollector:
                            f"router-id={metadata['bgp'].get('router_id')}")
             except Exception as e:
                 logger.warning(f"Failed to collect BGP metadata: {e}")
+
+            # Software Version Information
+            try:
+                # Try to get software version using Cisco install manager model
+                version_filter = """
+                <install xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-installmgr-admin-oper">
+                    <software>
+                        <alias-devices>
+                            <alias-device>
+                                <device-name>0/RP0/CPU0</device-name>
+                                <aliases>
+                                    <alias>
+                                        <package-name>active</package-name>
+                                    </alias>
+                                </aliases>
+                            </alias-device>
+                        </alias-devices>
+                    </software>
+                </install>
+                """
+                try:
+                    version_data = await connection.get_operational_state(filter_data=version_filter)
+                    if version_data:
+                        # Extract version from the active package info
+                        version_match = re.search(r'<package-name>([^<]+)</package-name>', version_data)
+                        if version_match:
+                            package_name = version_match.group(1)
+                            # Parse version from package name (e.g., "disk0:asr9k-os-mbi-7.3.2")
+                            ver_match = re.search(r'(\d+\.\d+\.\d+)', package_name)
+                            if ver_match:
+                                metadata["system"]["software_version"] = ver_match.group(1)
+                except Exception as e1:
+                    logger.debug(f"Install manager version query failed: {e1}")
+
+                # Alternate approach: Try spirit-install-instmgr-oper model
+                if not metadata["system"].get("software_version"):
+                    try:
+                        spirit_filter = """
+                        <software-install xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-spirit-install-instmgr-oper">
+                            <version/>
+                        </software-install>
+                        """
+                        version_data = await connection.get_operational_state(filter_data=spirit_filter)
+                        if version_data:
+                            # Extract version string
+                            version_match = re.search(r'<version>([^<]+)</version>', version_data)
+                            if version_match:
+                                metadata["system"]["software_version"] = version_match.group(1)
+                    except Exception as e2:
+                        logger.debug(f"Spirit install version query failed: {e2}")
+
+                # Alternate approach: Use show version equivalent via system model
+                if not metadata["system"].get("software_version"):
+                    try:
+                        system_filter = """
+                        <system-time xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-shellutil-oper">
+                            <clock/>
+                        </system-time>
+                        """
+                        # Just to verify we can get system info
+                        await connection.get_operational_state(filter_data=system_filter)
+                    except:
+                        pass
+
+                if metadata["system"].get("software_version"):
+                    logger.info(f"Collected Cisco software version: {metadata['system']['software_version']}")
+
+            except Exception as e:
+                logger.warning(f"Failed to collect software version: {e}")
 
             # System/Loopback0 Information
             try:

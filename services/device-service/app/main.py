@@ -27,10 +27,18 @@ logger.info("Database initialized")
 # Get scheduler instance (will be started on app startup)
 scheduler = get_scheduler()
 
+# CORS configuration from settings
+# Default to "*" for backward compatibility, but allow restriction via CORS_ALLOWED_ORIGINS env var
+cors_origins_str = settings.cors_allowed_origins
+if cors_origins_str == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -3,6 +3,7 @@
 # ============================================================================
 
 import asyncio
+import os
 from typing import Optional, Dict, Any
 from ncclient import manager
 from ncclient.operations import RPCError
@@ -14,13 +15,18 @@ from utils.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
 
+# Security: Hostkey verification is configurable via environment variable
+# Default to False for backward compatibility (lab/development environments)
+# Set HOSTKEY_VERIFY=true in production with proper known_hosts configured
+HOSTKEY_VERIFY = os.getenv("HOSTKEY_VERIFY", "false").lower() == "true"
+
 class NetconfConnector(BaseConnector):
     """NETCONF connector implementation"""
-    
+
     def __init__(self, device: Device):
         self.device = device
         self.connection = None
-    
+
     async def connect(self) -> bool:
         """Establish NETCONF connection"""
         try:
@@ -35,7 +41,7 @@ class NetconfConnector(BaseConnector):
                     username=self.device.username,
                     password=self.device.password,
                     device_params=device_params,
-                    hostkey_verify=False,
+                    hostkey_verify=HOSTKEY_VERIFY,
                     timeout=30,
                     allow_agent=False,
                     look_for_keys=False
@@ -266,7 +272,7 @@ class NetconfConnector(BaseConnector):
                 port=port,
                 username=username,
                 password=password,
-                hostkey_verify=False,
+                hostkey_verify=HOSTKEY_VERIFY,
                 timeout=10,
                 device_params={'name': 'default'}
             )

@@ -3,6 +3,7 @@ API Gateway - Main Entry Point
 Handles service discovery and request routing
 """
 
+import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
@@ -19,10 +20,18 @@ app = FastAPI(
     description="API Gateway for microservices"
 )
 
+# CORS configuration from environment
+# Default to "*" for backward compatibility, but allow restriction via env var
+cors_origins_str = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+if cors_origins_str == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

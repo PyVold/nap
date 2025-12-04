@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from shared.deps import get_db
 from services.device_import_service import DeviceImportService
 
-router = APIRouter(prefix="/device-import", tags=["device-import"])
+router = APIRouter(tags=["device-import"])
 
 
 # ============================================================================
