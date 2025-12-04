@@ -39,22 +39,33 @@ class DeviceMetadataCollector:
         try:
             # BGP Information
             try:
-                bgp_xpath = '/state/router[router-name="Base"]/bgp'
-                bgp_data = await connection.get_operational_state(xpath=bgp_xpath)
+                # First get BGP config for router-id and AS number (not in state path)
+                bgp_config_xpath = '/configure/router[router-name="Base"]/bgp'
+                bgp_config_data = await connection.get_config(xpath=bgp_config_xpath)
 
-                if bgp_data:
-                    bgp_json = json.loads(bgp_data)
+                if bgp_config_data:
+                    bgp_config_json = json.loads(bgp_config_data)
 
-                    # BGP data is returned directly as a dict with fields
-                    # Extract BGP router-id
-                    if 'router-id' in bgp_json:
-                        metadata["bgp"]["router_id"] = bgp_json['router-id']
+                    # Extract BGP router-id from config
+                    if 'router-id' in bgp_config_json:
+                        metadata["bgp"]["router_id"] = bgp_config_json['router-id']
 
-                    # Extract AS number
-                    if 'autonomous-system' in bgp_json:
-                        metadata["bgp"]["as_number"] = bgp_json['autonomous-system']
+                    # Extract AS number from config (in local-as.as-number)
+                    if 'local-as' in bgp_config_json:
+                        local_as = bgp_config_json['local-as']
+                        if isinstance(local_as, dict) and 'as-number' in local_as:
+                            metadata["bgp"]["as_number"] = int(local_as['as-number'])
+                    elif 'autonomous-system' in bgp_config_json:
+                        metadata["bgp"]["as_number"] = int(bgp_config_json['autonomous-system'])
 
-                    # Count neighbors
+                # Then get BGP state for neighbor counts
+                bgp_state_xpath = '/state/router[router-name="Base"]/bgp'
+                bgp_state_data = await connection.get_operational_state(xpath=bgp_state_xpath)
+
+                if bgp_state_data:
+                    bgp_json = json.loads(bgp_state_data)
+
+                    # Count neighbors from state
                     if 'neighbor' in bgp_json and isinstance(bgp_json['neighbor'], dict):
                         neighbors = bgp_json['neighbor']
                         metadata["bgp"]["neighbor_count"] = len(neighbors)
@@ -185,15 +196,9 @@ class DeviceMetadataCollector:
 
             # System Information
             try:
-                system_xpath = '/state/system'
-                system_data = await connection.get_operational_state(xpath=system_xpath)
-
-                if system_data:
-                    system_json = json.loads(system_data)
-
-                    # Get router ID (primary system identifier)
-                    if 'router-id' in system_json:
-                        metadata["system"]["router_id"] = system_json['router-id']
+                # Use BGP router-id as system router_id (Nokia uses this convention)
+                if metadata["bgp"].get("router_id"):
+                    metadata["system"]["router_id"] = metadata["bgp"]["router_id"]
 
                 # Try to get system address from system interface (loopback equivalent for Nokia)
                 try:
@@ -219,15 +224,20 @@ class DeviceMetadataCollector:
 
                         if ipv4_data and 'primary' in ipv4_data:
                             primary = ipv4_data['primary']
-                            if 'address' in primary:
+                            # State path uses 'oper-address', config path uses 'address'
+                            addr = primary.get('oper-address') or primary.get('address')
+                            if addr:
                                 # Remove /32 suffix if present
-                                addr = primary['address']
                                 if '/' in addr:
                                     addr = addr.split('/')[0]
                                 metadata["system"]["system_address"] = addr
                                 logger.info(f"Collected Nokia system interface IP: {addr}")
                 except Exception as addr_e:
                     logger.debug(f"Could not get system address: {addr_e}")
+
+                # If router_id not set from BGP, use system_address as fallback
+                if not metadata["system"].get("router_id") and metadata["system"].get("system_address"):
+                    metadata["system"]["router_id"] = metadata["system"]["system_address"]
 
                 logger.info(f"Collected system metadata: router-id={metadata['system'].get('router_id')}, "
                            f"system-address={metadata['system'].get('system_address')}")
