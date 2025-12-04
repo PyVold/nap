@@ -4,6 +4,7 @@
 
 import csv
 import io
+import json
 from typing import List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from db_models import DeviceDB
@@ -241,10 +242,22 @@ class DeviceImportService:
 
             # Extract metadata fields if present
             if include_metadata:
-                metadata = device.device_metadata or {}
-                system_meta = metadata.get("system", {})
-                bgp_meta = metadata.get("bgp", {})
-                igp_meta = metadata.get("igp", {})
+                # Parse metadata - it might be stored as JSON string or dict
+                raw_metadata = device.device_metadata
+                if raw_metadata:
+                    if isinstance(raw_metadata, str):
+                        try:
+                            metadata = json.loads(raw_metadata)
+                        except (json.JSONDecodeError, TypeError):
+                            metadata = {}
+                    else:
+                        metadata = raw_metadata
+                else:
+                    metadata = {}
+
+                system_meta = metadata.get("system", {}) if isinstance(metadata, dict) else {}
+                bgp_meta = metadata.get("bgp", {}) if isinstance(metadata, dict) else {}
+                igp_meta = metadata.get("igp", {}) if isinstance(metadata, dict) else {}
 
                 row.update({
                     "software_version": system_meta.get("software_version", ""),

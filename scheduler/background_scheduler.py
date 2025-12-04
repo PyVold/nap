@@ -169,9 +169,49 @@ async def run_health_checks():
         db.close()
 
 
+def get_backup_config_from_db():
+    """Get backup configuration from database"""
+    import json
+    db = SessionLocal()
+    try:
+        # Try to get config from SystemConfigDB
+        from db_models import SystemConfigDB
+        config = db.query(SystemConfigDB).filter(
+            SystemConfigDB.key == "backup_config"
+        ).first()
+
+        if config:
+            return json.loads(config.value)
+        return None
+    except Exception as e:
+        logger.debug(f"Could not get backup config from DB: {e}")
+        return None
+    finally:
+        db.close()
+
+
+def schedule_type_to_minutes(schedule_type: str) -> int:
+    """Convert schedule type to minutes"""
+    mapping = {
+        "hourly": 60,
+        "every6hours": 360,
+        "every12hours": 720,
+        "daily": 1440,
+        "weekly": 10080,
+        "monthly": 43200
+    }
+    return mapping.get(schedule_type, 60)  # Default to hourly
+
+
 async def run_config_backups():
     """Run automated config backups on all devices"""
-    if not settings.config_backup_enabled:
+    # Check database config first, then fall back to settings
+    db_config = get_backup_config_from_db()
+    if db_config and not db_config.get('enabled', True):
+        logger.debug("Config backups disabled in admin settings")
+        return
+
+    if not db_config and not settings.config_backup_enabled:
         return
 
     db = SessionLocal()
@@ -255,18 +295,47 @@ class BackgroundScheduler:
             )
             logger.info(f"Health check scheduled every {settings.health_check_interval_minutes} minutes")
 
-        # Run config backups at configured interval
-        if settings.config_backup_enabled:
-            self.scheduler.add_job(
-                run_config_backups,
-                trigger=IntervalTrigger(minutes=settings.config_backup_interval_minutes),
-                id='config_backup',
-                name='Run automated config backups',
-                replace_existing=True
-            )
-            logger.info(f"Config backup scheduled every {settings.config_backup_interval_minutes} minutes")
+        # Run config backups at configured interval (from database or settings)
+        self._setup_backup_job()
 
         logger.info("Background scheduler jobs configured")
+
+    def _setup_backup_job(self):
+        """Set up or update the backup job based on database config"""
+        # Get config from database first
+        db_config = get_backup_config_from_db()
+
+        if db_config:
+            # Use database config
+            if not db_config.get('enabled', True):
+                logger.info("Config backups disabled in admin settings")
+                # Remove existing job if disabled
+                try:
+                    self.scheduler.remove_job('config_backup')
+                except:
+                    pass
+                return
+
+            interval_minutes = schedule_type_to_minutes(db_config.get('scheduleType', 'daily'))
+            logger.info(f"Config backup interval from admin settings: {db_config.get('scheduleType')} ({interval_minutes} minutes)")
+        else:
+            # Fall back to settings file
+            if not settings.config_backup_enabled:
+                return
+            interval_minutes = settings.config_backup_interval_minutes
+
+        self.scheduler.add_job(
+            run_config_backups,
+            trigger=IntervalTrigger(minutes=interval_minutes),
+            id='config_backup',
+            name='Run automated config backups',
+            replace_existing=True
+        )
+        logger.info(f"Config backup scheduled every {interval_minutes} minutes")
+
+    def reload_backup_schedule(self):
+        """Reload backup schedule from database (called when admin updates settings)"""
+        self._setup_backup_job()
 
     def start(self):
         """Start the scheduler"""
