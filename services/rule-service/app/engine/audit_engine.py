@@ -13,7 +13,6 @@ from models.enums import AuditStatus, SeverityLevel, VendorType
 from connectors.netconf_connector import NetconfConnector
 from connectors.nokia_sros_connector import NokiaSROSConnector
 from engine.rule_executor import RuleExecutor
-from services.config_backup_service import ConfigBackupService
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -60,36 +59,9 @@ class AuditEngine:
                     compliance=0
                 )
 
-            # Create automatic configuration backup if db session is provided
-            # Use CLI for Nokia, NETCONF for others
-            if db:
-                try:
-                    logger.info(f"Creating automatic configuration backup for {device.hostname}")
+            # Note: Config backups are now handled by the scheduled backup service
+            # configured via admin dashboard settings, not during audits
 
-                    # For Nokia, use CLI backup (SSH)
-                    if device.vendor == VendorType.NOKIA_SROS:
-                        from connectors.ssh_connector import SSHConnector
-                        import asyncio
-
-                        ssh_connector = SSHConnector(device)
-                        loop = asyncio.get_event_loop()
-                        config_data = await loop.run_in_executor(None, ssh_connector.get_config_cli_sync)
-                    else:
-                        # For other vendors, use NETCONF
-                        config_data = await connector.get_config()
-
-                    ConfigBackupService.create_backup_sync(
-                        db=db,
-                        device=device,
-                        config_data=config_data,
-                        backup_type="auto",
-                        created_by="audit_engine"
-                    )
-                    logger.debug(f"Configuration backup created for {device.hostname} using {'CLI' if device.vendor == VendorType.NOKIA_SROS else 'NETCONF'}")
-                except Exception as e:
-                    logger.warning(f"Failed to create backup for {device.hostname}: {str(e)}")
-                    # Don't fail the audit if backup fails
-            
             # Execute applicable rules
             for rule in rules_to_check:
                 if device.vendor not in rule.vendors:

@@ -4,13 +4,14 @@
 
 import hashlib
 import asyncio
+import json
 from datetime import datetime
 from typing import List, Optional, Tuple, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc
 from models.device import Device
-from db_models import ConfigBackupDB, ConfigChangeEventDB
+from db_models import ConfigBackupDB, ConfigChangeEventDB, SystemConfigDB
 from connectors.netconf_connector import NetconfConnector
 from connectors.nokia_sros_connector import NokiaSROSConnector
 from models.enums import VendorType
@@ -18,6 +19,20 @@ from shared.logger import setup_logger
 import difflib
 
 logger = setup_logger(__name__)
+
+
+def get_max_backups_per_device(db: Session) -> int:
+    """Get maxBackupsPerDevice from admin settings, default to 10"""
+    try:
+        config = db.query(SystemConfigDB).filter(
+            SystemConfigDB.key == "backup_config"
+        ).first()
+        if config:
+            settings = json.loads(config.value)
+            return settings.get('maxBackupsPerDevice', 10)
+    except Exception as e:
+        logger.debug(f"Could not get backup config: {e}")
+    return 10  # Default
 
 
 class ConfigBackupService:
@@ -97,8 +112,9 @@ class ConfigBackupService:
             db.commit()
             logger.info(f"Created {backup_type} backup for device {device.hostname} (ID: {backup.id})")
 
-            # Cleanup old backups - keep only last 30 per device
-            ConfigBackupService._cleanup_old_backups_sync(db, device.id, keep_count=30)
+            # Cleanup old backups based on admin settings
+            max_backups = get_max_backups_per_device(db)
+            ConfigBackupService._cleanup_old_backups_sync(db, device.id, keep_count=max_backups)
 
             return backup
 
@@ -176,8 +192,9 @@ class ConfigBackupService:
             db.commit()
             logger.info(f"Created {backup_type} backup for device {device.hostname} (ID: {backup.id})")
 
-            # Cleanup old backups - keep only last 30 per device
-            await ConfigBackupService._cleanup_old_backups(db, device.id, keep_count=30)
+            # Cleanup old backups based on admin settings
+            max_backups = get_max_backups_per_device(db)
+            await ConfigBackupService._cleanup_old_backups(db, device.id, keep_count=max_backups)
 
             return backup
 
@@ -347,8 +364,9 @@ class ConfigBackupService:
                 created_by=created_by
             )
 
-            # Keep only last 30 backups per device
-            await ConfigBackupService._cleanup_old_backups(db, device.id, keep_count=30)
+            # Cleanup old backups based on admin settings
+            max_backups = get_max_backups_per_device(db)
+            await ConfigBackupService._cleanup_old_backups(db, device.id, keep_count=max_backups)
 
             return backup
 
