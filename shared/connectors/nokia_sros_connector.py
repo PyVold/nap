@@ -6,7 +6,7 @@ import asyncio
 from typing import Optional
 from pysros.management import connect, sros
 from models.device import Device
-from connectors.base_connector import BaseConnector
+from .base_connector import BaseConnector
 from shared.logger import setup_logger
 from shared.exceptions import DeviceConnectionError
 
