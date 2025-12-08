@@ -561,6 +561,22 @@ class LicenseValidationLogDB(Base):
 
 
 # ============================================================================
+# System Configuration Model
+# ============================================================================
+
+class SystemConfigDB(Base):
+    """System-wide configuration settings"""
+    __tablename__ = "system_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(Text, nullable=False)  # JSON string
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================================================
 # Advanced Models - Using separate model files for reference
 # ============================================================================
 # Note: Advanced models are defined in separate files for documentation
