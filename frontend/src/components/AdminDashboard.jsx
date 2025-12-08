@@ -119,6 +119,7 @@ export default function AdminDashboard() {
     maxBackupsPerDevice: 10,
     compressBackups: true,
     notifyOnFailure: true,
+    backupOnAudit: true,
   });
 
   // Notification Settings State
@@ -667,6 +668,31 @@ export default function AdminDashboard() {
                     }
                     label="Send Email Notification on Backup Failure"
                   />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Audit Backup Settings
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={backupConfig.backupOnAudit}
+                        onChange={(e) =>
+                          setBackupConfig({
+                            ...backupConfig,
+                            backupOnAudit: e.target.checked,
+                          })
+                        }
+                      />
+                    }
+                    label="Create Config Backup When Running Audits"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
+                    When enabled, a configuration backup is created automatically before each audit (including after applying fixes).
+                    Disable this if you only want scheduled/manual backups.
+                  </Typography>
                 </Grid>
               </>
             )}

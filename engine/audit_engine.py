@@ -5,6 +5,7 @@
 
 from typing import List, Optional
 from datetime import datetime
+import json
 from sqlalchemy.orm import Session
 from models.device import Device
 from models.rule import AuditRule
@@ -17,6 +18,21 @@ from services.config_backup_service import ConfigBackupService
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+
+def should_backup_on_audit(db: Session) -> bool:
+    """Check if backup should be created during audits based on admin settings"""
+    try:
+        from db_models import SystemConfigDB
+        config = db.query(SystemConfigDB).filter(
+            SystemConfigDB.key == "backup_config"
+        ).first()
+        if config:
+            settings = json.loads(config.value)
+            return settings.get('backupOnAudit', True)
+    except Exception as e:
+        logger.debug(f"Could not get backup config: {e}")
+    return True  # Default to enabled
 
 class AuditEngine:
     """Core audit engine that orchestrates device audits"""
@@ -60,9 +76,9 @@ class AuditEngine:
                     compliance=0
                 )
 
-            # Create automatic configuration backup if db session is provided
+            # Create automatic configuration backup if db session is provided and enabled
             # Use CLI for Nokia, NETCONF for others
-            if db:
+            if db and should_backup_on_audit(db):
                 try:
                     logger.info(f"Creating automatic configuration backup for {device.hostname}")
 
@@ -89,6 +105,8 @@ class AuditEngine:
                 except Exception as e:
                     logger.warning(f"Failed to create backup for {device.hostname}: {str(e)}")
                     # Don't fail the audit if backup fails
+            elif db:
+                logger.debug(f"Skipping audit backup for {device.hostname} - backupOnAudit is disabled in settings")
             
             # Execute applicable rules
             for rule in rules_to_check:
