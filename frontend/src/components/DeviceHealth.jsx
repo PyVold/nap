@@ -75,8 +75,13 @@ const DeviceHealthRow = ({ device, onCheckHealth }) => {
         return <Warning sx={{ color: '#ff9800' }} />;
       case 'offline':
       case 'unreachable':
-      case 'unhealthy':
         return <Error sx={{ color: '#f44336' }} />;
+      case 'unhealthy':
+      case 'error':
+        return <Error sx={{ color: '#d32f2f' }} />;
+      case 'discovered':
+      case 'registered':
+        return <Warning sx={{ color: '#9e9e9e' }} />;
       default:
         return <Warning sx={{ color: '#9e9e9e' }} />;
     }
@@ -92,7 +97,11 @@ const DeviceHealthRow = ({ device, onCheckHealth }) => {
       case 'offline':
       case 'unreachable':
       case 'unhealthy':
+      case 'error':
         return 'error';
+      case 'discovered':
+      case 'registered':
+        return 'default';
       default:
         return 'default';
     }

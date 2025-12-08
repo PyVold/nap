@@ -324,12 +324,19 @@ class HealthService:
         unreachable = sum(1 for c in latest_checks if c.overall_status == "unreachable")
         unhealthy = sum(1 for c in latest_checks if c.overall_status == "unhealthy")
 
+        # Devices without health checks are considered "unknown" (unhealthy for safety)
+        monitored_count = len(latest_checks)
+        unmonitored = total_devices - monitored_count
+        # Add unmonitored devices to unhealthy count for accurate representation
+        unhealthy += unmonitored
+
         return {
             "total_devices": total_devices,
-            "monitored_devices": len(latest_checks),
+            "monitored_devices": monitored_count,
             "healthy": healthy,
             "degraded": degraded,
             "unreachable": unreachable,
             "unhealthy": unhealthy,
+            "unmonitored": unmonitored,
             "health_percentage": int((healthy / total_devices * 100)) if total_devices > 0 else 0
         }
