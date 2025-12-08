@@ -36,6 +36,7 @@ class BackupConfigRequest(BaseModel):
     maxBackupsPerDevice: int = Field(10, ge=1, le=100)
     compressBackups: bool = True
     notifyOnFailure: bool = True
+    backupOnAudit: bool = Field(True, description="Create config backup when running audits")
 
 
 class BackupConfigResponse(BaseModel):
@@ -47,6 +48,7 @@ class BackupConfigResponse(BaseModel):
     maxBackupsPerDevice: int
     compressBackups: bool
     notifyOnFailure: bool
+    backupOnAudit: bool
 
 
 class SystemSettingsRequest(BaseModel):
@@ -108,11 +110,17 @@ async def get_backup_config(
             retentionDays=30,
             maxBackupsPerDevice=10,
             compressBackups=True,
-            notifyOnFailure=True
+            notifyOnFailure=True,
+            backupOnAudit=True
         )
 
     import json
     settings = json.loads(config.value)
+
+    # Ensure backward compatibility with new fields
+    if 'backupOnAudit' not in settings:
+        settings['backupOnAudit'] = True
+
     return BackupConfigResponse(**settings)
 
 
