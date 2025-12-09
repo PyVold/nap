@@ -7,6 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm.base import instance_state
 from models.device import Device, DeviceCreate, DeviceUpdate
 from models.enums import DeviceStatus
 from db_models import DeviceDB
@@ -258,10 +259,10 @@ class DeviceService:
 
         # Extract values from each device's metadata
         for device in db_devices:
-            # Access metadata using SQLAlchemy inspect to avoid class attribute conflict
+            # Access metadata using SQLAlchemy's instance_state to avoid class attribute conflict
             try:
-                insp = sa_inspect(device)
-                metadata = insp.attrs['metadata'].loaded_value
+                state = instance_state(device)
+                metadata = state.dict.get('metadata')
             except (KeyError, AttributeError):
                 metadata = None
             if not metadata or not isinstance(metadata, dict):
@@ -346,19 +347,19 @@ class DeviceService:
 
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
-        # Get metadata from JSON column using SQLAlchemy inspect
-        # This avoids conflict with SQLAlchemy Base's 'metadata' class attribute
+        # Get metadata from JSON column using SQLAlchemy's instance_state
+        # This directly accesses the column value, avoiding conflict with Base.metadata
         metadata = None
         try:
-            insp = sa_inspect(db_device)
-            # Access the column value through the inspection API
-            raw_metadata = insp.attrs['metadata'].loaded_value
-            if raw_metadata is not None and raw_metadata is not insp.attrs['metadata'].loaded_value.__class__:
+            state = instance_state(db_device)
+            # state.dict contains the actual column values
+            raw_metadata = state.dict.get('metadata')
+            if raw_metadata is not None:
                 if isinstance(raw_metadata, dict):
                     metadata = raw_metadata
                 elif isinstance(raw_metadata, (str, bytes)):
                     metadata = json.loads(raw_metadata) if raw_metadata else None
-        except (TypeError, json.JSONDecodeError, KeyError):
+        except (TypeError, json.JSONDecodeError, KeyError, AttributeError):
             metadata = None
 
         return Device(
