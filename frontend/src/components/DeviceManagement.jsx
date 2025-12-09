@@ -288,11 +288,11 @@ const DeviceManagement = () => {
                       <strong>Protocol:</strong> {metadata.igp.type}
                     </Typography>
                   )}
-                  {metadata.igp.router_id && (
-                    <Typography variant="body2">
-                      <strong>Router ID:</strong> {metadata.igp.router_id}
-                    </Typography>
-                  )}
+                  <MetadataValue
+                    label="Router ID"
+                    value={metadata.igp.router_id}
+                    fieldKey="isis_net"
+                  />
                   {metadata.igp.isis && metadata.igp.isis.net_address && (
                     <MetadataValue
                       label="ISIS NET Address"
