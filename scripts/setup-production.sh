@@ -53,48 +53,111 @@ if [ ! -f ".env.prod" ]; then
     DB_PASSWORD=$(cat secrets/db_password.txt)
     JWT_SECRET=$(generate_secret)
     ENCRYPTION_KEY=$(generate_secret)
+    LICENSE_ENCRYPTION_KEY=$(generate_secret)
+    LICENSE_SECRET_SALT=$(python3 -c "import secrets; print(secrets.token_hex(32))")
     REDIS_PASSWORD=$(generate_secret)
     GRAFANA_PASSWORD=$(generate_secret)
 
     cat > .env.prod << EOF
 # ============================================================================
-# Production Environment Configuration
-# Generated on $(date)
+# Network Audit Platform - Production Environment Variables
+# Auto-generated secure configuration on $(date)
 # ============================================================================
 
-# Database Configuration
-POSTGRES_DB=nap_db
-POSTGRES_USER=nap_user
-POSTGRES_PASSWORD=${DB_PASSWORD}
+# ============================================================================
+# REQUIRED SECURITY SETTINGS
+# ============================================================================
 
-# Redis Configuration
-REDIS_PASSWORD=${REDIS_PASSWORD}
-
-# JWT Configuration
-JWT_SECRET_KEY=${JWT_SECRET}
+# JWT Secret Key for authentication tokens
+JWT_SECRET=${JWT_SECRET}
 
 # Encryption Key for device credentials
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
-# Application Settings
-APP_VERSION=1.0.0
+# License System Keys
+LICENSE_ENCRYPTION_KEY=${LICENSE_ENCRYPTION_KEY}
+LICENSE_SECRET_SALT=${LICENSE_SECRET_SALT}
+
+# ============================================================================
+# Database Settings
+# ============================================================================
+
+# PostgreSQL credentials
+POSTGRES_DB=nap_db
+POSTGRES_USER=nap_user
+POSTGRES_PASSWORD=${DB_PASSWORD}
+
+# Database connection URL (used by services)
+DATABASE_URL=postgresql://nap_user:${DB_PASSWORD}@database:5432/nap_db
+
+# ============================================================================
+# Service Settings
+# ============================================================================
+
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_LEVEL=info
 
+# Service URLs (for inter-service communication)
+DEVICE_SERVICE_URL=http://device-service:3001
+RULE_SERVICE_URL=http://rule-service:3002
+BACKUP_SERVICE_URL=http://backup-service:3003
+INVENTORY_SERVICE_URL=http://inventory-service:3004
+ADMIN_SERVICE_URL=http://admin-service:3005
+ANALYTICS_SERVICE_URL=http://analytics-service:3006
+
+# ============================================================================
+# Service Ports
+# ============================================================================
+
+API_GATEWAY_PORT=3000
+DEVICE_SERVICE_PORT=3001
+RULE_SERVICE_PORT=3002
+BACKUP_SERVICE_PORT=3003
+INVENTORY_SERVICE_PORT=3004
+ADMIN_SERVICE_PORT=3005
+ANALYTICS_SERVICE_PORT=3006
+FRONTEND_PORT=8080
+
+# ============================================================================
 # Rate Limiting
+# ============================================================================
+
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_REQUESTS=100
 RATE_LIMIT_WINDOW=60
 
-# Monitoring
-GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+# ============================================================================
+# Redis Configuration (optional)
+# ============================================================================
 
-# API URL (update with your domain)
+REDIS_PASSWORD=${REDIS_PASSWORD}
+
+# ============================================================================
+# Monitoring
+# ============================================================================
+
+GRAFANA_PASSWORD=${GRAFANA_PASSWORD}
+APP_VERSION=1.0.0
+
+# ============================================================================
+# Frontend Settings
+# ============================================================================
+
+# API URL that the frontend will use (update with your domain)
+REACT_APP_API_URL=http://localhost:3000
 API_URL=http://localhost:3000
+
+# ============================================================================
+# Optional Settings
+# ============================================================================
+
+# Enable debug mode (do not use in production)
+DEBUG_MODE=false
 EOF
 
     echo -e "${GREEN}Created .env.prod with generated secrets${NC}"
     echo ""
-    echo -e "${YELLOW}IMPORTANT: Update API_URL in .env.prod with your actual domain${NC}"
+    echo -e "${YELLOW}IMPORTANT: Update API_URL and REACT_APP_API_URL in .env.prod with your actual domain${NC}"
 else
     echo -e "${YELLOW}.env.prod already exists - skipping${NC}"
 fi
