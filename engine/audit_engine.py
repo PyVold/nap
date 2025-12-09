@@ -11,8 +11,7 @@ from models.device import Device
 from models.rule import AuditRule
 from models.audit import AuditResult, AuditFinding
 from models.enums import AuditStatus, SeverityLevel, VendorType
-from connectors.netconf_connector import NetconfConnector
-from connectors.nokia_sros_connector import NokiaSROSConnector
+from connectors import NetconfConnector, NokiaSROSConnector
 from engine.rule_executor import RuleExecutor
 from services.config_backup_service import ConfigBackupService
 from utils.logger import setup_logger
@@ -84,7 +83,7 @@ class AuditEngine:
 
                     # For Nokia, use CLI backup (SSH)
                     if device.vendor == VendorType.NOKIA_SROS:
-                        from connectors.ssh_connector import SSHConnector
+                        from connectors import SSHConnector
                         import asyncio
 
                         ssh_connector = SSHConnector(device)

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from models.device import Device
 from models.enums import DeviceStatus
 from db_models import HealthCheckDB, DeviceDB, SystemConfigDB
-from connectors.netconf_connector import NetconfConnector
+from connectors import NetconfConnector
 from shared.logger import setup_logger
 from shared.backoff import BackoffManager
 from shared.notification_service import notification_service

@@ -11,8 +11,7 @@ import xml.etree.ElementTree as ET
 from db_models import DeviceDB, HardwareInventoryDB
 from models.enums import VendorType
 from models.device import Device
-from connectors.nokia_sros_connector import NokiaSROSConnector
-from connectors.netconf_connector import NetconfConnector
+from connectors import NokiaSROSConnector, NetconfConnector
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)

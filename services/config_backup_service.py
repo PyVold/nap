@@ -12,8 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc
 from models.device import Device
 from db_models import ConfigBackupDB, ConfigChangeEventDB, SystemConfigDB
-from connectors.netconf_connector import NetconfConnector
-from connectors.nokia_sros_connector import NokiaSROSConnector
+from connectors import NetconfConnector, NokiaSROSConnector
 from models.enums import VendorType
 from shared.logger import setup_logger
 import difflib
@@ -360,7 +359,7 @@ class ConfigBackupService:
             # Nokia SROS: Use SSH CLI (tests prove it works!)
             if device.vendor == VendorType.NOKIA_SROS:
                 import asyncio
-                from connectors.ssh_connector import SSHConnector
+                from connectors import SSHConnector
                 connector = SSHConnector(device)
 
                 # Run sync method in executor to avoid blocking

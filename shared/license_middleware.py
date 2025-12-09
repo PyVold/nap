@@ -230,24 +230,78 @@ class LicenseEnforcer:
             "reason": "within_quota" if allowed else "quota_exceeded"
         }
     
-    def _calculate_storage_usage(self, db: Session) -> int:
+    def _calculate_storage_usage(self, db: Session) -> float:
         """
         Calculate total storage usage in GB
-        
+
+        Includes:
+        - Config backups (from size_bytes or calculated from config_data)
+        - Database tables (estimated from row counts and data)
+
         Returns:
-            Storage usage in GB (rounded up)
+            Storage usage in GB (rounded to 2 decimal places)
         """
         from sqlalchemy import func
-        
-        # Sum all config backup sizes
-        total_bytes = db.query(
+        import os
+
+        total_bytes = 0
+
+        # 1. Config backups - sum size_bytes where available
+        backup_size_bytes = db.query(
             func.coalesce(func.sum(db_models.ConfigBackupDB.size_bytes), 0)
-        ).scalar()
-        
-        # Convert to GB (rounded up)
-        total_gb = (total_bytes / (1024 * 1024 * 1024))
-        
-        return int(total_gb) + (1 if total_gb % 1 > 0 else 0)
+        ).scalar() or 0
+
+        # If size_bytes is 0 or not set, calculate from config_data length
+        if backup_size_bytes == 0:
+            # Get all backups with config_data
+            backups = db.query(db_models.ConfigBackupDB).all()
+            for backup in backups:
+                if backup.config_data:
+                    backup_size_bytes += len(backup.config_data.encode('utf-8'))
+
+        total_bytes += backup_size_bytes
+
+        # 2. Audit results - estimate from findings text
+        try:
+            audit_results = db.query(db_models.AuditResultDB).all()
+            for result in audit_results:
+                if hasattr(result, 'findings') and result.findings:
+                    if isinstance(result.findings, str):
+                        total_bytes += len(result.findings.encode('utf-8'))
+                    elif isinstance(result.findings, (list, dict)):
+                        import json
+                        total_bytes += len(json.dumps(result.findings).encode('utf-8'))
+        except Exception as e:
+            logger.debug(f"Could not calculate audit results size: {e}")
+
+        # 3. Config change events
+        try:
+            change_events = db.query(db_models.ConfigChangeEventDB).all()
+            for event in change_events:
+                if hasattr(event, 'changes') and event.changes:
+                    if isinstance(event.changes, str):
+                        total_bytes += len(event.changes.encode('utf-8'))
+        except Exception as e:
+            logger.debug(f"Could not calculate change events size: {e}")
+
+        # 4. Try to get actual database file size (SQLite only)
+        try:
+            db_url = str(db.get_bind().url)
+            if 'sqlite' in db_url:
+                # Extract database path from SQLite URL
+                db_path = db_url.replace('sqlite:///', '').replace('sqlite://', '')
+                if db_path and os.path.exists(db_path):
+                    db_file_size = os.path.getsize(db_path)
+                    # Use actual file size if larger than calculated
+                    if db_file_size > total_bytes:
+                        total_bytes = db_file_size
+        except Exception as e:
+            logger.debug(f"Could not get database file size: {e}")
+
+        # Convert to GB (2 decimal places)
+        total_gb = total_bytes / (1024 * 1024 * 1024)
+
+        return round(total_gb, 2)
     
     def update_license_usage(self, db: Session):
         """
