@@ -390,7 +390,7 @@ class DeviceService:
                 }
             }
         """
-        db_devices = db.query(DeviceDB).filter(DeviceDB.metadata.isnot(None)).all()
+        db_devices = db.query(DeviceDB).filter(DeviceDB.__table__.c.metadata.isnot(None)).all()
 
         # Track values by field type
         field_values = {
