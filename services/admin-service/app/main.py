@@ -189,7 +189,7 @@ async def startup_event():
                 is_superuser=True
             )
             db.add(admin_user)
-            logger.info("✅ Default admin user created (username: admin, password: admin)")
+            logger.info("✅ Default admin user created (username: admin)")
         else:
             logger.info("✅ Admin user already exists")
 
@@ -211,7 +211,7 @@ async def startup_event():
                 is_superuser=False
             )
             db.add(operator_user)
-            logger.info("✅ Default operator user created (username: operator, password: operator)")
+            logger.info("✅ Default operator user created (username: operator)")
         else:
             logger.info("✅ Operator user already exists")
 
@@ -233,7 +233,7 @@ async def startup_event():
                 is_superuser=False
             )
             db.add(viewer_user)
-            logger.info("✅ Default viewer user created (username: viewer, password: viewer)")
+            logger.info("✅ Default viewer user created (username: viewer)")
         else:
             logger.info("✅ Viewer user already exists")
 
@@ -242,20 +242,13 @@ async def startup_event():
         # Show security warning if any default users were created
         if created_users:
             logger.warning("=" * 80)
-            logger.warning("🚨 SECURITY ALERT: DEFAULT TEST USERS CREATED")
+            logger.warning("SECURITY ALERT: DEFAULT TEST USERS CREATED")
             logger.warning("=" * 80)
-            logger.warning("")
-            logger.warning(f"Created {len(created_users)} default user(s) with DEFAULT PASSWORDS:")
-            for username in created_users:
-                logger.warning(f"  • Username: {username} / Password: {username}")
-            logger.warning("")
-            logger.warning("⚠️  CRITICAL: Change these passwords immediately!")
-            logger.warning("⚠️  CRITICAL: Delete or disable these accounts in production!")
-            logger.warning("")
-            logger.warning("See SECURITY_SETUP_GUIDE.md for instructions.")
+            logger.warning(f"Created {len(created_users)} default user(s): {', '.join(created_users)}")
+            logger.warning("Default password for each user matches their username.")
+            logger.warning("CRITICAL: Change these passwords immediately!")
+            logger.warning("CRITICAL: Delete or disable these accounts in production!")
             logger.warning("=" * 80)
-        else:
-            logger.warning("⚠️  Change default passwords immediately in production!")
     except Exception as e:
         logger.error(f"❌ Error creating default users: {e}")
         db.rollback()
