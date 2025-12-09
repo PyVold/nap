@@ -6,8 +6,6 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect as sa_inspect
-from sqlalchemy.orm.base import instance_state
 from models.device import Device, DeviceCreate, DeviceUpdate
 from models.enums import DeviceStatus, VendorType
 from db_models import DeviceDB
@@ -329,8 +327,8 @@ class DeviceService:
             await connector.disconnect()
 
             if metadata:
-                # Store metadata in database
-                db_device.metadata = metadata  # JSON column handles serialization
+                # Store metadata in database (using device_metadata attribute)
+                db_device.device_metadata = metadata  # JSON column handles serialization
                 db.commit()
                 logger.info(f"Metadata collected and stored for {db_device.hostname}")
                 return True
@@ -403,12 +401,8 @@ class DeviceService:
 
         # Extract values from each device's metadata
         for device in db_devices:
-            # Access metadata using SQLAlchemy's instance_state to avoid class attribute conflict
-            try:
-                state = instance_state(device)
-                metadata = state.dict.get('metadata')
-            except (KeyError, AttributeError):
-                metadata = None
+            # Access metadata via device_metadata attribute (renamed to avoid SQLAlchemy conflict)
+            metadata = device.device_metadata
             if not metadata or not isinstance(metadata, dict):
                 continue
 
@@ -491,19 +485,18 @@ class DeviceService:
 
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
-        # Get metadata from JSON column using SQLAlchemy's instance_state
-        # This directly accesses the column value, avoiding conflict with Base.metadata
+        # Get metadata from JSON column
+        # Note: The attribute is named 'device_metadata' in the model to avoid
+        # conflict with SQLAlchemy's Base.metadata
         metadata = None
         try:
-            state = instance_state(db_device)
-            # state.dict contains the actual column values
-            raw_metadata = state.dict.get('metadata')
+            raw_metadata = db_device.device_metadata
             if raw_metadata is not None:
                 if isinstance(raw_metadata, dict):
                     metadata = raw_metadata
                 elif isinstance(raw_metadata, (str, bytes)):
                     metadata = json.loads(raw_metadata) if raw_metadata else None
-        except (TypeError, json.JSONDecodeError, KeyError, AttributeError):
+        except (TypeError, json.JSONDecodeError, AttributeError):
             metadata = None
 
         return Device(
