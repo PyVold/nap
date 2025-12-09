@@ -47,7 +47,7 @@ class NokiaSROSConnector(BaseConnector):
             logger.error(f"pysros connection failed to {self.device.hostname}: {str(e)}")
             raise DeviceConnectionError(f"Failed to connect to {self.device.hostname}: {str(e)}")
 
-    async def get_config(self, source: str = 'running', filter_data: Optional[str] = None, xpath: Optional[str] = None) -> str:
+    async def get_config(self, source: str = 'running', filter_data: Optional[str] = None, xpath: Optional[str] = None, filter: Optional[dict] = None) -> str:
         """
         Retrieve device configuration using pysros
 
@@ -55,6 +55,7 @@ class NokiaSROSConnector(BaseConnector):
             source: Not used with pysros (always gets running config)
             filter_data: Not used with pysros
             xpath: Path in pysros format (e.g., '/configure/system/management-interface/netconf')
+            filter: Optional filter dict for pysros get() (e.g., {'service-name': '"', 'admin-state': {}})
 
         Returns:
             JSON string representation of the configuration
@@ -68,13 +69,21 @@ class NokiaSROSConnector(BaseConnector):
             # Convert XPath to pysros path format (they're similar)
             path = xpath if xpath else '/configure'
 
-            logger.debug(f"Getting config from {self.device.hostname} using pysros path: {path}")
-
-            # Use pysros get() method
-            result = await loop.run_in_executor(
-                None,
-                lambda: self.connection.running.get(path)
-            )
+            # Use filter if provided and not empty
+            if filter and len(filter) > 0:
+                logger.debug(f"Getting config from {self.device.hostname} using pysros path: {path} with filter: {filter}")
+                # Use pysros get() method with filter
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: self.connection.running.get(path, filter=filter)
+                )
+            else:
+                logger.debug(f"Getting config from {self.device.hostname} using pysros path: {path}")
+                # Use pysros get() method without filter
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: self.connection.running.get(path)
+                )
 
             # Convert pysros Container to JSON dictionary
             import json
@@ -109,19 +118,7 @@ class NokiaSROSConnector(BaseConnector):
 
             # Convert to dictionary then to JSON string
             config_dict = convert_pysros_to_dict(result)
-            
-            # Ensure the dict is JSON serializable before converting to string
-            try:
-                config_json = json.dumps(config_dict, indent=2)
-            except (TypeError, ValueError) as e:
-                logger.error(f"Failed to serialize config dict to JSON: {e}")
-                logger.error(f"Config dict type: {type(config_dict)}")
-                # Try without indent for better error reporting
-                try:
-                    config_json = json.dumps(config_dict)
-                except Exception as e2:
-                    logger.error(f"Failed even without indent: {e2}")
-                    raise
+            config_json = json.dumps(config_dict, indent=2)
 
             logger.debug(f"Retrieved config from {self.device.hostname}: {len(config_json)} bytes")
             return config_json
