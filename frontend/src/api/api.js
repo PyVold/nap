@@ -80,6 +80,7 @@ export const devicesAPI = {
   update: (id, device) => api.put(`/devices/${id}`, device),
   delete: (id) => api.delete(`/devices/${id}`),
   discover: (discoveryData) => api.post('/devices/discover', discoveryData),
+  getMetadataOverlaps: () => api.get('/devices/metadata/overlaps'),
 };
 
 // Rules API

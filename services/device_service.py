@@ -224,8 +224,124 @@ class DeviceService:
         db_devices = db.query(DeviceDB).filter(DeviceDB.status == status).all()
         return [self._to_pydantic(d) for d in db_devices]
 
+    def detect_metadata_overlaps(self, db: Session) -> dict:
+        """
+        Detect overlapping metadata values across devices.
+
+        Checks for duplicates in:
+        - ISIS NET address
+        - System address / Loopback0 address
+        - BGP router-id
+
+        Returns:
+            dict: {
+                'overlaps': {
+                    field_path: {
+                        value: [device_ids]
+                    }
+                },
+                'device_alerts': {
+                    device_id: [{'field': ..., 'value': ..., 'conflicts_with': [...]}]
+                }
+            }
+        """
+        db_devices = db.query(DeviceDB).filter(DeviceDB.metadata.isnot(None)).all()
+
+        # Track values by field type
+        field_values = {
+            'isis_net': {},          # ISIS NET address
+            'system_address': {},    # System/Loopback0 address
+            'bgp_router_id': {},     # BGP router-id
+        }
+
+        # Extract values from each device's metadata
+        for device in db_devices:
+            metadata = device.metadata
+            if not metadata:
+                continue
+
+            device_info = {'id': device.id, 'hostname': device.hostname}
+
+            # Check ISIS NET address
+            isis_net = None
+            if 'igp' in metadata:
+                igp = metadata.get('igp', {})
+                if 'isis' in igp:
+                    isis_data = igp.get('isis', {})
+                    isis_net = isis_data.get('net_address') or isis_data.get('net')
+            if isis_net:
+                if isis_net not in field_values['isis_net']:
+                    field_values['isis_net'][isis_net] = []
+                field_values['isis_net'][isis_net].append(device_info)
+
+            # Check System address / Loopback0 address
+            system_address = None
+            if 'system' in metadata:
+                system_data = metadata.get('system', {})
+                system_address = (
+                    system_data.get('system_address') or
+                    system_data.get('loopback0_address') or
+                    system_data.get('router_id')
+                )
+            if system_address:
+                if system_address not in field_values['system_address']:
+                    field_values['system_address'][system_address] = []
+                field_values['system_address'][system_address].append(device_info)
+
+            # Check BGP router-id
+            bgp_router_id = None
+            if 'bgp' in metadata:
+                bgp_data = metadata.get('bgp', {})
+                bgp_router_id = bgp_data.get('router_id')
+            if bgp_router_id:
+                if bgp_router_id not in field_values['bgp_router_id']:
+                    field_values['bgp_router_id'][bgp_router_id] = []
+                field_values['bgp_router_id'][bgp_router_id].append(device_info)
+
+        # Find overlaps (values shared by multiple devices)
+        overlaps = {}
+        device_alerts = {}
+
+        field_labels = {
+            'isis_net': 'ISIS NET Address',
+            'system_address': 'System/Loopback0 Address',
+            'bgp_router_id': 'BGP Router-ID'
+        }
+
+        for field_type, values in field_values.items():
+            field_overlaps = {}
+            for value, devices in values.items():
+                if len(devices) > 1:
+                    # This value is used by multiple devices
+                    field_overlaps[value] = [d['id'] for d in devices]
+
+                    # Add alerts for each device involved
+                    for device in devices:
+                        device_id = device['id']
+                        if device_id not in device_alerts:
+                            device_alerts[device_id] = []
+
+                        conflict_devices = [d for d in devices if d['id'] != device_id]
+                        device_alerts[device_id].append({
+                            'field': field_labels.get(field_type, field_type),
+                            'field_key': field_type,
+                            'value': value,
+                            'conflicts_with': [{'id': d['id'], 'hostname': d['hostname']} for d in conflict_devices]
+                        })
+
+            if field_overlaps:
+                overlaps[field_type] = field_overlaps
+
+        return {
+            'overlaps': overlaps,
+            'device_alerts': device_alerts
+        }
+
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
+        # Get metadata from JSON column
+        metadata = db_device.metadata if db_device.metadata else None
+
         return Device(
             id=db_device.id,
             hostname=db_device.hostname,
@@ -237,5 +353,6 @@ class DeviceService:
             status=db_device.status,
             last_audit=db_device.last_audit.isoformat() if db_device.last_audit else None,
             compliance=int(db_device.compliance),
+            metadata=metadata,
             backoff_status=BackoffManager.get_backoff_status(db_device)
         )
