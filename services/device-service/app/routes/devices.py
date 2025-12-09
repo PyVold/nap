@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from shared.deps import get_db, require_admin_or_operator
+from shared.deps import get_db, require_admin_or_operator, require_any_authenticated
 from models.device import Device, DeviceCreate, DeviceUpdate, DiscoveryRequest
 from services.device_service import DeviceService
 from services.discovery_service import DiscoveryService
@@ -20,13 +20,19 @@ device_service = DeviceService()
 discovery_service = DiscoveryService()
 
 @router.get("/", response_model=List[Device])
-async def get_all_devices(db: Session = Depends(get_db)):
-    """Get all devices"""
+async def get_all_devices(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_any_authenticated)
+):
+    """Get all devices (requires authentication)"""
     return device_service.get_all_devices(db)
 
 
 @router.get("/metadata/overlaps")
-async def get_metadata_overlaps(db: Session = Depends(get_db)):
+async def get_metadata_overlaps(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_any_authenticated)
+):
     """
     Detect overlapping metadata values across devices.
 
@@ -39,8 +45,12 @@ async def get_metadata_overlaps(db: Session = Depends(get_db)):
 
 
 @router.get("/{device_id}", response_model=Device)
-async def get_device(device_id: int, db: Session = Depends(get_db)):
-    """Get a specific device by ID"""
+async def get_device(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_any_authenticated)
+):
+    """Get a specific device by ID (requires authentication)"""
     device = device_service.get_device_by_id(db, device_id)
     if not device:
         raise HTTPException(
@@ -129,6 +139,10 @@ async def discover_devices(
         )
 
 @router.get("/vendor/{vendor}", response_model=List[Device])
-async def get_devices_by_vendor(vendor: str, db: Session = Depends(get_db)):
-    """Get devices filtered by vendor"""
+async def get_devices_by_vendor(
+    vendor: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_any_authenticated)
+):
+    """Get devices filtered by vendor (requires authentication)"""
     return device_service.get_devices_by_vendor(db, vendor)
