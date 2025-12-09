@@ -401,8 +401,9 @@ class DeviceService:
 
         # Extract values from each device's metadata
         for device in db_devices:
-            metadata = device.metadata
-            if not metadata:
+            # Access metadata from __dict__ to avoid SQLAlchemy class attribute conflict
+            metadata = device.__dict__.get('metadata')
+            if not metadata or not isinstance(metadata, dict):
                 continue
 
             device_info = {'id': device.id, 'hostname': device.hostname}
@@ -485,16 +486,21 @@ class DeviceService:
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
         # Get metadata from JSON column - ensure it's a dict
+        # Note: SQLAlchemy Base has a 'metadata' class attribute (MetaData object)
+        # We need to access the column value, not the class attribute
         metadata = None
-        if db_device.metadata:
-            if isinstance(db_device.metadata, dict):
-                metadata = db_device.metadata
-            elif hasattr(db_device.metadata, '__dict__'):
-                # Convert object to dict if it has __dict__
-                metadata = {k: v for k, v in db_device.metadata.__dict__.items() if not k.startswith('_')}
-            elif hasattr(db_device.metadata, 'dict'):
-                # Pydantic model
-                metadata = db_device.metadata.dict()
+        try:
+            # Access the column value directly from __dict__ to avoid class attribute conflict
+            raw_metadata = db_device.__dict__.get('metadata')
+            if raw_metadata is not None:
+                if isinstance(raw_metadata, dict):
+                    metadata = raw_metadata
+                elif isinstance(raw_metadata, (str, bytes)):
+                    # JSON string that needs parsing
+                    metadata = json.loads(raw_metadata) if raw_metadata else None
+                # Skip SQLAlchemy MetaData objects or Table objects
+        except (TypeError, json.JSONDecodeError):
+            metadata = None
 
         return Device(
             id=db_device.id,
