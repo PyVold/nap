@@ -10,6 +10,9 @@ from models.device import Device, DeviceCreate, DeviceUpdate, DiscoveryRequest
 from services.device_service import DeviceService
 from services.discovery_service import DiscoveryService
 from shared.exceptions import DeviceNotFoundError
+from shared.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 router = APIRouter()
 
@@ -20,6 +23,20 @@ discovery_service = DiscoveryService()
 async def get_all_devices(db: Session = Depends(get_db)):
     """Get all devices"""
     return device_service.get_all_devices(db)
+
+
+@router.get("/metadata/overlaps")
+async def get_metadata_overlaps(db: Session = Depends(get_db)):
+    """
+    Detect overlapping metadata values across devices.
+
+    Returns devices with duplicate:
+    - ISIS NET addresses
+    - System/Loopback0 addresses
+    - BGP router-ids
+    """
+    return device_service.detect_metadata_overlaps(db)
+
 
 @router.get("/{device_id}", response_model=Device)
 async def get_device(device_id: int, db: Session = Depends(get_db)):

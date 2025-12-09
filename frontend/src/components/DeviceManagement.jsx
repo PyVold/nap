@@ -42,6 +42,7 @@ import {
   KeyboardArrowDown,
   KeyboardArrowUp,
   Info,
+  ErrorOutline,
 } from '@mui/icons-material';
 import { devicesAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
@@ -57,6 +58,7 @@ const DeviceManagement = () => {
   const [editingDevice, setEditingDevice] = useState(null);
   const [discovering, setDiscovering] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
+  const [metadataOverlaps, setMetadataOverlaps] = useState({ overlaps: {}, device_alerts: {} });
   const [formData, setFormData] = useState({
     hostname: '',
     vendor: 'cisco_xr',
@@ -75,8 +77,12 @@ const DeviceManagement = () => {
   const fetchDevices = async () => {
     setLoading(true);
     try {
-      const response = await devicesAPI.getAll();
-      setDevices(response.data || []);
+      const [devicesResponse, overlapsResponse] = await Promise.all([
+        devicesAPI.getAll(),
+        devicesAPI.getMetadataOverlaps().catch(() => ({ data: { overlaps: {}, device_alerts: {} } }))
+      ]);
+      setDevices(devicesResponse.data || []);
+      setMetadataOverlaps(overlapsResponse.data || { overlaps: {}, device_alerts: {} });
       setError(null);
     } catch (err) {
       console.error('Error fetching devices:', err);
@@ -164,6 +170,32 @@ const DeviceManagement = () => {
     }));
   };
 
+  // Helper to check if a value is overlapping for this device
+  const isValueOverlapping = (deviceId, fieldKey, value) => {
+    const alerts = metadataOverlaps.device_alerts?.[deviceId] || [];
+    return alerts.some(alert => alert.field_key === fieldKey && alert.value === value);
+  };
+
+  // Get overlap info for a value
+  const getOverlapInfo = (deviceId, fieldKey, value) => {
+    const alerts = metadataOverlaps.device_alerts?.[deviceId] || [];
+    const alert = alerts.find(a => a.field_key === fieldKey && a.value === value);
+    if (alert) {
+      const conflictNames = alert.conflicts_with.map(c => c.hostname).join(', ');
+      return `Overlapping with: ${conflictNames}`;
+    }
+    return null;
+  };
+
+  // Style for highlighted overlapping values
+  const overlapStyle = {
+    backgroundColor: '#fff3cd',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    border: '1px solid #ffc107',
+    display: 'inline-block',
+  };
+
   const renderMetadata = (device) => {
     if (!device.metadata) {
       return (
@@ -178,6 +210,29 @@ const DeviceManagement = () => {
     const metadata = typeof device.metadata === 'string'
       ? JSON.parse(device.metadata)
       : device.metadata;
+
+    // Helper component for rendering possibly-overlapping values
+    const MetadataValue = ({ label, value, fieldKey }) => {
+      if (!value) return null;
+      const isOverlap = isValueOverlapping(device.id, fieldKey, value);
+      const overlapInfo = isOverlap ? getOverlapInfo(device.id, fieldKey, value) : null;
+
+      return (
+        <Typography variant="body2">
+          <strong>{label}:</strong>{' '}
+          {isOverlap ? (
+            <Tooltip title={overlapInfo || 'Overlapping value'} arrow>
+              <span style={overlapStyle}>
+                <Warning fontSize="inherit" sx={{ mr: 0.5, verticalAlign: 'middle', color: '#856404' }} />
+                {value}
+              </span>
+            </Tooltip>
+          ) : (
+            value
+          )}
+        </Typography>
+      );
+    };
 
     return (
       <Box p={2}>
@@ -200,11 +255,11 @@ const DeviceManagement = () => {
                       <strong>AS Number:</strong> {metadata.bgp.as_number}
                     </Typography>
                   )}
-                  {metadata.bgp.router_id && (
-                    <Typography variant="body2">
-                      <strong>Router ID:</strong> {metadata.bgp.router_id}
-                    </Typography>
-                  )}
+                  <MetadataValue
+                    label="Router ID"
+                    value={metadata.bgp.router_id}
+                    fieldKey="bgp_router_id"
+                  />
                   {metadata.bgp.neighbor_count !== undefined && (
                     <Typography variant="body2">
                       <strong>Neighbors:</strong> {metadata.bgp.neighbor_count}
@@ -237,6 +292,20 @@ const DeviceManagement = () => {
                     <Typography variant="body2">
                       <strong>Router ID:</strong> {metadata.igp.router_id}
                     </Typography>
+                  )}
+                  {metadata.igp.isis && metadata.igp.isis.net_address && (
+                    <MetadataValue
+                      label="ISIS NET Address"
+                      value={metadata.igp.isis.net_address}
+                      fieldKey="isis_net"
+                    />
+                  )}
+                  {metadata.igp.isis && metadata.igp.isis.net && !metadata.igp.isis.net_address && (
+                    <MetadataValue
+                      label="ISIS NET"
+                      value={metadata.igp.isis.net}
+                      fieldKey="isis_net"
+                    />
                   )}
                   {metadata.igp.isis_level && (
                     <Typography variant="body2">
@@ -333,17 +402,12 @@ const DeviceManagement = () => {
                       <strong>System Name:</strong> {metadata.system.system_name}
                     </Typography>
                   )}
-                  {metadata.system.router_id && (
-                    <Typography variant="body2">
-                      <strong>Router ID:</strong> {metadata.system.router_id}
-                    </Typography>
-                  )}
-                  {metadata.system.system_address && (
-                    <Typography variant="body2">
-                      <strong>System Address:</strong> {metadata.system.system_address}
-                    </Typography>
-                  )}
-                  {metadata.system.loopback0_ip && (
+                  <MetadataValue
+                    label="System Address"
+                    value={metadata.system.system_address || metadata.system.loopback0_address || metadata.system.router_id}
+                    fieldKey="system_address"
+                  />
+                  {metadata.system.loopback0_ip && !metadata.system.system_address && (
                     <Typography variant="body2">
                       <strong>Loopback0 IP:</strong> {metadata.system.loopback0_ip}
                     </Typography>
@@ -548,7 +612,46 @@ const DeviceManagement = () => {
                     </IconButton>
                   </Tooltip>
                 </TableCell>
-                <TableCell>{device.hostname}</TableCell>
+                <TableCell>
+                  <Box display="flex" alignItems="center">
+                    {device.hostname}
+                    {metadataOverlaps.device_alerts?.[device.id]?.length > 0 && (
+                      <Tooltip
+                        title={
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold" mb={0.5}>
+                              Config Overlap Detected:
+                            </Typography>
+                            {metadataOverlaps.device_alerts[device.id].map((alert, idx) => (
+                              <Typography key={idx} variant="body2" sx={{ mb: 0.5 }}>
+                                • {alert.field}: {alert.value}
+                                <br />
+                                <span style={{ marginLeft: '10px', fontSize: '0.85em', color: '#ccc' }}>
+                                  Conflicts with: {alert.conflicts_with.map(c => c.hostname).join(', ')}
+                                </span>
+                              </Typography>
+                            ))}
+                          </Box>
+                        }
+                        arrow
+                      >
+                        <ErrorOutline
+                          sx={{
+                            ml: 1,
+                            color: '#ff9800',
+                            cursor: 'pointer',
+                            animation: 'pulse 2s infinite',
+                            '@keyframes pulse': {
+                              '0%': { opacity: 1 },
+                              '50%': { opacity: 0.5 },
+                              '100%': { opacity: 1 },
+                            },
+                          }}
+                        />
+                      </Tooltip>
+                    )}
+                  </Box>
+                </TableCell>
                 <TableCell>{device.ip || 'N/A'}</TableCell>
                 <TableCell>
                   <Chip

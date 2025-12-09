@@ -29,6 +29,20 @@ async def get_all_devices(
     """Get all devices (requires 'devices' module in license)"""
     return device_service.get_all_devices(db)
 
+
+@router.get("/metadata/overlaps")
+async def get_metadata_overlaps(db: Session = Depends(get_db)):
+    """
+    Detect overlapping metadata values across devices.
+
+    Returns devices with duplicate:
+    - ISIS NET addresses
+    - System/Loopback0 addresses
+    - BGP router-ids
+    """
+    return device_service.detect_metadata_overlaps(db)
+
+
 @router.get("/{device_id}", response_model=Device)
 async def get_device(device_id: int, db: Session = Depends(get_db)):
     """Get a specific device by ID"""
