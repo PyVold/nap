@@ -32,7 +32,8 @@ async def check_device_health(
         force: If true, bypass backoff and check immediately
     """
     try:
-        device = device_service.get_device_by_id(db, device_id)
+        # Use get_device_with_credentials for health checks (needs decrypted password)
+        device = device_service.get_device_with_credentials(db, device_id)
         if not device:
             raise HTTPException(status_code=404, detail="Device not found")
 

@@ -14,6 +14,7 @@ from shared.exceptions import DeviceNotFoundError
 from shared.validators import validate_hostname, validate_ip
 from shared.backoff import BackoffManager
 from shared.device_metadata_collector import DeviceMetadataCollector
+from shared.crypto import encrypt_password, decrypt_password
 import json
 
 logger = setup_logger(__name__)
@@ -39,6 +40,36 @@ class DeviceService:
         db_device = db.query(DeviceDB).filter(DeviceDB.hostname == hostname).first()
         return self._to_pydantic(db_device) if db_device else None
 
+    def get_device_with_credentials(self, db: Session, device_id: int) -> Optional[Device]:
+        """
+        Get device with decrypted credentials for internal operations.
+
+        SECURITY WARNING: Only use this for internal operations that require
+        device connectivity (health checks, config backups, etc.).
+        Never expose this in API responses.
+        """
+        db_device = db.query(DeviceDB).filter(DeviceDB.id == device_id).first()
+        if not db_device:
+            return None
+
+        # Decrypt password for internal use
+        decrypted_pwd = decrypt_password(db_device.password) if db_device.password else None
+
+        return Device(
+            id=db_device.id,
+            hostname=db_device.hostname,
+            vendor=db_device.vendor,
+            ip=db_device.ip,
+            port=db_device.port,
+            username=db_device.username,
+            password=decrypted_pwd,
+            status=db_device.status,
+            last_audit=db_device.last_audit.isoformat() if db_device.last_audit else None,
+            compliance=int(db_device.compliance),
+            metadata=db_device.device_metadata,
+            backoff_status=BackoffManager.get_backoff_status(db_device)
+        )
+
     def create_device(self, db: Session, device_create: DeviceCreate) -> Device:
         """Create a new device"""
         # Validate inputs
@@ -62,13 +93,16 @@ class DeviceService:
                 db.flush()  # Flush to release the IP constraint
 
         # Create device in database
+        # SECURITY: Encrypt password before storing
+        encrypted_pwd = encrypt_password(device_create.password) if device_create.password else None
+
         db_device = DeviceDB(
             hostname=device_create.hostname,
             vendor=device_create.vendor,
             ip=device_create.ip,
             port=device_create.port or 830,
             username=device_create.username,
-            password=device_create.password,
+            password=encrypted_pwd,
             status=DeviceStatus.REGISTERED,
             compliance=0.0
         )
@@ -90,6 +124,9 @@ class DeviceService:
         # Update fields
         update_data = device_update.dict(exclude_unset=True)
         for field, value in update_data.items():
+            # SECURITY: Encrypt password before storing
+            if field == "password" and value:
+                value = encrypt_password(value)
             setattr(db_device, field, value)
 
         db_device.updated_at = datetime.utcnow()
@@ -297,6 +334,9 @@ class DeviceService:
             logger.info(f"Collecting metadata for device: {db_device.hostname} ({db_device.vendor})")
 
             # Create a Device object for the connector
+            # SECURITY: Decrypt password for device connection
+            decrypted_pwd = decrypt_password(db_device.password) if db_device.password else None
+
             device = Device(
                 id=db_device.id,
                 hostname=db_device.hostname,
@@ -304,7 +344,7 @@ class DeviceService:
                 ip=db_device.ip,
                 port=db_device.port,
                 username=db_device.username,
-                password=db_device.password,
+                password=decrypted_pwd,
                 status=db_device.status,
                 compliance=db_device.compliance
             )
