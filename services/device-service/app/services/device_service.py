@@ -408,17 +408,16 @@ class DeviceService:
 
             device_info = {'id': device.id, 'hostname': device.hostname}
 
-            # Check ISIS NET address
-            isis_net = None
+            # Check IGP router-id (ISIS/OSPF system ID)
+            # Note: ISIS NET address is not currently collected, so we use IGP router_id
+            igp_router_id = None
             if 'igp' in metadata:
                 igp = metadata.get('igp', {})
-                if 'isis' in igp:
-                    isis_data = igp.get('isis', {})
-                    isis_net = isis_data.get('net_address') or isis_data.get('net')
-            if isis_net:
-                if isis_net not in field_values['isis_net']:
-                    field_values['isis_net'][isis_net] = []
-                field_values['isis_net'][isis_net].append(device_info)
+                igp_router_id = igp.get('router_id')
+            if igp_router_id:
+                if igp_router_id not in field_values['isis_net']:
+                    field_values['isis_net'][igp_router_id] = []
+                field_values['isis_net'][igp_router_id].append(device_info)
 
             # Check System address / Loopback0 address
             system_address = None
@@ -449,7 +448,7 @@ class DeviceService:
         device_alerts = {}
 
         field_labels = {
-            'isis_net': 'ISIS NET Address',
+            'isis_net': 'IGP Router-ID',
             'system_address': 'System/Loopback0 Address',
             'bgp_router_id': 'BGP Router-ID'
         }
