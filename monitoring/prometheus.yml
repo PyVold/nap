@@ -1,0 +1,63 @@
+# Prometheus configuration for Network Audit Platform
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # API Gateway metrics
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:3000']
+    metrics_path: /metrics
+
+  # Device Service metrics
+  - job_name: 'device-service'
+    static_configs:
+      - targets: ['device-service:3001']
+    metrics_path: /metrics
+
+  # Admin Service metrics
+  - job_name: 'admin-service'
+    static_configs:
+      - targets: ['admin-service:3006']
+    metrics_path: /metrics
+
+  # Backup Service metrics
+  - job_name: 'backup-service'
+    static_configs:
+      - targets: ['backup-service:3003']
+    metrics_path: /metrics
+
+  # Rule Service metrics
+  - job_name: 'rule-service'
+    static_configs:
+      - targets: ['rule-service:3002']
+    metrics_path: /metrics
+
+  # Analytics Service metrics
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['analytics-service:3007']
+    metrics_path: /metrics
+
+  # PostgreSQL metrics (if using postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['database:9187']
+
+  # Redis metrics (if using redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:9121']
