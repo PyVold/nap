@@ -17,6 +17,7 @@ class Device(BaseModel):
     status: DeviceStatus = DeviceStatus.DISCOVERED
     last_audit: Optional[str] = None
     compliance: int = 0
+    metadata: Optional[Dict[str, Any]] = None
     backoff_status: Optional[Dict[str, Any]] = None
 
     class Config:
