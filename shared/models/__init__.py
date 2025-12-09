@@ -13,6 +13,7 @@ from .enums import (
 
 from .device import (
     Device,
+    DeviceInternal,
     DeviceCreate,
     DeviceUpdate,
     DiscoveryRequest,
@@ -27,6 +28,7 @@ __all__ = [
     'DeviceStatus',
     # Device models
     'Device',
+    'DeviceInternal',  # WARNING: Only for internal use, never return in API
     'DeviceCreate',
     'DeviceUpdate',
     'DiscoveryRequest',

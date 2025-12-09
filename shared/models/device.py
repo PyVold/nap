@@ -3,24 +3,40 @@
 # All services should import device models from here to avoid duplication
 # ============================================================================
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional, Dict, Any
 from .enums import VendorType, DeviceStatus
 
 class Device(BaseModel):
-    """Device representation for API responses"""
+    """Device representation for API responses.
+
+    SECURITY: Password is excluded from serialization to prevent credential exposure.
+    Use DeviceInternal for internal operations that need password access.
+    """
     id: Optional[int] = None
     hostname: str
     vendor: VendorType
     ip: Optional[str] = None
     port: int = 830
     username: Optional[str] = None
-    password: Optional[str] = None
+    password: Optional[str] = Field(default=None, exclude=True)  # SECURITY: Never expose in API
     status: DeviceStatus = DeviceStatus.DISCOVERED
     last_audit: Optional[str] = None
     compliance: int = 0
     metadata: Optional[Dict[str, Any]] = None
     backoff_status: Optional[Dict[str, Any]] = None
+
+    class Config:
+        use_enum_values = True
+
+
+class DeviceInternal(Device):
+    """Internal device model that includes password for internal operations.
+
+    WARNING: Only use this model for internal service-to-service communication.
+    Never return this model directly in API responses.
+    """
+    password: Optional[str] = None  # Override to include password
 
     class Config:
         use_enum_values = True
