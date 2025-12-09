@@ -7,8 +7,7 @@ from models.device import Device
 from models.rule import AuditRule, RuleCheck
 from models.audit import AuditFinding
 from models.enums import AuditStatus, VendorType
-from connectors.netconf_connector import NetconfConnector
-from connectors.base_connector import BaseConnector
+from connectors import NetconfConnector, BaseConnector
 from engine.comparators import ConfigComparator
 from shared.logger import setup_logger
 from shared.exceptions import RuleExecutionError

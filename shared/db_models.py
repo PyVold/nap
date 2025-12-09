@@ -531,7 +531,7 @@ class LicenseDB(Base):
     # Current usage (updated by app)
     current_devices = Column(Integer, default=0)
     current_users = Column(Integer, default=0)
-    current_storage_gb = Column(Integer, default=0)
+    current_storage_gb = Column(Float, default=0.0)
     
     # Metadata
     notes = Column(Text, nullable=True)  # Internal notes

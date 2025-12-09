@@ -310,7 +310,7 @@ class DeviceService:
             )
 
             # Import and create appropriate connector
-            from connectors.device_connector import DeviceConnector
+            from connectors import DeviceConnector
 
             connector = DeviceConnector(device)
 

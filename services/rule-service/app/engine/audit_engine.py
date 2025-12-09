@@ -10,8 +10,7 @@ from models.device import Device
 from models.rule import AuditRule
 from models.audit import AuditResult, AuditFinding
 from models.enums import AuditStatus, SeverityLevel, VendorType
-from connectors.netconf_connector import NetconfConnector
-from connectors.nokia_sros_connector import NokiaSROSConnector
+from connectors import NetconfConnector, NokiaSROSConnector
 from engine.rule_executor import RuleExecutor
 from shared.logger import setup_logger
 

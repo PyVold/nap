@@ -7,8 +7,7 @@ from datetime import datetime
 
 from db_models import DeviceDB, AuditResultDB, ConfigBackupDB
 from models.enums import VendorType
-from connectors.netconf_connector import NetconfConnector
-from connectors.nokia_sros_connector import NokiaSROSConnector
+from connectors import NetconfConnector, NokiaSROSConnector
 from models.device import Device
 from shared.logger import setup_logger
 
@@ -285,7 +284,7 @@ class RemediationService:
         try:
             # For Nokia SROS, use SSH CLI to get config
             if device.vendor == VendorType.NOKIA_SROS.value:
-                from connectors.ssh_connector import SSHConnector
+                from connectors import SSHConnector
                 from models.device import Device
                 import asyncio
 
