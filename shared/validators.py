@@ -1,11 +1,132 @@
 # ============================================================================
-# utils/validators.py
+# shared/validators.py - Input validation and sanitization utilities
 # ============================================================================
 
 import re
 import json
-from typing import Optional, Tuple, Union
+import html
+import ipaddress
+from typing import Optional, Tuple, Union, List
 from lxml import etree
+
+
+# ==========================================================================
+# Security: Dangerous patterns to block
+# ==========================================================================
+
+# SQL injection patterns
+SQL_INJECTION_PATTERNS = [
+    r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE)\b)",
+    r"(--|#|/\*|\*/)",  # SQL comments
+    r"(\bOR\b\s+\d+\s*=\s*\d+)",  # OR 1=1 pattern
+    r"(\bAND\b\s+\d+\s*=\s*\d+)",  # AND 1=1 pattern
+    r"(;\s*(SELECT|INSERT|UPDATE|DELETE|DROP))",  # Stacked queries
+]
+
+# Command injection patterns
+COMMAND_INJECTION_PATTERNS = [
+    r"[;&|`$]",  # Shell metacharacters
+    r"\$\(",  # Command substitution
+    r"\$\{",  # Variable expansion
+    r">\s*/",  # Redirect to root
+    r"\.\./",  # Path traversal
+]
+
+# XSS patterns
+XSS_PATTERNS = [
+    r"<script",
+    r"javascript:",
+    r"on\w+\s*=",  # Event handlers
+    r"<iframe",
+    r"<object",
+    r"<embed",
+]
+
+
+def check_dangerous_patterns(value: str, patterns: List[str]) -> Tuple[bool, Optional[str]]:
+    """
+    Check if value contains dangerous patterns.
+
+    Returns:
+        (is_safe, matched_pattern) - is_safe is False if dangerous pattern found
+    """
+    if not isinstance(value, str):
+        return True, None
+
+    for pattern in patterns:
+        if re.search(pattern, value, re.IGNORECASE):
+            return False, pattern
+
+    return True, None
+
+
+def sanitize_string(value: str, max_length: int = 1000) -> str:
+    """
+    Sanitize a string by removing dangerous characters.
+
+    Args:
+        value: String to sanitize
+        max_length: Maximum allowed length
+
+    Returns:
+        Sanitized string
+    """
+    if not isinstance(value, str):
+        return str(value)[:max_length]
+
+    # Truncate to max length
+    value = value[:max_length]
+
+    # HTML escape
+    value = html.escape(value)
+
+    # Remove null bytes
+    value = value.replace('\x00', '')
+
+    return value
+
+
+def validate_safe_string(
+    value: str,
+    field_name: str = "value",
+    max_length: int = 1000,
+    check_sql: bool = True,
+    check_cmd: bool = True,
+    check_xss: bool = True
+) -> Tuple[bool, Optional[str]]:
+    """
+    Validate that a string is safe from injection attacks.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not isinstance(value, str):
+        return False, f"{field_name} must be a string"
+
+    if len(value) > max_length:
+        return False, f"{field_name} exceeds maximum length of {max_length}"
+
+    if check_sql:
+        is_safe, pattern = check_dangerous_patterns(value, SQL_INJECTION_PATTERNS)
+        if not is_safe:
+            return False, f"{field_name} contains potentially dangerous SQL pattern"
+
+    if check_cmd:
+        is_safe, pattern = check_dangerous_patterns(value, COMMAND_INJECTION_PATTERNS)
+        if not is_safe:
+            return False, f"{field_name} contains potentially dangerous command pattern"
+
+    if check_xss:
+        is_safe, pattern = check_dangerous_patterns(value, XSS_PATTERNS)
+        if not is_safe:
+            return False, f"{field_name} contains potentially dangerous script pattern"
+
+    return True, None
+
+
+# ==========================================================================
+# Network validation
+# ==========================================================================
 
 def validate_xml(xml_string: str) -> bool:
     """Validate XML string"""
@@ -100,6 +221,123 @@ def validate_and_fix_json(json_str: str, auto_fix: bool = True) -> Tuple[bool, O
         return True, parsed, None
     except json.JSONDecodeError as e:
         return False, None, f"Could not fix JSON: {str(e)}"
+
+
+def validate_cidr(cidr: str) -> Tuple[bool, Optional[str]]:
+    """
+    Validate CIDR notation for subnet.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    try:
+        network = ipaddress.ip_network(cidr, strict=False)
+        return True, None
+    except ValueError as e:
+        return False, str(e)
+
+
+def validate_port(port: int) -> Tuple[bool, Optional[str]]:
+    """
+    Validate port number.
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not isinstance(port, int):
+        return False, "Port must be an integer"
+
+    if port < 1 or port > 65535:
+        return False, "Port must be between 1 and 65535"
+
+    return True, None
+
+
+def validate_email(email: str) -> bool:
+    """Validate email format"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+
+def validate_username(username: str) -> Tuple[bool, Optional[str]]:
+    """
+    Validate username format.
+
+    Rules:
+    - 3-50 characters
+    - Alphanumeric, underscore, hyphen only
+    - Must start with letter
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not username:
+        return False, "Username is required"
+
+    if len(username) < 3:
+        return False, "Username must be at least 3 characters"
+
+    if len(username) > 50:
+        return False, "Username must be at most 50 characters"
+
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', username):
+        return False, "Username must start with a letter and contain only letters, numbers, underscores, and hyphens"
+
+    return True, None
+
+
+def validate_password_strength(password: str) -> Tuple[bool, Optional[str], int]:
+    """
+    Validate password meets minimum security requirements.
+
+    Returns:
+        (is_valid, error_message, strength_score)
+        strength_score: 0-100
+    """
+    if not password:
+        return False, "Password is required", 0
+
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters", 10
+
+    score = 0
+    issues = []
+
+    # Length scoring
+    if len(password) >= 8:
+        score += 20
+    if len(password) >= 12:
+        score += 10
+    if len(password) >= 16:
+        score += 10
+
+    # Character variety
+    if re.search(r'[a-z]', password):
+        score += 15
+    else:
+        issues.append("lowercase letter")
+
+    if re.search(r'[A-Z]', password):
+        score += 15
+    else:
+        issues.append("uppercase letter")
+
+    if re.search(r'\d', password):
+        score += 15
+    else:
+        issues.append("number")
+
+    if re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        score += 15
+    else:
+        issues.append("special character")
+
+    # Minimum requirements
+    if score < 50:
+        return False, f"Password should include: {', '.join(issues)}", score
+
+    return True, None, score
+
 
 # ============================================================================
 # Example usage in main.py would be:
