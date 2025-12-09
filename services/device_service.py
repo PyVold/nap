@@ -6,6 +6,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect as sa_inspect
 from models.device import Device, DeviceCreate, DeviceUpdate
 from models.enums import DeviceStatus
 from db_models import DeviceDB
@@ -257,8 +258,12 @@ class DeviceService:
 
         # Extract values from each device's metadata
         for device in db_devices:
-            # Access metadata from __dict__ to avoid SQLAlchemy class attribute conflict
-            metadata = device.__dict__.get('metadata')
+            # Access metadata using SQLAlchemy inspect to avoid class attribute conflict
+            try:
+                insp = sa_inspect(device)
+                metadata = insp.attrs['metadata'].loaded_value
+            except (KeyError, AttributeError):
+                metadata = None
             if not metadata or not isinstance(metadata, dict):
                 continue
 
@@ -341,21 +346,19 @@ class DeviceService:
 
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
-        # Get metadata from JSON column - ensure it's a dict
-        # Note: SQLAlchemy Base has a 'metadata' class attribute (MetaData object)
-        # We need to access the column value, not the class attribute
+        # Get metadata from JSON column using SQLAlchemy inspect
+        # This avoids conflict with SQLAlchemy Base's 'metadata' class attribute
         metadata = None
         try:
-            # Access the column value directly from __dict__ to avoid class attribute conflict
-            raw_metadata = db_device.__dict__.get('metadata')
-            if raw_metadata is not None:
+            insp = sa_inspect(db_device)
+            # Access the column value through the inspection API
+            raw_metadata = insp.attrs['metadata'].loaded_value
+            if raw_metadata is not None and raw_metadata is not insp.attrs['metadata'].loaded_value.__class__:
                 if isinstance(raw_metadata, dict):
                     metadata = raw_metadata
                 elif isinstance(raw_metadata, (str, bytes)):
-                    # JSON string that needs parsing
                     metadata = json.loads(raw_metadata) if raw_metadata else None
-                # Skip SQLAlchemy MetaData objects or Table objects
-        except (TypeError, json.JSONDecodeError):
+        except (TypeError, json.JSONDecodeError, KeyError):
             metadata = None
 
         return Device(
