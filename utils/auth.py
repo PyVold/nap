@@ -2,6 +2,8 @@
 # utils/auth.py - Authentication utilities
 # ============================================================================
 
+import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from passlib.context import CryptContext
@@ -13,8 +15,18 @@ from sqlalchemy.orm import Session
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT settings
-SECRET_KEY = "your-secret-key-change-this-in-production"  # Change in production!
+# JWT settings - SECURITY: Load from environment variable
+_default_secret = secrets.token_urlsafe(32)  # Generate secure fallback for dev
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", _default_secret)
+
+# Warn if using auto-generated secret (tokens won't survive restarts)
+if "JWT_SECRET_KEY" not in os.environ:
+    import logging
+    logging.getLogger(__name__).warning(
+        "JWT_SECRET_KEY not set! Using auto-generated secret. "
+        "Set JWT_SECRET_KEY environment variable in production."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 
