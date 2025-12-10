@@ -117,7 +117,6 @@ export default function AdminDashboard() {
     scheduleTime: '02:00',
     retentionDays: 30,
     maxBackupsPerDevice: 10,
-    compressBackups: true,
     notifyOnFailure: true,
     backupOnAudit: true,
   });
@@ -633,23 +632,6 @@ export default function AdminDashboard() {
                       })
                     }
                     helperText="Keep only N most recent backups per device"
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={backupConfig.compressBackups}
-                        onChange={(e) =>
-                          setBackupConfig({
-                            ...backupConfig,
-                            compressBackups: e.target.checked,
-                          })
-                        }
-                      />
-                    }
-                    label="Compress Backups (Save Storage)"
                   />
                 </Grid>
 
