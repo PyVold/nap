@@ -80,13 +80,12 @@ services:
     ports:
       - "${API_GATEWAY_PORT:-3000}:3000"
     depends_on:
+      - device-service
       - rule-service
       - backup-service
       - inventory-service
       - admin-service
       - analytics-service
-    extra_hosts:
-      - "device-service:host-gateway"  # device-service runs on host network
     env_file:
       - .env.prod
     environment:
@@ -115,20 +114,21 @@ services:
       context: .
       dockerfile: services/device-service/Dockerfile.offline
     restart: always
-    network_mode: host  # Required for network discovery to reach device networks
+    ports:
+      - "${DEVICE_SERVICE_PORT:-3001}:3001"
     depends_on:
       database:
         condition: service_healthy
     env_file:
       - .env.prod
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-nap_user}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB:-nap_db}
+      - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - SERVICE_PORT=3001
       - LOG_LEVEL=${LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -113,7 +113,7 @@ ROUTE_MODULE_MAP = {
     "notifications": "webhooks",
     "health": "health_checks",
     "health_checks": "health_checks",  # Both forms map to same module
-    "health_monitoring": "health_checks",  # Alternative name
+    "health_monitoring": "health_checks",
     "hardware_inventory": "hardware_inventory",  # Enterprise only
 
     # Advanced Features

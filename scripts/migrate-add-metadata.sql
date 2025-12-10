@@ -1,9 +1,3 @@
-#!/bin/bash
-# ============================================================================
-# Database Migration Script - Add missing columns
-# Run with: docker exec -it nap_database_1 psql -U nap_user -d nap_db -f /tmp/migrate.sql
-# Or: cat scripts/migrate-add-metadata.sql | docker exec -i nap_database_1 psql -U nap_user -d nap_db
-# ============================================================================
 
 -- Add metadata column to devices table if it doesn't exist
 DO $$
