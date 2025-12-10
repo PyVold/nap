@@ -136,8 +136,12 @@ class MetricsCollector:
         lines = []
         try:
             from shared.database import SessionLocal
-            from shared.db_models import DeviceDB, HealthCheckDB, AuditResultDB
             from sqlalchemy import func
+            # Try local db_models first (service-specific), fall back to shared
+            try:
+                from db_models import DeviceDB, HealthCheckDB, AuditResultDB
+            except ImportError:
+                from shared.db_models import DeviceDB, HealthCheckDB, AuditResultDB
 
             db = SessionLocal()
             try:

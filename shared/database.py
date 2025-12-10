@@ -40,8 +40,11 @@ def init_db():
     from sqlalchemy.exc import ProgrammingError
 
     # Import all models to ensure they're registered with Base
-    # Use shared.db_models to avoid conflicts with service-local db_models
-    import shared.db_models
+    # Services have their own db_models.py that should be used
+    try:
+        import db_models  # Service-local db_models
+    except ImportError:
+        import shared.db_models  # Fallback to shared if no local
 
     try:
         # create_all uses checkfirst=True by default, but we add error handling for edge cases
