@@ -330,7 +330,7 @@ services:
     image: prom/prometheus:latest
     restart: always
     ports:
-      - "127.0.0.1:9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -349,7 +349,7 @@ services:
     image: grafana/grafana:latest
     restart: always
     ports:
-      - "127.0.0.1:3030:3000"
+      - "${GRAFANA_PORT:-3030}:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
