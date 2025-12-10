@@ -182,7 +182,7 @@ class MetricsCollector:
                     (HealthCheckDB.timestamp == subq.c.max_ts)
                 ).all()
 
-                health_status_counts = {}
+                health_status_counts = {'healthy': 0, 'degraded': 0, 'unreachable': 0, 'unknown': 0}
                 for hc in latest_health:
                     status = hc.overall_status or 'unknown'
                     health_status_counts[status] = health_status_counts.get(status, 0) + 1
@@ -223,7 +223,19 @@ class MetricsCollector:
                 db.close()
 
         except Exception as e:
-            logger.debug(f"Could not collect device metrics: {e}")
+            logger.error(f"Could not collect device metrics: {e}")
+            # Return default zero values so dashboards show 0 instead of no data
+            lines.append("# HELP nap_devices_total Total number of devices")
+            lines.append("# TYPE nap_devices_total gauge")
+            lines.append("nap_devices_total 0")
+            lines.append("# HELP nap_device_health_status Device health status counts")
+            lines.append("# TYPE nap_device_health_status gauge")
+            lines.append('nap_device_health_status{status="healthy"} 0')
+            lines.append('nap_device_health_status{status="degraded"} 0')
+            lines.append('nap_device_health_status{status="unreachable"} 0')
+            lines.append("# HELP nap_compliance_score_avg Average compliance score")
+            lines.append("# TYPE nap_compliance_score_avg gauge")
+            lines.append("nap_compliance_score_avg 0")
 
         return lines
 
