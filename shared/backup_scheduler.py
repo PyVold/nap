@@ -231,9 +231,7 @@ class BackupScheduler:
                 device_id=device.id,
                 config_data="# Mock backup\n# Created by scheduler\n",
                 size_bytes=100,
-                compressed=backup_config.get('compressBackups', True),
-                backup_type='scheduled',
-                created_at=datetime.utcnow()
+                backup_type='scheduled'
             )
 
             db.add(backup)
@@ -271,7 +269,7 @@ class BackupScheduler:
 
             # Delete backups older than retention period
             deleted = db.query(ConfigBackupDB).filter(
-                ConfigBackupDB.created_at < cutoff_date
+                ConfigBackupDB.timestamp < cutoff_date
             ).delete()
 
             if deleted > 0:
@@ -285,7 +283,7 @@ class BackupScheduler:
                 backups = db.query(ConfigBackupDB).filter(
                     ConfigBackupDB.device_id == device.id
                 ).order_by(
-                    ConfigBackupDB.created_at.desc()
+                    ConfigBackupDB.timestamp.desc()
                 ).all()
 
                 # If more than max, delete the oldest ones
