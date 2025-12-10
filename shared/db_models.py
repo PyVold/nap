@@ -22,7 +22,7 @@ class DeviceDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Protocol and system metadata (BGP, IGP, LDP, MPLS, system info) collected during discovery
-    metadata = Column(JSON, nullable=True)
+    device_metadata = Column('metadata', JSON, nullable=True)  # Use 'metadata' as DB column name for backwards compatibility
 
     # Exponential backoff tracking
     consecutive_failures = Column(Integer, default=0)
