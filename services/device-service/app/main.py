@@ -9,6 +9,7 @@ import sys
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
+from shared.monitoring import router as monitoring_router
 from routes import devices, device_groups, discovery_groups, device_import, health
 from scheduler import get_scheduler
 
@@ -50,6 +51,7 @@ app.include_router(device_groups.router, prefix="/device-groups", tags=["Device 
 app.include_router(discovery_groups.router, prefix="/discovery-groups", tags=["Discovery Groups"])
 app.include_router(device_import.router, prefix="/device-import", tags=["Device Import"])
 app.include_router(health.router, tags=["Health"])  # Already has /health prefix
+app.include_router(monitoring_router, tags=["Monitoring"])
 
 
 @app.on_event("startup")

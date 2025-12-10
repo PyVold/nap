@@ -9,6 +9,7 @@ import sys
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
+from shared.monitoring import router as monitoring_router
 from routes import hardware_inventory
 
 logger = setup_logger(__name__)
@@ -34,6 +35,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(hardware_inventory.router, tags=["Hardware Inventory"])
+app.include_router(monitoring_router, tags=["Monitoring"])
 
 
 @app.get("/")

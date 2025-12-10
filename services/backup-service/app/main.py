@@ -9,6 +9,7 @@ import sys
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
+from shared.monitoring import router as monitoring_router
 from routes import config_backups, drift_detection
 
 logger = setup_logger(__name__)
@@ -35,6 +36,7 @@ app.add_middleware(
 # Include routers
 app.include_router(config_backups.router, tags=["Config Backups"])
 app.include_router(drift_detection.router, tags=["Drift Detection"])
+app.include_router(monitoring_router, tags=["Monitoring"])
 
 
 @app.get("/")
