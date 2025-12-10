@@ -26,7 +26,7 @@ router = APIRouter(prefix="/config-backups", tags=["config-backups"])
 class BackupResponse(BaseModel):
     id: int
     device_id: int
-    config_hash: str
+    config_hash: Optional[str] = None
     backup_type: str
     timestamp: datetime
     triggered_by: Optional[str] = None
