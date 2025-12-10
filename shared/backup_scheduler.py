@@ -211,39 +211,47 @@ class BackupScheduler:
 
     def create_device_backup(self, device, backup_config, db: Session):
         """
-        Create a configuration backup for a device
-
-        NOTE: This is a placeholder. The actual backup creation logic
-        would connect to the device and retrieve its configuration.
+        Create a configuration backup for a device by calling the backup-service API
         """
+        import httpx
+        import os
+
         try:
-            # Try local db_models first (service-specific), fall back to shared
-            try:
-                from db_models import ConfigBackupDB
-            except ImportError:
-                from shared.db_models import ConfigBackupDB
+            # Get backup service URL from environment or use default
+            backup_service_url = os.environ.get('BACKUP_SERVICE_URL', 'http://backup-service:3003')
 
-            # TODO: Implement actual device connection and config retrieval
-            # For now, this is a placeholder that creates a mock backup record
+            # Call the backup-service API to create a real backup
+            with httpx.Client(timeout=120.0) as client:  # 2 min timeout for slow devices
+                response = client.post(
+                    f"{backup_service_url}/config-backups/",
+                    json={
+                        "device_id": device.id,
+                        "backup_type": "scheduled",
+                        "notes": "Automatic scheduled backup"
+                    }
+                )
 
-            # Simulate backup creation
-            backup = ConfigBackupDB(
-                device_id=device.id,
-                config_data="# Mock backup\n# Created by scheduler\n",
-                size_bytes=100,
-                backup_type='scheduled'
-            )
+                if response.status_code == 200:
+                    result = response.json()
+                    logger.info(f"Created backup for device: {device.hostname} (backup_id: {result.get('id')})")
+                    return {
+                        "success": True,
+                        "backup_id": result.get('id')
+                    }
+                else:
+                    error_detail = response.json().get('detail', response.text)
+                    logger.error(f"Backup failed for {device.hostname}: {error_detail}")
+                    return {
+                        "success": False,
+                        "error": error_detail
+                    }
 
-            db.add(backup)
-            db.commit()
-
-            logger.info(f"Created backup for device: {device.hostname}")
-
+        except httpx.TimeoutException:
+            logger.error(f"Timeout creating backup for {device.hostname}")
             return {
-                "success": True,
-                "backup_id": backup.id
+                "success": False,
+                "error": "Timeout connecting to device"
             }
-
         except Exception as e:
             logger.error(f"Error creating backup for {device.hostname}: {e}")
             return {
