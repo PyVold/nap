@@ -16,3 +16,4 @@ lxml==4.9.3
 pysros>=24.10.1
 apscheduler==3.10.4
 aiohttp==3.9.1
+psutil==5.9.6

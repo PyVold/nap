@@ -19,3 +19,4 @@ netmiko==4.3.0
 lxml==4.9.3
 pysros>=24.10.1
 APScheduler==3.10.4
+psutil==5.9.6
