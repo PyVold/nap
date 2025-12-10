@@ -38,10 +38,11 @@ def get_db():
 def init_db():
     """Initialize database tables and indexes, skipping if they already exist"""
     from sqlalchemy.exc import ProgrammingError
-    
+
     # Import all models to ensure they're registered with Base
-    import db_models
-    
+    # Use shared.db_models to avoid conflicts with service-local db_models
+    import shared.db_models
+
     try:
         # create_all uses checkfirst=True by default, but we add error handling for edge cases
         Base.metadata.create_all(bind=engine, checkfirst=True)
