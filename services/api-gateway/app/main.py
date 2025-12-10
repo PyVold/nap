@@ -245,6 +245,10 @@ async def proxy_request(request: Request, path: str):
             )
 
             # Return the response with proper content type
+            # Handle 204 No Content specially - must not have a body
+            if response.status_code == 204:
+                return Response(status_code=204)
+
             if response.content:
                 try:
                     # Try to parse as JSON
@@ -262,10 +266,7 @@ async def proxy_request(request: Request, path: str):
                         media_type=response.headers.get('content-type', 'application/octet-stream')
                     )
             else:
-                return JSONResponse(
-                    content={},
-                    status_code=response.status_code
-                )
+                return Response(status_code=response.status_code)
     except Exception as e:
         logger.error(f"Error forwarding request to {url}: {e}")
         raise HTTPException(status_code=502, detail=f"Service unavailable: {str(e)}")
