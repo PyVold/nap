@@ -58,12 +58,13 @@ scrape_configs:
       - targets: ['inventory-service:3004']
     metrics_path: /metrics
 
-  # PostgreSQL metrics (if using postgres_exporter)
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['database:9187']
-
-  # Redis metrics (if using redis_exporter)
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis:9121']
+  # Note: PostgreSQL and Redis exporters are not included by default.
+  # To enable database metrics, add postgres_exporter container and uncomment:
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #
+  # To enable Redis metrics, add redis_exporter container and uncomment:
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']

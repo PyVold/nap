@@ -125,7 +125,107 @@ class MetricsCollector:
         for key, value in self._custom_metrics.items():
             lines.append(f"{key} {value}")
 
+        # Device and compliance metrics (collected on demand)
+        device_metrics = self._collect_device_metrics()
+        lines.extend(device_metrics)
+
         return "\n".join(lines)
+
+    def _collect_device_metrics(self) -> list:
+        """Collect device and compliance metrics from database"""
+        lines = []
+        try:
+            from shared.database import SessionLocal
+            from shared.db_models import DeviceDB, HealthCheckDB, AuditResultDB
+            from sqlalchemy import func
+
+            db = SessionLocal()
+            try:
+                # Total devices
+                total_devices = db.query(DeviceDB).count()
+                lines.append("# HELP nap_devices_total Total number of devices")
+                lines.append("# TYPE nap_devices_total gauge")
+                lines.append(f"nap_devices_total {total_devices}")
+
+                # Devices by status
+                status_counts = db.query(
+                    DeviceDB.status, func.count(DeviceDB.id)
+                ).group_by(DeviceDB.status).all()
+
+                lines.append("# HELP nap_devices_by_status Number of devices by status")
+                lines.append("# TYPE nap_devices_by_status gauge")
+                for status, count in status_counts:
+                    status_name = status.value if hasattr(status, 'value') else str(status)
+                    lines.append(f'nap_devices_by_status{{status="{status_name}"}} {count}')
+
+                # Devices by vendor
+                vendor_counts = db.query(
+                    DeviceDB.vendor, func.count(DeviceDB.id)
+                ).group_by(DeviceDB.vendor).all()
+
+                lines.append("# HELP nap_devices_by_vendor Number of devices by vendor")
+                lines.append("# TYPE nap_devices_by_vendor gauge")
+                for vendor, count in vendor_counts:
+                    vendor_name = vendor.value if hasattr(vendor, 'value') else str(vendor)
+                    lines.append(f'nap_devices_by_vendor{{vendor="{vendor_name}"}} {count}')
+
+                # Latest health check stats
+                from sqlalchemy import desc
+                subq = db.query(
+                    HealthCheckDB.device_id,
+                    func.max(HealthCheckDB.timestamp).label('max_ts')
+                ).group_by(HealthCheckDB.device_id).subquery()
+
+                latest_health = db.query(HealthCheckDB).join(
+                    subq,
+                    (HealthCheckDB.device_id == subq.c.device_id) &
+                    (HealthCheckDB.timestamp == subq.c.max_ts)
+                ).all()
+
+                health_status_counts = {}
+                for hc in latest_health:
+                    status = hc.overall_status or 'unknown'
+                    health_status_counts[status] = health_status_counts.get(status, 0) + 1
+
+                lines.append("# HELP nap_device_health_status Device health status counts")
+                lines.append("# TYPE nap_device_health_status gauge")
+                for status, count in health_status_counts.items():
+                    lines.append(f'nap_device_health_status{{status="{status}"}} {count}')
+
+                # Average compliance score
+                avg_compliance = db.query(func.avg(DeviceDB.compliance)).scalar() or 0
+                lines.append("# HELP nap_compliance_score_avg Average compliance score")
+                lines.append("# TYPE nap_compliance_score_avg gauge")
+                lines.append(f"nap_compliance_score_avg {avg_compliance:.2f}")
+
+                # Compliance distribution
+                compliant = db.query(DeviceDB).filter(DeviceDB.compliance >= 80).count()
+                partial = db.query(DeviceDB).filter(DeviceDB.compliance >= 50, DeviceDB.compliance < 80).count()
+                non_compliant = db.query(DeviceDB).filter(DeviceDB.compliance < 50).count()
+
+                lines.append("# HELP nap_compliance_distribution Device compliance distribution")
+                lines.append("# TYPE nap_compliance_distribution gauge")
+                lines.append(f'nap_compliance_distribution{{level="compliant"}} {compliant}')
+                lines.append(f'nap_compliance_distribution{{level="partial"}} {partial}')
+                lines.append(f'nap_compliance_distribution{{level="non_compliant"}} {non_compliant}')
+
+                # Total audits (last 24h)
+                from datetime import timedelta
+                yesterday = datetime.utcnow() - timedelta(days=1)
+                recent_audits = db.query(AuditResultDB).filter(
+                    AuditResultDB.timestamp >= yesterday
+                ).count()
+                lines.append("# HELP nap_audits_last_24h Number of audits in last 24 hours")
+                lines.append("# TYPE nap_audits_last_24h gauge")
+                lines.append(f"nap_audits_last_24h {recent_audits}")
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            logger.debug(f"Could not collect device metrics: {e}")
+
+        return lines
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get application health status"""
