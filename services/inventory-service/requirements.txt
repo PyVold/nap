@@ -15,3 +15,4 @@ netmiko==4.3.0
 lxml==4.9.3
 pysros>=24.10.1
 python-multipart==0.0.20
+psutil==5.9.6
