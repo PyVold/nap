@@ -13,6 +13,7 @@ from models.enums import VendorType
 from models.device import Device
 from connectors import NokiaSROSConnector, NetconfConnector
 from shared.logger import setup_logger
+from shared.crypto import decrypt_password
 
 logger = setup_logger(__name__)
 
@@ -86,6 +87,7 @@ class HardwareInventoryService:
         components = []
 
         try:
+            decrypted_pwd = decrypt_password(device.password) if device.password else None
             # Convert DB device to Device model
             device_model = Device(
                 id=device.id,
@@ -94,7 +96,7 @@ class HardwareInventoryService:
                 ip=device.ip,
                 port=device.port,
                 username=device.username,
-                password=device.password
+                password=decrypted_pwd
             )
 
             connector = NokiaSROSConnector(device_model)
@@ -276,6 +278,7 @@ class HardwareInventoryService:
         components = []
 
         try:
+            decrypted_pwd = decrypt_password(device.password) if device.password else None
             # Convert DB device to Device model
             device_model = Device(
                 id=device.id,
@@ -284,7 +287,7 @@ class HardwareInventoryService:
                 ip=device.ip,
                 port=device.port,
                 username=device.username,
-                password=device.password
+                password=decrypted_pwd
             )
 
             connector = NetconfConnector(device_model)

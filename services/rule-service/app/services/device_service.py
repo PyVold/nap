@@ -13,6 +13,7 @@ from shared.logger import setup_logger
 from shared.exceptions import DeviceNotFoundError
 from shared.validators import validate_hostname, validate_ip
 from shared.backoff import BackoffManager
+from shared.crypto import decrypt_password
 
 logger = setup_logger(__name__)
 
@@ -58,6 +59,7 @@ class DeviceService:
                 # Delete the old device with the same IP
                 db.delete(existing_ip_device)
                 db.flush()  # Flush to release the IP constraint
+
 
         # Create device in database
         db_device = DeviceDB(
@@ -190,6 +192,7 @@ class DeviceService:
 
     def _to_pydantic(self, db_device: DeviceDB) -> Device:
         """Convert SQLAlchemy model to Pydantic model"""
+        decrypted_pwd = decrypt_password(db_device.password) if db_device.password else None
         return Device(
             id=db_device.id,
             hostname=db_device.hostname,
@@ -197,7 +200,7 @@ class DeviceService:
             ip=db_device.ip,
             port=db_device.port,
             username=db_device.username,
-            password=db_device.password,
+            password=decrypted_pwd,
             status=db_device.status,
             last_audit=db_device.last_audit.isoformat() if db_device.last_audit else None,
             compliance=int(db_device.compliance),
