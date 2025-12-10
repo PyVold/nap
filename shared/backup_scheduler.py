@@ -35,7 +35,11 @@ class BackupScheduler:
     def load_and_update_schedule(self, db: Session):
         """Load backup configuration from database and update schedule"""
         try:
-            from shared.db_models import SystemConfigDB
+            # Try local db_models first (service-specific), fall back to shared
+            try:
+                from db_models import SystemConfigDB
+            except ImportError:
+                from shared.db_models import SystemConfigDB
 
             # Get backup configuration
             config = db.query(SystemConfigDB).filter(
@@ -136,7 +140,11 @@ class BackupScheduler:
     def run_backup_job(self, db: Session):
         """Execute backup job for all devices"""
         try:
-            from shared.db_models import DeviceDB, ConfigBackupDB, SystemConfigDB
+            # Try local db_models first (service-specific), fall back to shared
+            try:
+                from db_models import DeviceDB, ConfigBackupDB, SystemConfigDB
+            except ImportError:
+                from shared.db_models import DeviceDB, ConfigBackupDB, SystemConfigDB
             from shared.notification_service import notification_service
 
             logger.info("Starting scheduled backup job...")
@@ -154,7 +162,10 @@ class BackupScheduler:
 
             # Get all devices - deleted devices are removed from DB, not marked
             # Only backup devices that are reachable (ONLINE or DEGRADED)
-            from shared.models.enums import DeviceStatus
+            try:
+                from models.enums import DeviceStatus
+            except ImportError:
+                from shared.models.enums import DeviceStatus
             devices = db.query(DeviceDB).filter(
                 DeviceDB.status.in_([DeviceStatus.ONLINE, DeviceStatus.DEGRADED, DeviceStatus.REGISTERED])
             ).all()
@@ -206,7 +217,11 @@ class BackupScheduler:
         would connect to the device and retrieve its configuration.
         """
         try:
-            from shared.db_models import ConfigBackupDB
+            # Try local db_models first (service-specific), fall back to shared
+            try:
+                from db_models import ConfigBackupDB
+            except ImportError:
+                from shared.db_models import ConfigBackupDB
 
             # TODO: Implement actual device connection and config retrieval
             # For now, this is a placeholder that creates a mock backup record
@@ -243,7 +258,11 @@ class BackupScheduler:
         Clean up old backups based on retention settings
         """
         try:
-            from shared.db_models import ConfigBackupDB, DeviceDB
+            # Try local db_models first (service-specific), fall back to shared
+            try:
+                from db_models import ConfigBackupDB, DeviceDB
+            except ImportError:
+                from shared.db_models import ConfigBackupDB, DeviceDB
 
             retention_days = backup_config.get('retentionDays', 30)
             max_backups_per_device = backup_config.get('maxBackupsPerDevice', 10)
