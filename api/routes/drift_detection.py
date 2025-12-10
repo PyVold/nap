@@ -13,6 +13,7 @@ from models.device import Device
 from models.enums import VendorType
 from services.drift_detection_service import DriftDetectionService
 from shared.license_middleware import require_license_module
+from utils.crypto import decrypt_password
 
 router = APIRouter(prefix="/drift-detection", tags=["drift-detection"])
 
@@ -99,7 +100,8 @@ def detect_drift_for_device(
     if not device_db:
         raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
 
-    # Convert to Device model
+    # Convert to Device model - decrypt password
+    decrypted_pwd = decrypt_password(device_db.password) if device_db.password else None
     device = Device(
         id=device_db.id,
         hostname=device_db.hostname,
@@ -107,7 +109,7 @@ def detect_drift_for_device(
         ip=device_db.ip,
         port=device_db.port,
         username=device_db.username,
-        password=device_db.password
+        password=decrypted_pwd
     )
 
     # Detect drift
