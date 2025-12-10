@@ -9,6 +9,7 @@ import sys
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
+from shared.monitoring import router as monitoring_router
 from routes import rules, rule_templates, audits, audit_schedules
 from scheduler import get_scheduler
 
@@ -41,6 +42,7 @@ app.include_router(rules.router, prefix="/rules", tags=["Rules"])
 app.include_router(rule_templates.router, tags=["Rule Templates"])  # Already has /rule-templates prefix
 app.include_router(audits.router, prefix="/audit", tags=["Audits"])
 app.include_router(audit_schedules.router, prefix="/audit-schedules", tags=["Audit Schedules"])
+app.include_router(monitoring_router, tags=["Monitoring"])
 
 
 # Application lifecycle events

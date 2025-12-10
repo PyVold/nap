@@ -220,7 +220,8 @@ class DeviceService:
                     existing.vendor = new_device.vendor
                     existing.port = new_device.port or 830
                     existing.username = new_device.username
-                    existing.password = new_device.password
+                    # SECURITY: Encrypt password before storing
+                    existing.password = encrypt_password(new_device.password) if new_device.password else None
                     existing.status = DeviceStatus.DISCOVERED
                     existing.updated_at = datetime.utcnow()
                     device_ids_for_metadata.add(existing.id)
@@ -261,7 +262,8 @@ class DeviceService:
                 existing_by_ip.vendor = new_device.vendor
                 existing_by_ip.port = new_device.port or 830
                 existing_by_ip.username = new_device.username
-                existing_by_ip.password = new_device.password
+                # SECURITY: Encrypt password before storing
+                existing_by_ip.password = encrypt_password(new_device.password) if new_device.password else None
                 existing_by_ip.status = DeviceStatus.DISCOVERED
                 existing_by_ip.updated_at = datetime.utcnow()
                 db.flush()  # Flush so subsequent device queries see this update
@@ -286,20 +288,23 @@ class DeviceService:
                 existing_by_hostname.vendor = new_device.vendor
                 existing_by_hostname.port = new_device.port or 830
                 existing_by_hostname.username = new_device.username
-                existing_by_hostname.password = new_device.password
+                # SECURITY: Encrypt password before storing
+                existing_by_hostname.password = encrypt_password(new_device.password) if new_device.password else None
                 existing_by_hostname.status = DeviceStatus.DISCOVERED
                 existing_by_hostname.updated_at = datetime.utcnow()
                 db.flush()  # Flush so subsequent device queries see this update
                 device_ids_for_metadata.add(existing_by_hostname.id)
             else:
                 # Brand new device - add it
+                # SECURITY: Encrypt password before storing
+                encrypted_pwd = encrypt_password(new_device.password) if new_device.password else None
                 db_device = DeviceDB(
                     hostname=new_device.hostname,
                     vendor=new_device.vendor,
                     ip=new_device.ip,
                     port=new_device.port or 830,
                     username=new_device.username,
-                    password=new_device.password,
+                    password=encrypted_pwd,
                     status=DeviceStatus.DISCOVERED,
                     compliance=0.0
                 )

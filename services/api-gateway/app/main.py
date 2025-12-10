@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse, Response
 import httpx
 import sys
 from shared.logger import setup_logger
+from shared.monitoring import router as monitoring_router
 from typing import Dict, List
 
 logger = setup_logger(__name__)
@@ -36,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include monitoring router for metrics endpoint
+app.include_router(monitoring_router, tags=["Monitoring"])
 
 # Service registry (can be moved to database/Redis later)
 SERVICES = {

@@ -10,6 +10,7 @@ import os
 from shared.database import get_db, init_db
 from shared.config import settings
 from shared.logger import setup_logger
+from shared.monitoring import router as monitoring_router
 from routes import (
     admin, user_management, integrations, notifications, remediation,
     workflows, license, admin_settings
@@ -308,6 +309,7 @@ app.include_router(notifications.router, tags=["Notifications"])
 app.include_router(remediation.router, tags=["Remediation"])
 app.include_router(license.router, tags=["License"])
 app.include_router(admin_settings.router, tags=["Admin Settings"])
+app.include_router(monitoring_router, tags=["Monitoring"])
 # Stub routes for unimplemented features
 app.include_router(workflows.router, tags=["Workflows"])
 
