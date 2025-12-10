@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: 'NAP Dashboards'
+    orgId: 1
+    folder: 'Network Audit Platform'
+    folderUid: 'nap-dashboards'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
