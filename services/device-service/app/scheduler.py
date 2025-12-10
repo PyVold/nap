@@ -15,6 +15,7 @@ from services.discovery_group_service import DiscoveryGroupService
 from services.device_service import DeviceService
 from services.discovery_service import DiscoveryService
 from services.health_service import HealthService
+from shared.crypto import decrypt_password
 from models.device import Device
 from models.enums import VendorType
 
@@ -88,11 +89,12 @@ async def run_health_checks():
             
         logger.info(f"Starting periodic health checks for {len(devices_db)} devices")
 
-        # Convert to Device models
+        # Convert to Device models - decrypt passwords for health checks
         devices = []
         for device_db in devices_db:
             try:
-                # Use the service's _to_pydantic method or construct manually
+                # Decrypt password before passing to health service
+                decrypted_pwd = decrypt_password(device_db.password) if device_db.password else None
                 device = Device(
                     id=device_db.id,
                     hostname=device_db.hostname,
@@ -100,7 +102,7 @@ async def run_health_checks():
                     ip=device_db.ip,
                     port=device_db.port,
                     username=device_db.username,
-                    password=device_db.password,
+                    password=decrypted_pwd,
                     status=device_db.status
                 )
                 devices.append(device)

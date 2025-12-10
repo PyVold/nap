@@ -12,6 +12,7 @@ from models.device import Device
 from models.enums import VendorType
 from services.config_backup_service import ConfigBackupService
 from services.notification_service import NotificationService
+from utils.crypto import decrypt_password
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -110,6 +111,7 @@ class DriftDetectionService:
             logger.info(f"Starting drift detection scan for {len(devices_db)} devices")
 
             for device_db in devices_db:
+                decrypted_pwd = decrypt_password(device_db.password) if device_db.password else None
                 device = Device(
                     id=device_db.id,
                     hostname=device_db.hostname,
@@ -117,7 +119,7 @@ class DriftDetectionService:
                     ip=device_db.ip,
                     port=device_db.port,
                     username=device_db.username,
-                    password=device_db.password
+                    password=decrypted_pwd
                 )
 
                 drift_info = DriftDetectionService.detect_drift_for_device(db, device)

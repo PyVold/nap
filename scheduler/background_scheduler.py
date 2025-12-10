@@ -20,6 +20,7 @@ from engine.audit_engine import AuditEngine
 from models.device import Device
 from models.enums import VendorType
 from utils.logger import setup_logger
+from utils.crypto import decrypt_password
 from config import settings
 
 logger = setup_logger(__name__)
@@ -141,10 +142,11 @@ async def run_health_checks():
         devices_db = device_service.get_all_devices(db)
         logger.info(f"Running health checks for {len(devices_db)} devices")
 
-        # Convert to Device models
+        # Convert to Device models - decrypt passwords for health checks
         devices = []
         for device_db in devices_db:
             try:
+                decrypted_pwd = decrypt_password(device_db.password) if device_db.password else None
                 device = Device(
                     id=device_db.id,
                     hostname=device_db.hostname,
@@ -152,7 +154,7 @@ async def run_health_checks():
                     ip=device_db.ip,
                     port=device_db.port,
                     username=device_db.username,
-                    password=device_db.password
+                    password=decrypted_pwd
                 )
                 devices.append(device)
             except Exception as e:
@@ -220,10 +222,11 @@ async def run_config_backups():
         devices_db = device_service.get_all_devices(db)
         logger.info(f"Running config backups for {len(devices_db)} devices")
 
-        # Convert to Device models and backup each device
+        # Convert to Device models and backup each device - decrypt passwords
         backup_count = 0
         for device_db in devices_db:
             try:
+                decrypted_pwd = decrypt_password(device_db.password) if device_db.password else None
                 device = Device(
                     id=device_db.id,
                     hostname=device_db.hostname,
@@ -231,7 +234,7 @@ async def run_config_backups():
                     ip=device_db.ip,
                     port=device_db.port,
                     username=device_db.username,
-                    password=device_db.password
+                    password=decrypted_pwd
                 )
 
                 # Create backup
