@@ -10,6 +10,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from shared.deps import get_db
+from shared.crypto import decrypt_password
 from db_models import DeviceDB, ConfigBackupDB, ConfigChangeEventDB
 from services.config_backup_service import ConfigBackupService
 from models.device import Device
@@ -205,7 +206,8 @@ def create_backup(
         if not device_db:
             raise HTTPException(status_code=404, detail=f"Device {request.device_id} not found")
 
-        # Convert to Device model
+        # Convert to Device model - decrypt password before use
+        decrypted_pwd = decrypt_password(device_db.password) if device_db.password else None
         device = Device(
             id=device_db.id,
             hostname=device_db.hostname,
@@ -213,7 +215,7 @@ def create_backup(
             ip=device_db.ip,
             port=device_db.port,
             username=device_db.username,
-            password=device_db.password
+            password=decrypted_pwd
         )
 
         # Create backup using async method (run in event loop)
