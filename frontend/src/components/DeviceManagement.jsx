@@ -45,14 +45,19 @@ import {
   ErrorOutline,
 } from '@mui/icons-material';
 import { devicesAPI } from '../api/api';
-import { useCanModify } from './RoleBasedAccess';
+import { useCanModify, useHasPermission } from './RoleBasedAccess';
+import InputAdornment from '@mui/material/InputAdornment';
 
 const DeviceManagement = () => {
   const canModify = useCanModify();
+  const canCreateDevices = useHasPermission('create_devices');
+  const canDeleteDevices = useHasPermission('delete_devices');
+  const canModifyDevices = useHasPermission('modify_devices');
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [openDiscoveryDialog, setOpenDiscoveryDialog] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
@@ -506,7 +511,7 @@ const DeviceManagement = () => {
           >
             Refresh
           </Button>
-          {canModify && (
+          {canCreateDevices && (
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -529,6 +534,23 @@ const DeviceManagement = () => {
           {success}
         </Alert>
       )}
+
+      {/* Search Bar */}
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search by hostname, IP address, or vendor..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ mb: 3 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search />
+            </InputAdornment>
+          ),
+        }}
+      />
 
       {/* Summary Cards */}
       <Grid container spacing={2} mb={3}>
@@ -599,7 +621,18 @@ const DeviceManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {devices.map((device) => (
+            {devices
+              .filter((device) => {
+                if (!searchQuery) return true;
+                const query = searchQuery.toLowerCase();
+                return (
+                  device.hostname?.toLowerCase().includes(query) ||
+                  device.ip?.toLowerCase().includes(query) ||
+                  device.vendor?.toLowerCase().includes(query) ||
+                  device.status?.toLowerCase().includes(query)
+                );
+              })
+              .map((device) => (
               <React.Fragment key={device.id}>
               <TableRow hover>
                 <TableCell>
@@ -726,24 +759,25 @@ const DeviceManagement = () => {
                 </TableCell>
                 <TableCell>{device.last_audit || 'Never'}</TableCell>
                 <TableCell align="center">
-                  {canModify ? (
-                    <>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenDialog(device)}
-                        color="primary"
-                      >
-                        <Edit />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(device.id)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </>
-                  ) : (
+                  {canModifyDevices && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenDialog(device)}
+                      color="primary"
+                    >
+                      <Edit />
+                    </IconButton>
+                  )}
+                  {canDeleteDevices && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(device.id)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  )}
+                  {!canModifyDevices && !canDeleteDevices && (
                     <Typography variant="body2" color="textSecondary">
                       View only
                     </Typography>
