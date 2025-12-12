@@ -39,6 +39,7 @@ import {
 } from '@mui/icons-material';
 import { configBackupsAPI } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useHasPermission } from './RoleBasedAccess';
 
 // Component for individual backup rows within expanded device section
 const BackupRow = ({ backup, onView, selected, onSelect }) => {
@@ -100,7 +101,7 @@ const BackupRow = ({ backup, onView, selected, onSelect }) => {
 };
 
 // Component for device row with expandable backup history
-const DeviceBackupRow = ({ deviceSummary, onCreateBackup, onViewBackup, selectedBackups, onSelectBackup }) => {
+const DeviceBackupRow = ({ deviceSummary, onCreateBackup, onViewBackup, selectedBackups, onSelectBackup, canCreateBackup }) => {
   const [open, setOpen] = useState(false);
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -166,19 +167,25 @@ const DeviceBackupRow = ({ deviceSummary, onCreateBackup, onViewBackup, selected
           )}
         </TableCell>
         <TableCell align="right">
-          <Tooltip title="Create Manual Backup">
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<BackupIcon />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateBackup(deviceSummary.device_id);
-              }}
-            >
-              Backup Now
-            </Button>
-          </Tooltip>
+          {canCreateBackup ? (
+            <Tooltip title="Create Manual Backup">
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<BackupIcon />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateBackup(deviceSummary.device_id);
+                }}
+              >
+                Backup Now
+              </Button>
+            </Tooltip>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              View only
+            </Typography>
+          )}
         </TableCell>
       </TableRow>
       <TableRow>
@@ -236,6 +243,7 @@ const DeviceBackupRow = ({ deviceSummary, onCreateBackup, onViewBackup, selected
 
 export default function ConfigBackups() {
   const { user } = useAuth(); // Get current user
+  const canCreateBackups = useHasPermission('create_backups');
   const [deviceSummaries, setDeviceSummaries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
@@ -447,6 +455,7 @@ export default function ConfigBackups() {
                       onViewBackup={viewBackup}
                       selectedBackups={selectedBackups}
                       onSelectBackup={handleSelectBackup}
+                      canCreateBackup={canCreateBackups}
                     />
                   ))
                 )}

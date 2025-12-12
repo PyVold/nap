@@ -20,6 +20,24 @@ export function RoleBasedAccess({ allowedRoles, children }) {
 }
 
 /**
+ * Component to conditionally render children based on user permission
+ *
+ * Usage:
+ * <PermissionGuard permission="create_devices">
+ *   <Button>Add Device</Button>
+ * </PermissionGuard>
+ */
+export function PermissionGuard({ permission, children, fallback = null }) {
+  const hasPermission = useHasPermission(permission);
+
+  if (!hasPermission) {
+    return fallback;
+  }
+
+  return <>{children}</>;
+}
+
+/**
  * Component to conditionally render children for viewers (read-only message)
  *
  * Usage:
@@ -35,6 +53,57 @@ export function ViewerMessage({ children }) {
   }
 
   return <>{children}</>;
+}
+
+/**
+ * Hook to check if user has a specific permission
+ *
+ * Usage:
+ * const canCreateDevice = useHasPermission('create_devices');
+ * {canCreateDevice && <Button>Add Device</Button>}
+ */
+export function useHasPermission(permission) {
+  const { user, userPermissions, isAdmin } = useAuth();
+
+  // Superusers and admins have all permissions
+  if (user?.is_superuser || isAdmin) {
+    return true;
+  }
+
+  // Check if user has the specific permission
+  return userPermissions?.includes(permission) || false;
+}
+
+/**
+ * Hook to check multiple permissions (returns true if user has ANY of them)
+ *
+ * Usage:
+ * const canManageRules = useHasAnyPermission(['create_rules', 'modify_rules']);
+ */
+export function useHasAnyPermission(permissions) {
+  const { user, userPermissions, isAdmin } = useAuth();
+
+  if (user?.is_superuser || isAdmin) {
+    return true;
+  }
+
+  return permissions.some(p => userPermissions?.includes(p));
+}
+
+/**
+ * Hook to check multiple permissions (returns true if user has ALL of them)
+ *
+ * Usage:
+ * const canFullyManage = useHasAllPermissions(['create_rules', 'delete_rules']);
+ */
+export function useHasAllPermissions(permissions) {
+  const { user, userPermissions, isAdmin } = useAuth();
+
+  if (user?.is_superuser || isAdmin) {
+    return true;
+  }
+
+  return permissions.every(p => userPermissions?.includes(p));
 }
 
 /**
@@ -58,7 +127,7 @@ export function useCanModify() {
  */
 export function useIsAdmin() {
   const { user } = useAuth();
-  return user?.role === 'admin';
+  return user?.role === 'admin' || user?.is_superuser;
 }
 
 /**

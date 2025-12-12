@@ -36,15 +36,22 @@ import {
   Delete,
   Group as GroupIcon,
   Refresh,
+  Search as SearchIcon,
 } from '@mui/icons-material';
+import InputAdornment from '@mui/material/InputAdornment';
 import { deviceGroupsAPI, devicesAPI } from '../api/api';
+import { useHasPermission } from './RoleBasedAccess';
 
 const DeviceGroups = () => {
+  const canCreateGroups = useHasPermission('create_groups');
+  const canModifyGroups = useHasPermission('modify_groups');
+  const canDeleteGroups = useHasPermission('delete_groups');
   const [groups, setGroups] = useState([]);
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [formData, setFormData] = useState({
@@ -171,13 +178,15 @@ const DeviceGroups = () => {
           >
             Refresh
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Add Group
-          </Button>
+          {canCreateGroups && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog()}
+            >
+              Add Group
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -193,6 +202,44 @@ const DeviceGroups = () => {
         </Alert>
       )}
 
+      {/* Search Bar */}
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search by group name or description..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ mb: 3 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Summary Cards - Groups Overview */}
+      <Grid container spacing={2} mb={3}>
+        <Grid item xs={12} sm={6} md={4}>
+          <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <CardContent>
+              <Typography variant="h4" color="white" fontWeight="bold">
+                {groups.length}
+              </Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.9)">
+                Total Groups
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {loading ? (
+        <Box display="flex" justifyContent="center" p={4}>
+          <CircularProgress />
+        </Box>
+      ) : (
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -205,7 +252,16 @@ const DeviceGroups = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {groups.map((group) => (
+            {groups
+              .filter((group) => {
+                if (!searchQuery) return true;
+                const query = searchQuery.toLowerCase();
+                return (
+                  group.name?.toLowerCase().includes(query) ||
+                  group.description?.toLowerCase().includes(query)
+                );
+              })
+              .map((group) => (
               <TableRow key={group.id} hover>
                 <TableCell>
                   <Typography variant="body2" fontWeight="bold">{group.name}</Typography>
@@ -228,22 +284,31 @@ const DeviceGroups = () => {
                   </Typography>
                 </TableCell>
                 <TableCell align="center">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleOpenDialog(group)}
-                    color="primary"
-                    title="Edit"
-                  >
-                    <Edit />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDelete(group.id)}
-                    color="error"
-                    title="Delete"
-                  >
-                    <Delete />
-                  </IconButton>
+                  {canModifyGroups && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenDialog(group)}
+                      color="primary"
+                      title="Edit"
+                    >
+                      <Edit />
+                    </IconButton>
+                  )}
+                  {canDeleteGroups && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(group.id)}
+                      color="error"
+                      title="Delete"
+                    >
+                      <Delete />
+                    </IconButton>
+                  )}
+                  {!canModifyGroups && !canDeleteGroups && (
+                    <Typography variant="body2" color="textSecondary">
+                      View only
+                    </Typography>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -259,6 +324,7 @@ const DeviceGroups = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      )}
 
       {/* Add/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>

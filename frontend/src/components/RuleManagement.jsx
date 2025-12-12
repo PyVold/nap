@@ -37,15 +37,20 @@ import {
   ToggleOn,
   Security,
 } from '@mui/icons-material';
+import { Search as SearchIcon } from '@mui/icons-material';
+import InputAdornment from '@mui/material/InputAdornment';
 import { rulesAPI } from '../api/api';
-import { useCanModify } from './RoleBasedAccess';
+import { useCanModify, useHasPermission } from './RoleBasedAccess';
 
 const RuleManagement = () => {
   const canModify = useCanModify();
+  const canCreateRules = useHasPermission('modify_rules');
+  const canDeleteRules = useHasPermission('delete_rules');
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [formData, setFormData] = useState({
@@ -297,7 +302,7 @@ const RuleManagement = () => {
           <Security sx={{ mr: 1, verticalAlign: 'middle' }} />
           Audit Rules Management
         </Typography>
-        {canModify && (
+        {canCreateRules && (
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -307,6 +312,23 @@ const RuleManagement = () => {
           </Button>
         )}
       </Box>
+
+      {/* Search Bar */}
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search by rule name, description, category, or severity..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ mb: 3 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+      />
 
       {/* Debug Info - Remove after testing */}
       {process.env.NODE_ENV === 'development' && (
@@ -349,7 +371,18 @@ const RuleManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {rules.map((rule) => (
+            {rules
+              .filter((rule) => {
+                if (!searchQuery) return true;
+                const query = searchQuery.toLowerCase();
+                return (
+                  rule.name?.toLowerCase().includes(query) ||
+                  rule.description?.toLowerCase().includes(query) ||
+                  rule.category?.toLowerCase().includes(query) ||
+                  rule.severity?.toLowerCase().includes(query)
+                );
+              })
+              .map((rule) => (
               <TableRow key={rule.id} hover>
                 <TableCell>{rule.name}</TableCell>
                 <TableCell>{rule.description}</TableCell>
@@ -375,7 +408,7 @@ const RuleManagement = () => {
                   />
                 </TableCell>
                 <TableCell align="center">
-                  {canModify ? (
+                  {canCreateRules && (
                     <>
                       <IconButton
                         size="small"
@@ -391,15 +424,18 @@ const RuleManagement = () => {
                       >
                         <Edit />
                       </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(rule.id)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
                     </>
-                  ) : (
+                  )}
+                  {canDeleteRules && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(rule.id)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  )}
+                  {!canCreateRules && !canDeleteRules && (
                     <Typography variant="body2" color="textSecondary">
                       View only
                     </Typography>
