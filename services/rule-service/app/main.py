@@ -28,13 +28,22 @@ logger.info("Database initialized")
 # Initialize scheduler
 scheduler = get_scheduler()
 
+# CORS configuration from environment
+import os
+cors_origins_str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8080,http://localhost:3000")
+if cors_origins_str == "*":
+    cors_origins = ["*"]
+    logger.warning("CORS configured with wildcard '*' - not recommended for production!")
+else:
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=cors_origins,
+    allow_credentials=True if cors_origins_str != "*" else False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # Include routers

@@ -120,9 +120,10 @@ def delete_user_group(
 def add_user_to_group(
     group_id: int,
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_modify_groups)
 ):
-    """Add a user to a group (Admin only)"""
+    """Add a user to a group (requires modify_groups permission)"""
     try:
         result = user_group_service.add_user_to_group(db, user_id, group_id)
         if not result:
@@ -138,9 +139,10 @@ def add_user_to_group(
 def remove_user_from_group(
     group_id: int,
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_modify_groups)
 ):
-    """Remove a user from a group (Admin only)"""
+    """Remove a user from a group (requires modify_groups permission)"""
     try:
         result = user_group_service.remove_user_from_group(db, user_id, group_id)
         if not result:
@@ -156,9 +158,10 @@ def remove_user_from_group(
 def set_group_members(
     group_id: int,
     member_update: GroupMemberUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_modify_groups)
 ):
-    """Replace all members in a group (Admin only)"""
+    """Replace all members in a group (requires modify_groups permission)"""
     try:
         user_group_service.set_group_members(db, group_id, member_update.user_ids)
     except Exception as e:
@@ -167,8 +170,12 @@ def set_group_members(
 
 
 @router.get("/groups/{group_id}/members", response_model=List[int])
-def get_group_members(group_id: int, db: Session = Depends(get_db)):
-    """Get all members of a group"""
+def get_group_members(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_view_groups)
+):
+    """Get all members of a group (requires view_groups permission)"""
     try:
         return user_group_service.get_group_members(db, group_id)
     except Exception as e:
@@ -284,8 +291,12 @@ def get_available_permissions():
 
 
 @router.get("/users/{user_id}/permissions", response_model=List[str])
-def get_user_permissions(user_id: int, db: Session = Depends(get_db)):
-    """Get all permissions for a specific user"""
+def get_user_permissions(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_view_users)
+):
+    """Get all permissions for a specific user (requires view_users permission)"""
     try:
         permissions = user_group_service.get_user_permissions(db, user_id)
         return list(permissions)
@@ -295,8 +306,12 @@ def get_user_permissions(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/users/{user_id}/modules", response_model=List[str])
-def get_user_modules(user_id: int, db: Session = Depends(get_db)):
-    """Get all accessible modules for a specific user"""
+def get_user_modules(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_view_users)
+):
+    """Get all accessible modules for a specific user (requires view_users permission)"""
     try:
         modules = user_group_service.get_user_modules(db, user_id)
         return list(modules)
@@ -306,8 +321,13 @@ def get_user_modules(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/users/{user_id}/has-permission/{permission}", response_model=bool)
-def check_user_permission(user_id: int, permission: str, db: Session = Depends(get_db)):
-    """Check if user has a specific permission"""
+def check_user_permission(
+    user_id: int,
+    permission: str,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_view_users)
+):
+    """Check if user has a specific permission (requires view_users permission)"""
     try:
         return user_group_service.user_has_permission(db, user_id, permission)
     except Exception as e:
@@ -316,8 +336,13 @@ def check_user_permission(user_id: int, permission: str, db: Session = Depends(g
 
 
 @router.get("/users/{user_id}/can-access/{module}", response_model=bool)
-def check_module_access(user_id: int, module: str, db: Session = Depends(get_db)):
-    """Check if user can access a specific module"""
+def check_module_access(
+    user_id: int,
+    module: str,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(require_view_users)
+):
+    """Check if user can access a specific module (requires view_users permission)"""
     try:
         return user_group_service.user_can_access_module(db, user_id, module)
     except Exception as e:

@@ -4,7 +4,11 @@
 # ============================================================================
 
 import re
+import operator
+import logging
 from typing import Dict, List, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class BGPParser:
@@ -146,11 +150,11 @@ class BGPParser:
 
     def validate_assertion(self, parsed_data: Dict[str, Any], assertion: str, variables: Dict[str, Any]) -> bool:
         """
-        Validate an assertion against parsed BGP data
+        Validate an assertion against parsed BGP data safely without eval()
 
         Args:
             parsed_data: Parsed BGP data
-            assertion: Assertion string (e.g., "neighbor_count >= 2")
+            assertion: Assertion string (e.g., "neighbor_count >= 2", "bgp.neighbor_count >= 2")
             variables: Template variables for substitution
 
         Returns:
@@ -163,8 +167,95 @@ class BGPParser:
         }
 
         try:
-            # Safely evaluate assertion
-            return eval(assertion, {"__builtins__": {}}, context)
+            # Safely evaluate assertion without using eval()
+            return self._safe_evaluate(assertion.strip(), context)
         except Exception as e:
-            print(f"Error evaluating assertion '{assertion}': {e}")
+            logger.error(f"Error evaluating assertion '{assertion}': {e}")
             return False
+
+    def _safe_evaluate(self, expr: str, context: Dict[str, Any]) -> bool:
+        """Safely evaluate a simple boolean expression without using eval()"""
+        # Supported comparison operators (check longer ones first)
+        ops = [
+            ('>=', operator.ge),
+            ('<=', operator.le),
+            ('!=', operator.ne),
+            ('==', operator.eq),
+            ('>', operator.gt),
+            ('<', operator.lt),
+        ]
+
+        # Try simple comparisons
+        for op_str, op_func in ops:
+            if op_str in expr:
+                parts = expr.split(op_str, 1)
+                if len(parts) == 2:
+                    left = self._resolve_value(parts[0].strip(), context)
+                    right = self._resolve_value(parts[1].strip(), context)
+                    return op_func(left, right)
+
+        # Check for 'not in' operator
+        if ' not in ' in expr:
+            parts = expr.split(' not in ', 1)
+            if len(parts) == 2:
+                left = self._resolve_value(parts[0].strip(), context)
+                right = self._resolve_value(parts[1].strip(), context)
+                return left not in right
+
+        # Check for 'in' operator
+        if ' in ' in expr:
+            parts = expr.split(' in ', 1)
+            if len(parts) == 2:
+                left = self._resolve_value(parts[0].strip(), context)
+                right = self._resolve_value(parts[1].strip(), context)
+                return left in right
+
+        # Try to resolve as a single value (truthy check)
+        value = self._resolve_value(expr, context)
+        return bool(value)
+
+    def _resolve_value(self, value_str: str, context: Dict[str, Any]) -> Any:
+        """Resolve a value from string representation safely"""
+        value_str = value_str.strip()
+
+        # Handle quoted strings
+        if (value_str.startswith('"') and value_str.endswith('"')) or \
+           (value_str.startswith("'") and value_str.endswith("'")):
+            return value_str[1:-1]
+
+        # Handle numeric values
+        try:
+            if '.' in value_str and not any(c.isalpha() for c in value_str):
+                return float(value_str)
+            if value_str.isdigit() or (value_str.startswith('-') and value_str[1:].isdigit()):
+                return int(value_str)
+        except ValueError:
+            pass
+
+        # Handle boolean literals
+        if value_str.lower() == 'true':
+            return True
+        if value_str.lower() == 'false':
+            return False
+        if value_str.lower() == 'none':
+            return None
+
+        # Look up in context (supports dot notation like bgp.neighbor_count)
+        if '.' in value_str:
+            parts = value_str.split('.')
+            current = context
+            for part in parts:
+                if isinstance(current, dict) and part in current:
+                    current = current[part]
+                elif hasattr(current, part):
+                    current = getattr(current, part)
+                else:
+                    return value_str  # Return as string if not found
+            return current
+
+        # Simple context lookup
+        if value_str in context:
+            return context[value_str]
+
+        # Return as-is (string)
+        return value_str

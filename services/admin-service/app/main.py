@@ -292,13 +292,24 @@ async def shutdown_event():
         logger.error(f"❌ Error shutting down scheduler: {e}")
 
 
+# CORS configuration from environment
+# Default to restrictive settings, allow expansion via CORS_ALLOWED_ORIGINS env var
+import os
+cors_origins_str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8080,http://localhost:3000")
+if cors_origins_str == "*":
+    # WARNING: Using wildcard origins - not recommended for production
+    cors_origins = ["*"]
+    logger.warning("CORS configured with wildcard '*' - not recommended for production!")
+else:
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=cors_origins,
+    allow_credentials=True if cors_origins_str != "*" else False,  # Cannot use credentials with wildcard
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # Include routers
