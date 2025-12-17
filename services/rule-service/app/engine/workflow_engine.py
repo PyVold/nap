@@ -72,7 +72,7 @@ class WorkflowContext:
         return template.render(**template_context)
 
     def evaluate_condition(self, condition: str) -> bool:
-        """Evaluate a condition string"""
+        """Evaluate a condition string safely without using eval()"""
         if not condition:
             return True
 
@@ -86,15 +86,114 @@ class WorkflowContext:
             elif rendered.lower() in ['false', '0', 'no', '']:
                 return False
 
-            # Try to evaluate as Python expression
+            # Safe expression evaluation using simple comparisons
+            rendered = rendered.strip()
+
+            # Build safe context for evaluation
             context = {
                 **self.variables,
                 **self.step_outputs
             }
-            return bool(eval(rendered, {"__builtins__": {}}, context))
+
+            # Use safe_eval helper instead of eval()
+            return self._safe_evaluate_expression(rendered, context)
         except Exception as e:
             logger.error(f"Error evaluating condition '{condition}': {e}")
             return False
+
+    def _safe_evaluate_expression(self, expr: str, context: Dict[str, Any]) -> bool:
+        """Safely evaluate a simple boolean expression without using eval()"""
+        import operator
+
+        # Supported comparison operators (check longer ones first)
+        ops = [
+            ('>=', operator.ge),
+            ('<=', operator.le),
+            ('!=', operator.ne),
+            ('==', operator.eq),
+            ('>', operator.gt),
+            ('<', operator.lt),
+        ]
+
+        # Try simple comparisons first
+        for op_str, op_func in ops:
+            if op_str in expr:
+                parts = expr.split(op_str, 1)
+                if len(parts) == 2:
+                    left = self._resolve_value(parts[0].strip(), context)
+                    right = self._resolve_value(parts[1].strip(), context)
+                    return op_func(left, right)
+
+        # Check for 'not in' operator (check before 'in')
+        if ' not in ' in expr:
+            parts = expr.split(' not in ', 1)
+            if len(parts) == 2:
+                left = self._resolve_value(parts[0].strip(), context)
+                right = self._resolve_value(parts[1].strip(), context)
+                return left not in right
+
+        # Check for 'in' operator
+        if ' in ' in expr:
+            parts = expr.split(' in ', 1)
+            if len(parts) == 2:
+                left = self._resolve_value(parts[0].strip(), context)
+                right = self._resolve_value(parts[1].strip(), context)
+                return left in right
+
+        # Try to resolve as a single value (truthy check)
+        value = self._resolve_value(expr, context)
+        return bool(value)
+
+    def _resolve_value(self, value_str: str, context: Dict[str, Any]) -> Any:
+        """Resolve a value from string representation safely"""
+        value_str = value_str.strip()
+
+        # Handle quoted strings
+        if (value_str.startswith('"') and value_str.endswith('"')) or \
+           (value_str.startswith("'") and value_str.endswith("'")):
+            return value_str[1:-1]
+
+        # Handle numeric values
+        try:
+            if '.' in value_str:
+                return float(value_str)
+            return int(value_str)
+        except ValueError:
+            pass
+
+        # Handle boolean literals
+        if value_str.lower() == 'true':
+            return True
+        if value_str.lower() == 'false':
+            return False
+        if value_str.lower() == 'none':
+            return None
+
+        # Handle list literals [a, b, c]
+        if value_str.startswith('[') and value_str.endswith(']'):
+            inner = value_str[1:-1]
+            if not inner.strip():
+                return []
+            items = [self._resolve_value(item.strip(), context) for item in inner.split(',')]
+            return items
+
+        # Look up in context (supports dot notation like step1.result)
+        if '.' in value_str:
+            parts = value_str.split('.')
+            current = context
+            for part in parts:
+                if isinstance(current, dict) and part in current:
+                    current = current[part]
+                else:
+                    return value_str  # Return as string if not found
+            return current
+
+        # Simple context lookup
+        if value_str in context:
+            return context[value_str]
+
+        # Return as-is (string)
+        return value_str
 
 
 class WorkflowEngine:
