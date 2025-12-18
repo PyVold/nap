@@ -1,26 +1,51 @@
 """
 Analytics Service - FastAPI Microservice
 Port: 3006
+
+Features:
+- Compliance trend tracking and forecasting
+- ML-powered anomaly detection
+- Device risk scoring
+- Automated insight generation
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from shared.database import init_db
 from shared.logger import setup_logger
 from shared.monitoring import router as monitoring_router
 from routes import analytics
+from routes import ml_insights
+from services.scheduler import analytics_scheduler
 
 logger = setup_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan - startup and shutdown events"""
+    # Startup
+    init_db()
+    logger.info("Analytics database initialized")
+
+    # Start background scheduler for ML jobs
+    analytics_scheduler.start()
+    logger.info("ML analytics scheduler started")
+
+    yield
+
+    # Shutdown
+    analytics_scheduler.stop()
+    logger.info("ML analytics scheduler stopped")
+
 
 app = FastAPI(
     title="Analytics Service",
     version="1.0.0",
-    description="Network Audit Platform - Analytics & Intelligence Service"
+    description="Network Audit Platform - Analytics & Intelligence Service with ML",
+    lifespan=lifespan
 )
-
-# Initialize database
-init_db()
-logger.info("Analytics database initialized")
 
 # CORS configuration from environment
 import os
@@ -42,6 +67,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(analytics.router, tags=["Analytics"])
+app.include_router(ml_insights.router, tags=["ML Insights"])
 app.include_router(monitoring_router, tags=["Monitoring"])
 
 

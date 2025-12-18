@@ -45,6 +45,7 @@ import {
   AccountTree as WorkflowIcon,
   Memory as HardwareIcon,
   Key as KeyIcon,
+  Psychology as MLIcon,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import RuleManagement from './components/RuleManagement';
@@ -61,6 +62,7 @@ import DriftDetection from './components/DriftDetection';
 import RuleTemplates from './components/RuleTemplates';
 import Integrations from './components/Integrations';
 import Analytics from './components/Analytics';
+import MLInsights from './components/MLInsights';
 import AdminPanel from './components/AdminPanel';
 import UserManagement from './components/UserManagement';
 import Workflows from './components/Workflows';
@@ -218,6 +220,7 @@ function AppContent() {
     { text: 'Integration Hub', icon: <IntegrationIcon />, path: '/integrations', module: 'integrations' },
     { text: 'Workflows', icon: <WorkflowIcon />, path: '/workflows', module: 'workflows' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics', module: 'analytics' },
+    { text: 'ML Insights', icon: <MLIcon />, path: '/ml-insights', module: 'analytics' },
     { text: 'divider', isDivider: true },
     { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
@@ -410,6 +413,7 @@ function AppContent() {
             <Route path="/integrations" element={<LicenseGuard><ModuleGuard module="integrations"><Integrations /></ModuleGuard></LicenseGuard>} />
             <Route path="/workflows" element={<LicenseGuard><ModuleGuard module="workflows"><Workflows /></ModuleGuard></LicenseGuard>} />
             <Route path="/analytics" element={<LicenseGuard><ModuleGuard module="analytics"><Analytics /></ModuleGuard></LicenseGuard>} />
+            <Route path="/ml-insights" element={<LicenseGuard><ModuleGuard module="analytics"><MLInsights /></ModuleGuard></LicenseGuard>} />
             <Route path="/admin" element={<LicenseGuard><AdminDashboard /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />

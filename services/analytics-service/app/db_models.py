@@ -91,3 +91,108 @@ class ComplianceAnomalyDB(Base):
     acknowledged_by = Column(String(100), nullable=True)
     acknowledged_at = Column(DateTime, nullable=True)
     resolution_notes = Column(Text, nullable=True)
+
+
+# ============================================================================
+# ML-Powered Analytics Models
+# ============================================================================
+
+class DeviceRiskScoreDB(Base):
+    """ML-generated device risk scores"""
+    __tablename__ = "device_risk_scores"
+    __table_args__ = (
+        Index('ix_device_risk_scores_device', 'device_id'),
+        Index('ix_device_risk_scores_calculated', 'calculated_at'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, nullable=False)
+    calculated_at = Column(DateTime, default=datetime.utcnow)
+
+    # Risk metrics (0.0 - 1.0 scale)
+    overall_risk_score = Column(Float, default=0.0)
+    compliance_risk = Column(Float, default=0.0)      # Based on audit failures
+    health_risk = Column(Float, default=0.0)          # Based on connectivity issues
+    drift_risk = Column(Float, default=0.0)           # Based on config changes
+    age_risk = Column(Float, default=0.0)             # Based on time since last audit
+
+    # Risk classification
+    risk_level = Column(String(20), default="low")    # low, medium, high, critical
+
+    # Contributing factors (JSON list of factor objects)
+    risk_factors = Column(JSON, default=list)
+
+    # Model metadata
+    model_version = Column(String(50), default="gradient_boosting_v1")
+    feature_importance = Column(JSON, nullable=True)  # Feature weights
+
+    # Recommendations
+    recommendations = Column(JSON, default=list)      # List of suggested actions
+
+
+class MLInsightDB(Base):
+    """AI-generated insights and recommendations"""
+    __tablename__ = "ml_insights"
+    __table_args__ = (
+        Index('ix_ml_insights_generated', 'generated_at'),
+        Index('ix_ml_insights_type', 'insight_type'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    generated_at = Column(DateTime, default=datetime.utcnow)
+
+    # Insight categorization
+    insight_type = Column(String(50), nullable=False)  # trend, anomaly, prediction, recommendation
+    category = Column(String(50), nullable=True)       # compliance, health, security, performance
+
+    # Content
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    severity = Column(SQLEnum(SeverityLevel), default=SeverityLevel.LOW)
+
+    # Associated data
+    device_id = Column(Integer, nullable=True)
+    related_metrics = Column(JSON, default=dict)      # Supporting data/metrics
+
+    # ML confidence
+    confidence_score = Column(Float, default=0.0)     # 0.0-1.0
+    model_version = Column(String(50), nullable=True)
+
+    # Action tracking
+    is_actionable = Column(Boolean, default=False)
+    action_taken = Column(Boolean, default=False)
+    dismissed = Column(Boolean, default=False)
+    dismissed_by = Column(String(100), nullable=True)
+
+
+class MLModelMetadataDB(Base):
+    """Metadata about trained ML models"""
+    __tablename__ = "ml_model_metadata"
+    __table_args__ = (
+        Index('ix_ml_models_name_version', 'model_name', 'version'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String(100), nullable=False)  # e.g., "compliance_forecaster", "risk_scorer"
+    version = Column(String(50), nullable=False)
+
+    # Training info
+    trained_at = Column(DateTime, default=datetime.utcnow)
+    training_samples = Column(Integer, default=0)
+    training_duration_seconds = Column(Float, default=0.0)
+
+    # Performance metrics
+    accuracy = Column(Float, nullable=True)
+    precision = Column(Float, nullable=True)
+    recall = Column(Float, nullable=True)
+    f1_score = Column(Float, nullable=True)
+    mse = Column(Float, nullable=True)              # For regression models
+    mae = Column(Float, nullable=True)              # Mean absolute error
+
+    # Model configuration
+    hyperparameters = Column(JSON, default=dict)
+    feature_names = Column(JSON, default=list)
+
+    # Status
+    is_active = Column(Boolean, default=True)       # Currently in use
+    model_path = Column(String(255), nullable=True) # Path to serialized model

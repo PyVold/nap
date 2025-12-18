@@ -253,6 +253,36 @@ export const analyticsAPI = {
   getDashboardSummary: () => api.get('/analytics/dashboard/summary')
 };
 
+// ML Insights API
+export const mlInsightsAPI = {
+  // Insights
+  getInsights: (params = {}) => api.get('/analytics/ml/insights', { params }),
+  getInsightsSummary: () => api.get('/analytics/ml/insights/summary'),
+  dismissInsight: (id, dismissedBy) => api.post(`/analytics/ml/insights/${id}/dismiss`, { dismissed_by: dismissedBy }),
+  markActionTaken: (id) => api.post(`/analytics/ml/insights/${id}/action-taken`),
+  generateInsights: () => api.post('/analytics/ml/insights/generate'),
+
+  // Risk Scores
+  getRiskScores: (params = {}) => api.get('/analytics/ml/risk-scores', { params }),
+  getRiskSummary: () => api.get('/analytics/ml/risk-scores/summary'),
+  calculateRiskScores: (deviceIds = null) => api.post('/analytics/ml/risk-scores/calculate', { device_ids: deviceIds }),
+
+  // ML Forecasting
+  generateMLForecast: (deviceId = null, daysAhead = 14) =>
+    api.post('/analytics/ml/forecast/generate', { device_id: deviceId, days_ahead: daysAhead }),
+
+  // ML Anomaly Detection
+  detectMLAnomalies: (deviceId = null, sensitivity = 0.1) =>
+    api.post('/analytics/ml/anomalies/detect', { device_id: deviceId, sensitivity: sensitivity }),
+
+  // Scheduler
+  getSchedulerStatus: () => api.get('/analytics/ml/scheduler/status'),
+  runSchedulerJob: (jobId) => api.post(`/analytics/ml/scheduler/run/${jobId}`),
+
+  // Model Metadata
+  getModels: (modelName = null) => api.get('/analytics/ml/models', { params: { model_name: modelName } })
+};
+
 // Remediation API
 export const remediationAPI = {
   pushRemediation: (deviceIds, dryRun = true) =>
