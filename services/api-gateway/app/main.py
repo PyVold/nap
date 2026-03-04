@@ -92,6 +92,13 @@ SERVICES = {
         "routes": ["/workflows"],
         "ui_routes": ["workflows"]
     },
+    "ai-service": {
+        "url": "http://ai-service:3007",
+        "name": "AI & MCP",
+        "enabled": True,
+        "routes": ["/ai", "/mcp"],
+        "ui_routes": ["ai", "mcp"]
+    },
 }
 
 @app.get("/")

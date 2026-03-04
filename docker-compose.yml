@@ -36,6 +36,7 @@ services:
       - inventory-service
       - admin-service
       - analytics-service
+      - ai-service
     environment:
       - LOG_LEVEL=info
 
@@ -144,6 +145,34 @@ services:
       - RULE_SERVICE_URL=http://rule-service:3002
       - DEVICE_SERVICE_URL=http://device-service:3001
       - LOG_LEVEL=info
+
+  # AI Service
+  ai-service:
+    build:
+      context: .
+      dockerfile: services/ai-service/Dockerfile.offline
+    env_file:
+      - .env
+    ports:
+      - "3007:3007"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://nap_user:nap_password@database:5432/nap_db
+      - SERVICE_PORT=3007
+      - DEVICE_SERVICE_URL=http://device-service:3001
+      - RULE_SERVICE_URL=http://rule-service:3002
+      - BACKUP_SERVICE_URL=http://backup-service:3003
+      - INVENTORY_SERVICE_URL=http://inventory-service:3004
+      - ADMIN_SERVICE_URL=http://admin-service:3005
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3006
+      - LOG_LEVEL=info
+      # AI Provider config - set in .env file
+      # - ANTHROPIC_API_KEY=
+      # - OPENAI_API_KEY=
+      # - AI_PROVIDER=anthropic
+      # - LOCAL_LLM_URL=http://ollama:11434
 
   # Frontend
   frontend:

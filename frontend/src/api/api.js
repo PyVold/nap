@@ -326,4 +326,54 @@ export const adminAPI = {
   deleteUser: (id) => api.delete(`/user-management/${id}`)
 };
 
+// AI Service API
+export const aiAPI = {
+  // Status
+  getStatus: () => api.get('/ai/status'),
+
+  // Natural Language Rule Builder
+  generateRule: (request) => api.post('/ai/rules/generate', request),
+  getRuleDrafts: (status) => api.get('/ai/rules/drafts', { params: status ? { status_filter: status } : {} }),
+  actionRuleDraft: (draftId, action) => api.post(`/ai/rules/drafts/${draftId}/action`, action),
+
+  // AI Chat
+  chat: (request) => api.post('/ai/chat', request),
+
+  // Remediation Advisor
+  generateRemediation: (request) => api.post('/ai/remediation/generate', request),
+  getRemediationDrafts: (status) => api.get('/ai/remediation/drafts', { params: status ? { status_filter: status } : {} }),
+  actionRemediationDraft: (draftId, action) => api.post(`/ai/remediation/drafts/${draftId}/action`, action),
+
+  // Report Generation
+  generateReport: (request) => api.post('/ai/reports/generate', request),
+  getReports: () => api.get('/ai/reports'),
+  getReport: (reportId) => api.get(`/ai/reports/${reportId}`),
+
+  // Anomaly Detection
+  detectAnomalies: (request) => api.post('/ai/anomalies/detect', request),
+
+  // Feedback
+  submitFeedback: (feedback) => api.post('/ai/feedback', feedback),
+};
+
+// MCP API
+export const mcpAPI = {
+  // MCP Server (NAP as server)
+  initialize: () => api.post('/mcp/initialize'),
+  getTools: () => api.get('/mcp/tools'),
+  callTool: (toolName, args) => api.post('/mcp/tools/call', { tool_name: toolName, arguments: args }),
+  getResources: () => api.get('/mcp/resources'),
+  readResource: (uri) => api.post('/mcp/resources/read', { uri }),
+  getPrompts: () => api.get('/mcp/prompts'),
+  getPrompt: (name, args) => api.post('/mcp/prompts/get', { name, arguments: args }),
+
+  // MCP Hub (NAP as client)
+  getConnections: () => api.get('/mcp/hub/connections'),
+  createConnection: (connection) => api.post('/mcp/hub/connections', connection),
+  deleteConnection: (id) => api.delete(`/mcp/hub/connections/${id}`),
+  testConnection: (id) => api.post(`/mcp/hub/connections/${id}/test`),
+  getConnectionTools: (id) => api.get(`/mcp/hub/connections/${id}/tools`),
+  callExternalTool: (connId, toolName, args) => api.post(`/mcp/hub/connections/${connId}/tools/call`, { tool_name: toolName, arguments: args }),
+};
+
 export default api;

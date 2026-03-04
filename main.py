@@ -54,6 +54,12 @@ async def startup_event():
                 {'module_name': 'health', 'display_name': 'Device Health', 'enabled': True},
                 {'module_name': 'hardware_inventory', 'display_name': 'Hardware Inventory', 'enabled': True},
                 {'module_name': 'integrations', 'display_name': 'Integration Hub', 'enabled': True},
+                {'module_name': 'ai_chat', 'display_name': 'AI Chat', 'enabled': True},
+                {'module_name': 'ai_rule_builder', 'display_name': 'AI Rule Builder', 'enabled': True},
+                {'module_name': 'ai_remediation', 'display_name': 'AI Remediation', 'enabled': True},
+                {'module_name': 'ai_reports', 'display_name': 'AI Reports', 'enabled': True},
+                {'module_name': 'anomaly_detection', 'display_name': 'Anomaly Detection', 'enabled': True},
+                {'module_name': 'mcp_hub', 'display_name': 'MCP Hub', 'enabled': True},
             ]
 
             for module_data in default_modules:

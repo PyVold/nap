@@ -45,6 +45,12 @@ import {
   AccountTree as WorkflowIcon,
   Memory as HardwareIcon,
   Key as KeyIcon,
+  SmartToy as AIIcon,
+  AutoFixHigh as RuleBuilderIcon,
+  Healing as RemediationIcon,
+  Assessment as ReportsIcon,
+  Shield as AnomalyIcon,
+  Hub as MCPHubIcon,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import RuleManagement from './components/RuleManagement';
@@ -67,6 +73,12 @@ import Workflows from './components/Workflows';
 import HardwareInventory from './components/HardwareInventory';
 import LicenseManagement from './components/LicenseManagement';
 import AdminDashboard from './components/AdminDashboard';
+import AIChat from './components/AIChat';
+import AIRuleBuilder from './components/AIRuleBuilder';
+import AIRemediation from './components/AIRemediation';
+import AIReports from './components/AIReports';
+import AnomalyDetection from './components/AnomalyDetection';
+import MCPHub from './components/MCPHub';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
@@ -218,6 +230,13 @@ function AppContent() {
     { text: 'Integration Hub', icon: <IntegrationIcon />, path: '/integrations', module: 'integrations' },
     { text: 'Workflows', icon: <WorkflowIcon />, path: '/workflows', module: 'workflows' },
     { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics', module: 'analytics' },
+    { text: 'divider', isDivider: true },
+    { text: 'AI Chat', icon: <AIIcon />, path: '/ai-chat', module: 'analytics' },
+    { text: 'AI Rule Builder', icon: <RuleBuilderIcon />, path: '/ai-rule-builder', module: 'analytics' },
+    { text: 'AI Remediation', icon: <RemediationIcon />, path: '/ai-remediation', module: 'analytics' },
+    { text: 'AI Reports', icon: <ReportsIcon />, path: '/ai-reports', module: 'analytics' },
+    { text: 'Anomaly Detection', icon: <AnomalyIcon />, path: '/anomaly-detection', module: 'analytics' },
+    { text: 'MCP Hub', icon: <MCPHubIcon />, path: '/mcp-hub', module: 'analytics' },
     { text: 'divider', isDivider: true },
     { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
@@ -410,6 +429,12 @@ function AppContent() {
             <Route path="/integrations" element={<LicenseGuard><ModuleGuard module="integrations"><Integrations /></ModuleGuard></LicenseGuard>} />
             <Route path="/workflows" element={<LicenseGuard><ModuleGuard module="workflows"><Workflows /></ModuleGuard></LicenseGuard>} />
             <Route path="/analytics" element={<LicenseGuard><ModuleGuard module="analytics"><Analytics /></ModuleGuard></LicenseGuard>} />
+            <Route path="/ai-chat" element={<LicenseGuard><ModuleGuard module="analytics"><AIChat /></ModuleGuard></LicenseGuard>} />
+            <Route path="/ai-rule-builder" element={<LicenseGuard><ModuleGuard module="analytics"><AIRuleBuilder /></ModuleGuard></LicenseGuard>} />
+            <Route path="/ai-remediation" element={<LicenseGuard><ModuleGuard module="analytics"><AIRemediation /></ModuleGuard></LicenseGuard>} />
+            <Route path="/ai-reports" element={<LicenseGuard><ModuleGuard module="analytics"><AIReports /></ModuleGuard></LicenseGuard>} />
+            <Route path="/anomaly-detection" element={<LicenseGuard><ModuleGuard module="analytics"><AnomalyDetection /></ModuleGuard></LicenseGuard>} />
+            <Route path="/mcp-hub" element={<LicenseGuard><ModuleGuard module="analytics"><MCPHub /></ModuleGuard></LicenseGuard>} />
             <Route path="/admin" element={<LicenseGuard><AdminDashboard /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />
