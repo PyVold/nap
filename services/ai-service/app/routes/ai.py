@@ -338,6 +338,212 @@ async def submit_feedback(
 
 
 # ============================================================================
+# Config Change Impact Analysis (Phase 3)
+# ============================================================================
+
+@router.post("/impact/analyze", response_model=ImpactAnalysisResponse)
+async def analyze_impact(
+    request: ImpactAnalysisRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Analyze the potential impact of a proposed configuration change"""
+    try:
+        from services.impact_analyzer import analyze_impact as do_analyze
+        return await do_analyze(request, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Impact analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze impact.")
+
+
+# ============================================================================
+# Compliance Posture Prediction (Phase 3)
+# ============================================================================
+
+@router.post("/compliance/predict")
+async def predict_compliance(
+    device_id: int = None,
+    device_group_id: int = None,
+    forecast_days: int = 30,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Predict future compliance posture based on historical trends"""
+    try:
+        from services.compliance_predictor import predict_compliance as predict
+        return await predict(db, device_id, device_group_id, forecast_days)
+    except Exception as e:
+        logger.error(f"Compliance prediction failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to predict compliance.")
+
+
+@router.post("/compliance/what-if")
+async def what_if_analysis(
+    scenario: str,
+    device_ids: list = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Run a what-if compliance scenario analysis"""
+    try:
+        from services.compliance_predictor import what_if_analysis as what_if
+        return await what_if(db, scenario, device_ids)
+    except Exception as e:
+        logger.error(f"What-if analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to run what-if analysis.")
+
+
+# ============================================================================
+# Config Optimization (Phase 3)
+# ============================================================================
+
+@router.post("/config/optimize/{device_id}")
+async def optimize_config(
+    device_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Analyze device config for optimization opportunities"""
+    try:
+        from services.config_optimizer import analyze_config
+        return await analyze_config(device_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Config optimization failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze config.")
+
+
+@router.post("/config/compare-group/{group_id}")
+async def compare_group_configs(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Compare configs across a device group for inconsistencies"""
+    try:
+        from services.config_optimizer import compare_group_configs as compare
+        return await compare(group_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Group config comparison failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to compare group configs.")
+
+
+# ============================================================================
+# Embedding-Based Config Search (Phase 3)
+# ============================================================================
+
+@router.post("/config/search")
+async def search_configs(
+    query: str,
+    max_results: int = 10,
+    vendor: str = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Semantic search across device configurations"""
+    try:
+        from services.config_search import semantic_search
+        return await semantic_search(query, db, max_results, vendor)
+    except Exception as e:
+        logger.error(f"Config search failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to search configs.")
+
+
+@router.post("/config/similar/{device_id}")
+async def find_similar(
+    device_id: int,
+    section: str = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Find devices with similar configurations"""
+    try:
+        from services.config_search import find_similar_configs
+        return await find_similar_configs(device_id, db, section)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Similarity search failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to find similar configs.")
+
+
+# ============================================================================
+# Multi-Agent Operations (Phase 4)
+# ============================================================================
+
+@router.post("/agents/orchestrate")
+async def orchestrate_operation(
+    request: str,
+    context: dict = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin_or_operator),
+):
+    """Orchestrate a complex multi-agent network operation"""
+    try:
+        from services.multi_agent import orchestrate
+        return await orchestrate(request, db, context)
+    except Exception as e:
+        logger.error(f"Multi-agent orchestration failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to orchestrate operation.")
+
+
+# ============================================================================
+# Adaptive Monitoring (Phase 4)
+# ============================================================================
+
+@router.post("/monitoring/evaluate")
+async def evaluate_monitoring(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin_or_operator),
+):
+    """Evaluate network state and adapt monitoring intervals"""
+    try:
+        from services.adaptive_monitor import evaluate_and_adapt
+        return await evaluate_and_adapt(db)
+    except Exception as e:
+        logger.error(f"Adaptive monitoring evaluation failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to evaluate monitoring.")
+
+
+@router.get("/monitoring/recommendations")
+async def monitoring_recommendations(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get AI recommendations for monitoring configuration"""
+    try:
+        from services.adaptive_monitor import get_monitoring_recommendations
+        return await get_monitoring_recommendations(db)
+    except Exception as e:
+        logger.error(f"Monitoring recommendations failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get recommendations.")
+
+
+# ============================================================================
+# Self-Healing Workflows (Phase 4)
+# ============================================================================
+
+@router.post("/self-heal")
+async def create_self_healing_plan(
+    trigger_event: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin_or_operator),
+):
+    """Create a self-healing workflow plan (requires human approval)"""
+    try:
+        from services.adaptive_monitor import create_self_healing_plan
+        return await create_self_healing_plan(trigger_event, db)
+    except Exception as e:
+        logger.error(f"Self-healing plan creation failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create self-healing plan.")
+
+
+# ============================================================================
 # AI Service Status
 # ============================================================================
 
@@ -352,13 +558,10 @@ async def ai_status():
         "status": "online",
         "available_providers": [p.value for p in providers],
         "default_provider": default.value,
-        "features": [
-            "rule_builder",
-            "chat_query",
-            "remediation_advisor",
-            "report_generator",
-            "anomaly_detection",
-            "mcp_server",
-            "mcp_hub",
-        ],
+        "features": {
+            "phase_1": ["rule_builder", "chat_query", "mcp_server", "llm_adapter"],
+            "phase_2": ["remediation_advisor", "report_generator", "anomaly_detection", "mcp_hub"],
+            "phase_3": ["impact_analysis", "compliance_prediction", "config_optimization", "config_search", "feedback_loop"],
+            "phase_4": ["multi_agent_ops", "adaptive_monitoring", "self_healing_workflows"],
+        },
     }

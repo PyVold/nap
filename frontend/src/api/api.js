@@ -354,6 +354,31 @@ export const aiAPI = {
 
   // Feedback
   submitFeedback: (feedback) => api.post('/ai/feedback', feedback),
+
+  // Phase 3: Impact Analysis
+  analyzeImpact: (request) => api.post('/ai/impact/analyze', request),
+
+  // Phase 3: Compliance Prediction
+  predictCompliance: (params) => api.post('/ai/compliance/predict', null, { params }),
+  whatIfAnalysis: (scenario, deviceIds) => api.post('/ai/compliance/what-if', null, { params: { scenario, device_ids: deviceIds } }),
+
+  // Phase 3: Config Optimization
+  optimizeConfig: (deviceId) => api.post(`/ai/config/optimize/${deviceId}`),
+  compareGroupConfigs: (groupId) => api.post(`/ai/config/compare-group/${groupId}`),
+
+  // Phase 3: Config Search
+  searchConfigs: (query, maxResults, vendor) => api.post('/ai/config/search', null, { params: { query, max_results: maxResults, vendor } }),
+  findSimilarConfigs: (deviceId, section) => api.post(`/ai/config/similar/${deviceId}`, null, { params: section ? { section } : {} }),
+
+  // Phase 4: Multi-Agent Operations
+  orchestrate: (request, context) => api.post('/ai/agents/orchestrate', null, { params: { request }, data: context }),
+
+  // Phase 4: Adaptive Monitoring
+  evaluateMonitoring: () => api.post('/ai/monitoring/evaluate'),
+  getMonitoringRecommendations: () => api.get('/ai/monitoring/recommendations'),
+
+  // Phase 4: Self-Healing
+  createSelfHealingPlan: (triggerEvent) => api.post('/ai/self-heal', triggerEvent),
 };
 
 // MCP API

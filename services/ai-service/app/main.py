@@ -64,6 +64,13 @@ async def root():
             "anomaly_detection",
             "mcp_server",
             "mcp_integration_hub",
+            "impact_analysis",
+            "compliance_prediction",
+            "config_optimization",
+            "config_search",
+            "multi_agent_operations",
+            "adaptive_monitoring",
+            "self_healing_workflows",
         ],
     }
 

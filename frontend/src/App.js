@@ -51,6 +51,10 @@ import {
   Assessment as ReportsIcon,
   Shield as AnomalyIcon,
   Hub as MCPHubIcon,
+  Bolt as ImpactIcon,
+  TrendingUp as PredictionIcon,
+  Tune as OptimizerIcon,
+  PrecisionManufacturing as MultiAgentIcon,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import RuleManagement from './components/RuleManagement';
@@ -79,6 +83,10 @@ import AIRemediation from './components/AIRemediation';
 import AIReports from './components/AIReports';
 import AnomalyDetection from './components/AnomalyDetection';
 import MCPHub from './components/MCPHub';
+import ImpactAnalysis from './components/ImpactAnalysis';
+import CompliancePrediction from './components/CompliancePrediction';
+import ConfigOptimizer from './components/ConfigOptimizer';
+import MultiAgentOps from './components/MultiAgentOps';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
@@ -237,6 +245,10 @@ function AppContent() {
     { text: 'AI Reports', icon: <ReportsIcon />, path: '/ai-reports', module: 'analytics' },
     { text: 'Anomaly Detection', icon: <AnomalyIcon />, path: '/anomaly-detection', module: 'analytics' },
     { text: 'MCP Hub', icon: <MCPHubIcon />, path: '/mcp-hub', module: 'analytics' },
+    { text: 'Impact Analysis', icon: <ImpactIcon />, path: '/impact-analysis', module: 'analytics' },
+    { text: 'Compliance Forecast', icon: <PredictionIcon />, path: '/compliance-prediction', module: 'analytics' },
+    { text: 'Config Intelligence', icon: <OptimizerIcon />, path: '/config-optimizer', module: 'analytics' },
+    { text: 'Multi-Agent Ops', icon: <MultiAgentIcon />, path: '/multi-agent-ops', module: 'analytics' },
     { text: 'divider', isDivider: true },
     { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
@@ -435,6 +447,10 @@ function AppContent() {
             <Route path="/ai-reports" element={<LicenseGuard><ModuleGuard module="analytics"><AIReports /></ModuleGuard></LicenseGuard>} />
             <Route path="/anomaly-detection" element={<LicenseGuard><ModuleGuard module="analytics"><AnomalyDetection /></ModuleGuard></LicenseGuard>} />
             <Route path="/mcp-hub" element={<LicenseGuard><ModuleGuard module="analytics"><MCPHub /></ModuleGuard></LicenseGuard>} />
+            <Route path="/impact-analysis" element={<LicenseGuard><ModuleGuard module="analytics"><ImpactAnalysis /></ModuleGuard></LicenseGuard>} />
+            <Route path="/compliance-prediction" element={<LicenseGuard><ModuleGuard module="analytics"><CompliancePrediction /></ModuleGuard></LicenseGuard>} />
+            <Route path="/config-optimizer" element={<LicenseGuard><ModuleGuard module="analytics"><ConfigOptimizer /></ModuleGuard></LicenseGuard>} />
+            <Route path="/multi-agent-ops" element={<LicenseGuard><ModuleGuard module="analytics"><MultiAgentOps /></ModuleGuard></LicenseGuard>} />
             <Route path="/admin" element={<LicenseGuard><AdminDashboard /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />
