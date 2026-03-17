@@ -11,6 +11,7 @@ import FindInPageIcon from '@mui/icons-material/FindInPage';
 import RecommendIcon from '@mui/icons-material/Recommend';
 import DownloadIcon from '@mui/icons-material/Download';
 import { aiAPI } from '../api/api';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const AIReports = () => {
   const [reports, setReports] = useState([]);
@@ -272,6 +273,8 @@ const AIReports = () => {
               <Paper sx={{ p: 2, bgcolor: 'grey.50', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.85rem', maxHeight: '500px', overflow: 'auto' }}>
                 {selectedReport.content}
               </Paper>
+
+              <AIFeedbackWidget featureType="report" responseData={selectedReport?.executive_summary} />
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setDialogOpen(false)}>Close</Button>

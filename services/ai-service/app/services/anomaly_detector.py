@@ -102,6 +102,7 @@ async def detect_anomalies(
             unique_anomalies.append(a)
 
     # Log summary
+    interaction_id = None
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
@@ -117,6 +118,8 @@ async def detect_anomalies(
         )
         db.add(interaction)
         db.commit()
+        db.refresh(interaction)
+        interaction_id = interaction.id
     except Exception as e:
         logger.warning(f"Failed to log interaction: {e}")
 
@@ -125,6 +128,7 @@ async def detect_anomalies(
         total_changes_analyzed=len(changes),
         anomalies_found=len(unique_anomalies),
         analysis_window_hours=request.hours_back,
+        interaction_id=interaction_id,
     )
 
 

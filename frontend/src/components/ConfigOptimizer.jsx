@@ -9,6 +9,7 @@ import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import SearchIcon from '@mui/icons-material/Search';
 import { aiAPI } from '../api/api';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const categoryColors = {
   unused: '#9e9e9e', redundant: '#ff9800', stale: '#795548',
@@ -152,6 +153,10 @@ const ConfigOptimizer = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+
+              <Box sx={{ mt: 2 }}>
+                <AIFeedbackWidget featureType="config_optimization" responseData={"Findings: " + (optimizeResult?.summary?.total_findings || 0)} />
+              </Box>
             </>
           )}
         </Paper>

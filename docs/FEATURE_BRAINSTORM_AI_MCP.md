@@ -458,31 +458,31 @@ NAP ←→ MCP Client ←→ NetBox MCP Server
 ## Part 5: Recommended Roadmap
 
 ### Phase 1: "AI Foundation" (Q2 2026)
-- [x] Feature brainstorm and roadmap ← **You are here**
-- [ ] NAP MCP Server (core tools: devices, configs, audits, compliance)
-- [ ] LLM integration layer (provider-agnostic: Claude, OpenAI, local models)
-- [ ] Natural Language Rule Builder (v1: single vendor, guided)
-- [ ] AI Chat interface in frontend (basic NL query)
+- [x] Feature brainstorm and roadmap
+- [x] NAP MCP Server (core tools: devices, configs, audits, compliance)
+- [x] LLM integration layer (provider-agnostic: Claude, OpenAI, local models)
+- [x] Natural Language Rule Builder (v1: single vendor, guided)
+- [x] AI Chat interface in frontend (basic NL query)
 
 ### Phase 2: "Intelligent Operations" (Q3 2026)
-- [ ] Remediation Advisor with human-in-the-loop approval
-- [ ] Automated Compliance Report Generation
-- [ ] MCP Integration Hub (replace hardcoded integrations)
-- [ ] Anomaly scoring for config drift events
-- [ ] NL Rule Builder v2: multi-vendor, batch generation
+- [x] Remediation Advisor with human-in-the-loop approval
+- [x] Automated Compliance Report Generation
+- [x] MCP Integration Hub (replace hardcoded integrations)
+- [x] Anomaly scoring for config drift events
+- [x] NL Rule Builder v2: multi-vendor, batch generation
 
 ### Phase 3: "Proactive Assurance" (Q4 2026)
-- [ ] Config Change Impact Analysis
-- [ ] Compliance Posture Prediction
-- [ ] Config Optimization recommendations
-- [ ] Embedding-based config search (pgvector)
-- [ ] AI Feedback & Learning Loop
+- [x] Config Change Impact Analysis
+- [x] Compliance Posture Prediction
+- [x] Config Optimization recommendations
+- [x] Embedding-based config search (LLM-based semantic matching; pgvector planned)
+- [x] AI Feedback & Learning Loop (feedback widget + interaction history + analytics)
 
 ### Phase 4: "Autonomous Operations" (2027)
-- [ ] Multi-Agent Network Operations
-- [ ] MCP Sampling for adaptive monitoring
-- [ ] Fine-tuned network config model (or domain-specific RAG)
-- [ ] Self-healing workflows (AI-initiated, human-approved)
+- [x] Multi-Agent Network Operations
+- [x] MCP Sampling for adaptive monitoring
+- [x] Domain-specific RAG with vendor knowledge base
+- [x] Self-healing workflows (AI-initiated, human-approved)
 
 ---
 

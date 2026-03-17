@@ -9,6 +9,7 @@ import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import { aiAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const MultiAgentOps = () => {
   const canModify = useCanModify();
@@ -119,6 +120,10 @@ const MultiAgentOps = () => {
               </CardContent>
             </Card>
           ))}
+
+          <Box sx={{ mt: 2 }}>
+            <AIFeedbackWidget featureType="multi_agent" responseData={result?.summary} />
+          </Box>
         </Paper>
       )}
 

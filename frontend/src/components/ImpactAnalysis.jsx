@@ -8,6 +8,7 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { aiAPI } from '../api/api';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const riskColors = {
   low: '#4caf50', medium: '#ff9800', high: '#f44336', critical: '#9c27b0',
@@ -133,6 +134,10 @@ const ImpactAnalysis = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          <Box sx={{ mt: 2 }}>
+            <AIFeedbackWidget featureType="impact_analysis" responseData={JSON.stringify(result?.warnings)} />
+          </Box>
         </Paper>
       )}
     </Box>

@@ -10,6 +10,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { aiAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const AIRuleBuilder = () => {
   const canModify = useCanModify();
@@ -223,6 +224,8 @@ const AIRuleBuilder = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
             <strong>AI Explanation:</strong> {result.explanation}
           </Typography>
+
+          <AIFeedbackWidget featureType="rule_builder" responseData={result.explanation} />
 
           {canModify && (
             <Box sx={{ display: 'flex', gap: 1 }}>

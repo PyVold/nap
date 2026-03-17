@@ -660,3 +660,18 @@ class MCPConnectionDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class KnowledgeBaseDB(Base):
+    """Vendor knowledge base entries for RAG-powered AI features"""
+    __tablename__ = "knowledge_base"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(500), nullable=False)
+    content = Column(Text, nullable=False)
+    category = Column(String(100), default="general")  # vendor_docs, best_practices, troubleshooting, config_examples
+    vendor = Column(String(50), nullable=True)  # cisco_xr, nokia_sros, or null for generic
+    tags = Column(JSON, default=list)
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

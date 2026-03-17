@@ -151,6 +151,7 @@ Analyze ALL potential impacts. Return ONLY the JSON object."""
     )
 
     # Log interaction
+    interaction_id = None
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
@@ -166,9 +167,12 @@ Analyze ALL potential impacts. Return ONLY the JSON object."""
         )
         db.add(interaction)
         db.commit()
+        db.refresh(interaction)
+        interaction_id = interaction.id
     except Exception as e:
         logger.warning(f"Failed to log interaction: {e}")
 
+    response.interaction_id = interaction_id
     return response
 
 

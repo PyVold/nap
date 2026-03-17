@@ -155,6 +155,7 @@ Generate a safe, step-by-step remediation plan. Return ONLY the JSON object."""
     db.refresh(draft)
 
     # Log interaction
+    interaction_id = None
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
@@ -166,6 +167,8 @@ Generate a safe, step-by-step remediation plan. Return ONLY the JSON object."""
         )
         db.add(interaction)
         db.commit()
+        db.refresh(interaction)
+        interaction_id = interaction.id
     except Exception as e:
         logger.warning(f"Failed to log interaction: {e}")
 
@@ -174,6 +177,7 @@ Generate a safe, step-by-step remediation plan. Return ONLY the JSON object."""
         confidence_score=_compute_confidence(plan),
         requires_approval=True,
         draft_id=draft.id,
+        interaction_id=interaction_id,
     )
 
 

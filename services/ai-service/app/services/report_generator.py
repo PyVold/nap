@@ -177,6 +177,7 @@ Respond with JSON:
     db.refresh(report_db)
 
     # Log interaction
+    interaction_id = None
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
@@ -188,6 +189,8 @@ Respond with JSON:
         )
         db.add(interaction)
         db.commit()
+        db.refresh(interaction)
+        interaction_id = interaction.id
     except Exception as e:
         logger.warning(f"Failed to log interaction: {e}")
 
@@ -201,6 +204,7 @@ Respond with JSON:
         recommendations=extracted.get("recommendations", []),
         generated_at=datetime.utcnow().isoformat(),
         data_sources=report_db.data_sources,
+        interaction_id=interaction_id,
     )
 
 

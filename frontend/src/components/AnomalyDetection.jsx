@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import SecurityIcon from '@mui/icons-material/Security';
 import { aiAPI } from '../api/api';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const severityColors = {
   routine: { bg: '#e8f5e9', color: '#2e7d32', label: 'Routine' },
@@ -225,6 +226,10 @@ const AnomalyDetection = () => {
               </Typography>
             </Paper>
           )}
+
+          <Box sx={{ mt: 2 }}>
+            <AIFeedbackWidget featureType="anomaly" responseData={"Anomalies found: " + (anomalies?.anomalies_found || 0)} />
+          </Box>
         </>
       )}
     </Box>

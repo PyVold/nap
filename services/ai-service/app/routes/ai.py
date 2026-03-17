@@ -3,8 +3,9 @@ AI Service API Routes
 Handles all AI-powered features: rule builder, chat, remediation, reports, anomaly detection.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from shared.database import get_db
 from shared.deps import get_current_user, require_admin_or_operator
 from shared.license_middleware import require_license_module
@@ -337,6 +338,108 @@ async def submit_feedback(
     return {"status": "ok", "message": "Feedback recorded"}
 
 
+@router.post("/feedback/direct")
+async def submit_direct_feedback(
+    feature_type: str,
+    rating: str,
+    comment: str = None,
+    response_summary: str = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Submit feedback on AI-generated content without requiring interaction_id"""
+    from shared.db_models import AIInteractionDB
+
+    # Create a feedback-specific interaction record
+    interaction = AIInteractionDB(
+        interaction_type=feature_type,
+        input_prompt=comment or f"Feedback for {feature_type}",
+        ai_response={"response_summary": (response_summary or "")[:500]},
+        model_used="feedback",
+        tokens_used=0,
+        feedback=rating,
+    )
+    db.add(interaction)
+    db.commit()
+
+    return {"status": "ok", "message": "Feedback recorded", "interaction_id": interaction.id}
+
+
+@router.get("/interactions")
+async def list_interactions(
+    feature_type: str = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """List AI interaction history with optional filtering"""
+    from shared.db_models import AIInteractionDB
+
+    query = db.query(AIInteractionDB)
+    if feature_type:
+        query = query.filter(AIInteractionDB.interaction_type == feature_type)
+
+    total = query.count()
+    interactions = query.order_by(AIInteractionDB.created_at.desc()).offset(offset).limit(limit).all()
+
+    return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "interactions": [
+            {
+                "id": i.id,
+                "interaction_type": i.interaction_type,
+                "input_prompt": i.input_prompt[:200] if i.input_prompt else None,
+                "ai_response": i.ai_response,
+                "model_used": i.model_used,
+                "tokens_used": i.tokens_used,
+                "feedback": i.feedback,
+                "created_at": i.created_at.isoformat() if i.created_at else None,
+            }
+            for i in interactions
+        ],
+    }
+
+
+@router.get("/feedback/stats")
+async def feedback_stats(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Get aggregate feedback statistics"""
+    from shared.db_models import AIInteractionDB
+
+    # Total interactions
+    total = db.query(func.count(AIInteractionDB.id)).scalar()
+
+    # By feature type
+    by_type = db.query(
+        AIInteractionDB.interaction_type,
+        func.count(AIInteractionDB.id),
+    ).group_by(AIInteractionDB.interaction_type).all()
+
+    # Feedback breakdown
+    with_feedback = db.query(
+        AIInteractionDB.feedback,
+        func.count(AIInteractionDB.id),
+    ).filter(AIInteractionDB.feedback.isnot(None)).group_by(AIInteractionDB.feedback).all()
+
+    # Tokens used
+    total_tokens = db.query(func.sum(AIInteractionDB.tokens_used)).scalar() or 0
+
+    return {
+        "total_interactions": total,
+        "by_feature_type": {t: c for t, c in by_type},
+        "feedback_breakdown": {f: c for f, c in with_feedback},
+        "total_tokens_used": total_tokens,
+        "feedback_rate": round(
+            sum(c for _, c in with_feedback) / max(total, 1) * 100, 1
+        ),
+    }
+
+
 # ============================================================================
 # Config Change Impact Analysis (Phase 3)
 # ============================================================================
@@ -541,6 +644,79 @@ async def create_self_healing_plan(
     except Exception as e:
         logger.error(f"Self-healing plan creation failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to create self-healing plan.")
+
+
+# ============================================================================
+# Knowledge Base / RAG (Phase 4)
+# ============================================================================
+
+@router.get("/knowledge-base")
+async def list_knowledge_entries(
+    category: str = None,
+    vendor: str = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """List knowledge base entries for RAG"""
+    try:
+        from services.knowledge_base import list_entries
+        return await list_entries(db, category, vendor, limit)
+    except Exception as e:
+        logger.error(f"Knowledge base list failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list knowledge base entries.")
+
+
+@router.post("/knowledge-base")
+async def add_knowledge_entry(
+    title: str,
+    content: str,
+    category: str = "general",
+    vendor: str = None,
+    tags: str = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin_or_operator),
+):
+    """Add a new knowledge base entry"""
+    try:
+        from services.knowledge_base import add_entry
+        tag_list = [t.strip() for t in tags.split(",")] if tags else []
+        return await add_entry(db, title, content, category, vendor, tag_list, current_user.get("username"))
+    except Exception as e:
+        logger.error(f"Knowledge base add failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add knowledge base entry.")
+
+
+@router.delete("/knowledge-base/{entry_id}")
+async def delete_knowledge_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin_or_operator),
+):
+    """Delete a knowledge base entry"""
+    try:
+        from services.knowledge_base import delete_entry
+        return await delete_entry(db, entry_id)
+    except Exception as e:
+        logger.error(f"Knowledge base delete failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete knowledge base entry.")
+
+
+@router.post("/knowledge-base/query")
+async def query_knowledge_base(
+    query: str,
+    category: str = None,
+    vendor: str = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Query the knowledge base using semantic search (RAG)"""
+    try:
+        from services.knowledge_base import query_knowledge
+        return await query_knowledge(db, query, category, vendor)
+    except Exception as e:
+        logger.error(f"Knowledge base query failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to query knowledge base.")
 
 
 # ============================================================================

@@ -160,7 +160,7 @@ Return ONLY the JSON object, no markdown fences or extra text."""
     db.refresh(draft)
 
     # Log interaction
-    _log_interaction(db, InteractionType.RULE_BUILDER, request.description, llm_response)
+    interaction_id = _log_interaction(db, InteractionType.RULE_BUILDER, request.description, llm_response)
 
     return RuleBuilderResponse(
         draft_id=draft.id,
@@ -168,6 +168,7 @@ Return ONLY the JSON object, no markdown fences or extra text."""
         confidence_score=confidence,
         explanation=explanation,
         original_prompt=request.description,
+        interaction_id=interaction_id,
     )
 
 
@@ -199,7 +200,7 @@ def _compute_confidence(rule: GeneratedRule, request: RuleBuilderRequest) -> flo
 
 
 def _log_interaction(db: Session, interaction_type: InteractionType, prompt: str, response):
-    """Log AI interaction for feedback loop"""
+    """Log AI interaction for feedback loop. Returns interaction_id or None."""
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
@@ -211,5 +212,8 @@ def _log_interaction(db: Session, interaction_type: InteractionType, prompt: str
         )
         db.add(interaction)
         db.commit()
+        db.refresh(interaction)
+        return interaction.id
     except Exception as e:
         logger.warning(f"Failed to log AI interaction: {e}")
+        return None

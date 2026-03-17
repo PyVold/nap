@@ -106,6 +106,7 @@ class RuleBuilderResponse(BaseModel):
     confidence_score: float = Field(ge=0.0, le=1.0)
     explanation: str
     original_prompt: str
+    interaction_id: Optional[int] = None
 
 
 class RuleDraftApproval(BaseModel):
@@ -135,6 +136,7 @@ class ChatResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     query_executed: Optional[str] = None
     confidence: float = 0.0
+    interaction_id: Optional[int] = None
 
 
 # ============================================================================
@@ -176,6 +178,7 @@ class RemediationResponse(BaseModel):
     confidence_score: float
     requires_approval: bool = True
     draft_id: Optional[int] = None
+    interaction_id: Optional[int] = None
 
 
 class RemediationApproval(BaseModel):
@@ -209,6 +212,7 @@ class ReportResponse(BaseModel):
     recommendations: List[str]
     generated_at: str
     data_sources: Dict[str, int]  # What data was analyzed
+    interaction_id: Optional[int] = None
 
 
 # ============================================================================
@@ -237,6 +241,7 @@ class AnomalyDetectionResponse(BaseModel):
     total_changes_analyzed: int
     anomalies_found: int
     analysis_window_hours: int
+    interaction_id: Optional[int] = None
 
 
 # ============================================================================
@@ -265,6 +270,7 @@ class ImpactAnalysisResponse(BaseModel):
     safe_to_apply: bool
     recommended_window: Optional[str] = None
     warnings: List[str] = Field(default_factory=list)
+    interaction_id: Optional[int] = None
 
 
 # ============================================================================

@@ -354,6 +354,15 @@ export const aiAPI = {
 
   // Feedback
   submitFeedback: (feedback) => api.post('/ai/feedback', feedback),
+  submitDirectFeedback: (data) => api.post('/ai/feedback/direct', data),
+  getAIHistory: (params) => api.get('/ai/interactions', { params }),
+  getFeedbackStats: () => api.get('/ai/feedback/stats'),
+
+  // Knowledge Base
+  getKnowledgeBase: (params) => api.get('/ai/knowledge-base', { params }),
+  addKnowledgeEntry: (data) => api.post('/ai/knowledge-base', null, { params: data }),
+  deleteKnowledgeEntry: (entryId) => api.delete(`/ai/knowledge-base/${entryId}`),
+  queryKnowledgeBase: (data) => api.post('/ai/knowledge-base/query', null, { params: data }),
 
   // Phase 3: Impact Analysis
   analyzeImpact: (request) => api.post('/ai/impact/analyze', request),

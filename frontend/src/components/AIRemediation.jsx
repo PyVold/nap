@@ -9,6 +9,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { aiAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const riskColors = {
   low: { bg: '#e8f5e9', color: '#2e7d32' },
@@ -212,6 +213,8 @@ const AIRemediation = () => {
           <Typography variant="body2" sx={{ mb: 1 }}>{plan.plan.estimated_impact}</Typography>
           <Typography variant="subtitle2" fontWeight="bold">Rollback Plan:</Typography>
           <Typography variant="body2" sx={{ mb: 2 }}>{plan.plan.rollback_plan}</Typography>
+
+          <AIFeedbackWidget featureType="remediation" responseData={JSON.stringify(plan?.plan?.steps?.map(s => s.description))} />
 
           {/* Actions */}
           {canModify && (

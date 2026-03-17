@@ -55,6 +55,8 @@ import {
   TrendingUp as PredictionIcon,
   Tune as OptimizerIcon,
   PrecisionManufacturing as MultiAgentIcon,
+  History as HistoryIcon,
+  MenuBook as MenuBookIcon,
 } from '@mui/icons-material';
 import Dashboard from './components/Dashboard';
 import RuleManagement from './components/RuleManagement';
@@ -86,6 +88,8 @@ import ImpactAnalysis from './components/ImpactAnalysis';
 import CompliancePrediction from './components/CompliancePrediction';
 import ConfigOptimizer from './components/ConfigOptimizer';
 import MultiAgentOps from './components/MultiAgentOps';
+import AIHistory from './components/AIHistory';
+import KnowledgeBase from './components/KnowledgeBase';
 import Login from './components/Login';
 import ApiActivityIndicator from './components/ApiActivityIndicator';
 import LicenseGuard from './components/LicenseGuard';
@@ -247,6 +251,8 @@ function AppContent() {
     { text: 'Compliance Forecast', icon: <PredictionIcon />, path: '/compliance-prediction', module: 'analytics' },
     { text: 'Config Intelligence', icon: <OptimizerIcon />, path: '/config-optimizer', module: 'analytics' },
     { text: 'Multi-Agent Ops', icon: <MultiAgentIcon />, path: '/multi-agent-ops', module: 'analytics' },
+    { text: 'AI History', icon: <HistoryIcon />, path: '/ai-history', module: 'analytics' },
+    { text: 'Knowledge Base', icon: <MenuBookIcon />, path: '/knowledge-base', module: 'analytics' },
     { text: 'divider', isDivider: true },
     { text: 'License', icon: <KeyIcon />, path: '/license', module: null }, // Always visible
     { text: 'User Management', icon: <ManageAccountsIcon />, path: '/user-management', module: null, adminOnly: true }, // Admin only
@@ -449,6 +455,8 @@ function AppContent() {
             <Route path="/compliance-prediction" element={<LicenseGuard><ModuleGuard module="analytics"><CompliancePrediction /></ModuleGuard></LicenseGuard>} />
             <Route path="/config-optimizer" element={<LicenseGuard><ModuleGuard module="analytics"><ConfigOptimizer /></ModuleGuard></LicenseGuard>} />
             <Route path="/multi-agent-ops" element={<LicenseGuard><ModuleGuard module="analytics"><MultiAgentOps /></ModuleGuard></LicenseGuard>} />
+            <Route path="/ai-history" element={<LicenseGuard><ModuleGuard module="analytics"><AIHistory /></ModuleGuard></LicenseGuard>} />
+            <Route path="/knowledge-base" element={<LicenseGuard><ModuleGuard module="analytics"><KnowledgeBase /></ModuleGuard></LicenseGuard>} />
             <Route path="/admin" element={<LicenseGuard><AdminDashboard /></LicenseGuard>} />
             <Route path="/user-management" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
             <Route path="*" element={<Navigate to="/" replace />} />

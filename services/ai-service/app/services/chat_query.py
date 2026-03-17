@@ -172,6 +172,7 @@ If the data doesn't fully answer the question, say so and suggest what additiona
     format_response = await call_llm(format_request)
 
     # Log interaction
+    interaction_id = None
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
@@ -183,6 +184,8 @@ If the data doesn't fully answer the question, say so and suggest what additiona
         )
         db.add(interaction)
         db.commit()
+        db.refresh(interaction)
+        interaction_id = interaction.id
     except Exception as e:
         logger.warning(f"Failed to log interaction: {e}")
 
@@ -191,4 +194,5 @@ If the data doesn't fully answer the question, say so and suggest what additiona
         data={"raw_results": results} if len(results) <= 3 else None,
         query_executed=", ".join(queries_executed),
         confidence=0.8,
+        interaction_id=interaction_id,
     )

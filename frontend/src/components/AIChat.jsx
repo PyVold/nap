@@ -7,6 +7,7 @@ import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import { aiAPI } from '../api/api';
+import AIFeedbackWidget from './AIFeedbackWidget';
 
 const AIChat = () => {
   const [messages, setMessages] = useState([
@@ -149,6 +150,9 @@ const AIChat = () => {
                       Queries: {msg.queryExecuted}
                     </Typography>
                   </Box>
+                )}
+                {msg.role === 'assistant' && !msg.isError && (
+                  <AIFeedbackWidget featureType="chat" responseData={msg.content} />
                 )}
               </CardContent>
             </Card>
