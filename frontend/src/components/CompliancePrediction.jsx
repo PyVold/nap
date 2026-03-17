@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Chip, Alert, CircularProgress,
   Grid, Card, CardContent, List, ListItem, ListItemIcon, ListItemText,
-  Divider, LinearProgress,
+  Divider,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';

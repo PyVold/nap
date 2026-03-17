@@ -18,10 +18,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Switch,
   FormControlLabel,
   Chip,
@@ -48,7 +44,6 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import api from '../api/api';
-import { useAuth } from '../contexts/AuthContext';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -63,11 +58,11 @@ function TabPanel({ children, value, index, ...other }) {
 }
 
 export default function UserManagement() {
-  const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [availablePermissions, setAvailablePermissions] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [availableModules, setAvailableModules] = useState([
     'devices', 'device_groups', 'discovery_groups', 'device_import',
     'audit', 'audit_schedules', 'rules', 'rule_templates',

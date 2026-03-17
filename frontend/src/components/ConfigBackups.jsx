@@ -24,8 +24,6 @@ import {
   CircularProgress,
   Tooltip,
   InputAdornment,
-  FormControlLabel,
-  Switch,
   Checkbox,
 } from '@mui/material';
 import {

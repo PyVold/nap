@@ -71,7 +71,6 @@ import DriftDetection from './components/DriftDetection';
 import RuleTemplates from './components/RuleTemplates';
 import Integrations from './components/Integrations';
 import Analytics from './components/Analytics';
-import AdminPanel from './components/AdminPanel';
 import UserManagement from './components/UserManagement';
 import Workflows from './components/Workflows';
 import HardwareInventory from './components/HardwareInventory';
@@ -94,7 +93,6 @@ import ModuleGuard from './components/ModuleGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LicenseProvider } from './contexts/LicenseContext';
-import api from './api/api';
 import { fetchModuleMappings, mapRouteToModule } from './utils/moduleMappings';
 
 const drawerWidth = 240;

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, Card, CardContent, Chip, Alert, CircularProgress,
-  Grid, Slider, TextField, Table, TableBody, TableCell, TableContainer,
+  Grid, Slider, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, LinearProgress, Tooltip,
 } from '@mui/material';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SecurityIcon from '@mui/icons-material/Security';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { aiAPI } from '../api/api';
 
 const severityColors = {
@@ -42,7 +40,7 @@ const AnomalyDetection = () => {
 
   useEffect(() => {
     handleDetect();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getScoreColor = (score) => {
     if (score >= 0.8) return '#c62828';

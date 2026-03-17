@@ -64,7 +64,7 @@ const DeviceHealthRow = ({ device, onCheckHealth }) => {
   // Fetch history on mount to get latest status
   useEffect(() => {
     fetchHistory();
-  }, [device.id]);
+  }, [device.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -248,12 +248,12 @@ const DeviceHealth = () => {
 
   useEffect(() => {
     fetchDevices();
-    
+
     if (autoRefreshEnabled) {
       const interval = setInterval(fetchDevices, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
-  }, [autoRefreshEnabled]);
+  }, [autoRefreshEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCheckDevice = async (deviceId) => {
     try {

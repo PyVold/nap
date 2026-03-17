@@ -29,7 +29,6 @@ import {
   PlayArrow,
   ExpandMore,
   Refresh,
-  CheckCircle,
 } from '@mui/icons-material';
 import { ruleTemplatesAPI } from '../api/api';
 
@@ -37,6 +36,7 @@ export default function RuleTemplates() {
   const [templates, setTemplates] = useState([]);
   const [filteredTemplates, setFilteredTemplates] = useState([]);
   const [frameworks, setFrameworks] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,11 +51,11 @@ export default function RuleTemplates() {
     fetchFrameworks();
     fetchCategories();
     fetchTemplates();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     filterTemplatesLocal();
-  }, [templates, filterVendor, filterFramework]);
+  }, [templates, filterVendor, filterFramework]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTemplates = async () => {
     setLoading(true);

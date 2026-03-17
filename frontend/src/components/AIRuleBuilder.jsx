@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Paper, Typography, TextField, Button, Card, CardContent, CardActions,
+  Box, Paper, Typography, TextField, Button, Card, CardContent,
   Select, MenuItem, FormControl, InputLabel, Chip, Alert, CircularProgress,
-  Accordion, AccordionSummary, AccordionDetails, Dialog, DialogTitle,
-  DialogContent, DialogActions, Grid, Divider, IconButton, Tooltip,
+  Accordion, AccordionSummary, AccordionDetails, Grid,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { aiAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
 

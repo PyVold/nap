@@ -7,8 +7,6 @@ import {
 import HealingIcon from '@mui/icons-material/Healing';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import WarningIcon from '@mui/icons-material/Warning';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { aiAPI } from '../api/api';
 import { useCanModify } from './RoleBasedAccess';
 
@@ -32,7 +30,7 @@ const AIRemediation = () => {
 
   useEffect(() => {
     fetchDrafts();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchDrafts = async () => {
     try {

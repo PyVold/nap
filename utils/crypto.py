@@ -9,9 +9,9 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
-# In production, this should come from environment variable
-# For now, we'll use a derived key from a salt
-SECRET_KEY = os.getenv("ENCRYPTION_KEY", "network-audit-platform-secret-key-change-in-production")
+SECRET_KEY = os.getenv("ENCRYPTION_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("ENCRYPTION_KEY environment variable must be set. Cannot start with default encryption key.")
 
 
 def get_encryption_key() -> bytes:

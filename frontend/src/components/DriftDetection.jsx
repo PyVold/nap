@@ -23,10 +23,7 @@ import {
 } from '@mui/material';
 import {
   Refresh,
-  Warning,
-  CheckCircle,
   Verified,
-  CompareArrows,
 } from '@mui/icons-material';
 import { driftDetectionAPI, devicesAPI } from '../api/api';
 

@@ -23,7 +23,6 @@ import {
   Alert,
   Grid,
   Tooltip,
-  Divider,
 } from '@mui/material';
 import {
   KeyboardArrowDown,
@@ -394,7 +393,7 @@ export default function HardwareInventory() {
   useEffect(() => {
     fetchInventory();
     fetchChassisModels();
-  }, [selectedVendor, selectedChassis]);
+  }, [selectedVendor, selectedChassis]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-refresh to pick up changes from background scans
   useEffect(() => {
@@ -403,7 +402,7 @@ export default function HardwareInventory() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(intervalId);
-  }, [selectedVendor, selectedChassis]);
+  }, [selectedVendor, selectedChassis]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchInventory = async () => {
     setLoading(true);

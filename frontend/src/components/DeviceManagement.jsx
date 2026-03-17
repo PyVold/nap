@@ -45,11 +45,10 @@ import {
   ErrorOutline,
 } from '@mui/icons-material';
 import { devicesAPI } from '../api/api';
-import { useCanModify, useHasPermission } from './RoleBasedAccess';
+import { useHasPermission } from './RoleBasedAccess';
 import InputAdornment from '@mui/material/InputAdornment';
 
 const DeviceManagement = () => {
-  const canModify = useCanModify();
   const canCreateDevices = useHasPermission('create_devices');
   const canDeleteDevices = useHasPermission('delete_devices');
   const canModifyDevices = useHasPermission('modify_devices');

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { Box, CircularProgress, Card, CardContent, Typography, Button, Alert } from '@mui/material';
+import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { Warning as WarningIcon, Key as KeyIcon } from '@mui/icons-material';
 import { useLicense } from '../contexts/LicenseContext';
 
@@ -9,7 +9,7 @@ import { useLicense } from '../contexts/LicenseContext';
  * Redirects to /license page if license is expired or invalid
  */
 export default function LicenseGuard({ children }) {
-  const { license, loading, hasLicense, isLicenseValid } = useLicense();
+  const { loading, hasLicense, isLicenseValid } = useLicense();
 
   // Show loading spinner while checking license
   if (loading) {

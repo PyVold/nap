@@ -7,7 +7,6 @@ import {
   ListItemIcon,
 } from '@mui/material';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import DescriptionIcon from '@mui/icons-material/Description';
 import FindInPageIcon from '@mui/icons-material/FindInPage';
 import RecommendIcon from '@mui/icons-material/Recommend';
 import DownloadIcon from '@mui/icons-material/Download';

@@ -18,7 +18,6 @@ import {
 import {
   CloudUpload,
   Download,
-  CheckCircle,
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { deviceImportAPI } from '../api/api';

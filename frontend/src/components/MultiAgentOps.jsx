@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Chip, Alert, CircularProgress,
-  Grid, Card, CardContent, Stepper, Step, StepLabel, StepContent, Divider,
+  Grid, Card, CardContent, Divider,
 } from '@mui/material';
 import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';

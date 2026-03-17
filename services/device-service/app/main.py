@@ -5,6 +5,7 @@ Port: 3001
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import os
 import sys
 from shared.database import get_db, init_db
 from shared.config import settings
@@ -28,18 +29,12 @@ logger.info("Database initialized")
 # Get scheduler instance (will be started on app startup)
 scheduler = get_scheduler()
 
-# CORS configuration from settings
-# Default to "*" for backward compatibility, but allow restriction via CORS_ALLOWED_ORIGINS env var
-cors_origins_str = settings.cors_allowed_origins
-if cors_origins_str == "*":
-    cors_origins = ["*"]
-else:
-    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
-
 # CORS middleware
+ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:80,http://localhost:3000,http://localhost:8080").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=[origin.strip() for origin in ALLOWED_ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

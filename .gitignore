@@ -24,7 +24,12 @@ wheels/
 venv/
 ENV/
 env/
+
+# Environment files (NEVER commit secrets)
 .env
+.env.prod
+.env.local
+.env.*.local
 
 # IDE
 .vscode/

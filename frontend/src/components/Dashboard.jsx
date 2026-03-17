@@ -9,12 +9,10 @@ import {
   Alert,
   Button,
   Chip,
-  LinearProgress,
 } from '@mui/material';
 import {
   CheckCircle,
   Error,
-  Warning,
   Assessment,
   Security,
   Devices as DevicesIcon,
@@ -62,7 +60,7 @@ const Dashboard = () => {
       const interval = setInterval(fetchDashboardData, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
-  }, [autoRefreshEnabled]);
+  }, [autoRefreshEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading && !compliance) {
     return (
@@ -79,13 +77,6 @@ const Dashboard = () => {
       </Alert>
     );
   }
-
-  const severityColors = {
-    critical: '#f44336',
-    high: '#ff9800',
-    medium: '#ff5722',
-    low: '#ffc107',
-  };
 
   const severityData = compliance?.by_severity
     ? Object.entries(compliance.by_severity).map(([severity, data]) => ({
