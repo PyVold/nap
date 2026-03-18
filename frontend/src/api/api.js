@@ -410,4 +410,16 @@ export const mcpAPI = {
   callExternalTool: (connId, toolName, args) => api.post(`/mcp/hub/connections/${connId}/tools/call`, { tool_name: toolName, arguments: args }),
 };
 
+// Activity Feed API
+export const activityFeedAPI = {
+  getActivity: (params = {}) => api.get('/activity-feed/', { params }),
+  getSummary: (hours = 24) => api.get('/activity-feed/summary', { params: { hours } }),
+};
+
+// Extended Dashboard API
+export const dashboardAPI = {
+  getExtended: () => api.get('/analytics/dashboard/extended'),
+  getQuickStats: () => api.get('/analytics/dashboard/quick-stats'),
+};
+
 export default api;

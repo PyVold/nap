@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from shared.database import init_db
 from shared.logger import setup_logger
 from shared.monitoring import router as monitoring_router
-from routes import analytics
+from routes import analytics, dashboard_extended
 
 logger = setup_logger(__name__)
 
@@ -42,6 +42,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(analytics.router, tags=["Analytics"])
+app.include_router(dashboard_extended.router, tags=["Dashboard"])
 app.include_router(monitoring_router, tags=["Monitoring"])
 
 

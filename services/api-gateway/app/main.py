@@ -69,7 +69,7 @@ SERVICES = {
         "url": "http://admin-service:3005",
         "name": "Administration",
         "enabled": True,
-        "routes": ["/admin", "/user-management", "/integrations", "/notifications", "/remediation", "/license"],
+        "routes": ["/admin", "/user-management", "/integrations", "/notifications", "/remediation", "/license", "/activity-feed"],
         "ui_routes": ["admin", "users", "integrations", "license"]
     },
     "analytics-service": {

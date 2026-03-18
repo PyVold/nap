@@ -8,15 +8,19 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Container,
   InputAdornment,
   IconButton,
+  Chip,
+  Divider,
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   Lock as LockIcon,
   Person as PersonIcon,
+  Security,
+  Speed,
+  SmartToy,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,7 +33,6 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to dashboard if already authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate('/');
@@ -44,7 +47,6 @@ export default function Login() {
     const result = await login(username, password);
 
     if (result.success) {
-      // Redirect to root - the app will handle license check and redirect if needed
       navigate('/');
     } else {
       setError(result.error);
@@ -58,37 +60,113 @@ export default function Login() {
       sx={{
         minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+        overflow: 'hidden',
       }}
     >
-      <Container maxWidth="sm">
+      {/* Left side - Branding */}
+      <Box
+        sx={{
+          flex: 1,
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          justifyContent: 'center',
+          px: 8,
+          color: 'white',
+        }}
+      >
+        <Box sx={{ mb: 6 }}>
+          <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Security sx={{ fontSize: 28, color: 'white' }} />
+            </Box>
+            <Typography variant="h4" fontWeight="bold">
+              NAP
+            </Typography>
+            <Chip label="v2.0" size="small" sx={{ color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.3)' }} variant="outlined" />
+          </Box>
+          <Typography variant="h3" fontWeight="bold" sx={{ lineHeight: 1.2, mb: 2 }}>
+            Network Audit
+            <br />
+            Platform
+          </Typography>
+          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 400, maxWidth: 400 }}>
+            Enterprise network compliance, powered by AI
+          </Typography>
+        </Box>
+
+        <Box display="flex" gap={3} flexWrap="wrap">
+          {[
+            { icon: <Security sx={{ fontSize: 20 }} />, label: 'Compliance Auditing' },
+            { icon: <SmartToy sx={{ fontSize: 20 }} />, label: 'AI-Powered Insights' },
+            { icon: <Speed sx={{ fontSize: 20 }} />, label: 'Real-time Monitoring' },
+          ].map((feature) => (
+            <Box key={feature.label} display="flex" alignItems="center" gap={1} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              {feature.icon}
+              <Typography variant="body2">{feature.label}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
+      {/* Right side - Login form */}
+      <Box
+        sx={{
+          flex: { xs: 1, md: '0 0 480px' },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 3,
+        }}
+      >
         <Paper
-          elevation={24}
+          elevation={0}
           sx={{
-            p: 4,
-            borderRadius: 3,
+            p: 5,
+            borderRadius: 4,
+            width: '100%',
+            maxWidth: 420,
+            bgcolor: 'rgba(255,255,255,0.98)',
           }}
         >
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <LockIcon
+          {/* Mobile header */}
+          <Box sx={{ display: { xs: 'block', md: 'none' }, textAlign: 'center', mb: 3 }}>
+            <Box
               sx={{
-                fontSize: 60,
-                color: 'primary.main',
-                mb: 2,
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 1,
               }}
-            />
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              Network Audit Platform
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Login
-            </Typography>
+            >
+              <Security sx={{ fontSize: 28, color: 'white' }} />
+            </Box>
+            <Typography variant="h5" fontWeight="bold">NAP</Typography>
           </Box>
 
+          <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+            Welcome back
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Sign in to your account to continue
+          </Typography>
+
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
@@ -106,9 +184,12 @@ export default function Login() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <PersonIcon />
+                    <PersonIcon sx={{ color: 'text.disabled' }} />
                   </InputAdornment>
                 ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': { borderRadius: 2 },
               }}
             />
 
@@ -124,7 +205,7 @@ export default function Login() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LockIcon />
+                    <LockIcon sx={{ color: 'text.disabled' }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -132,11 +213,15 @@ export default function Login() {
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
+                      size="small"
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': { borderRadius: 2 },
               }}
             />
 
@@ -150,32 +235,56 @@ export default function Login() {
                 mt: 3,
                 mb: 2,
                 py: 1.5,
+                borderRadius: 2,
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                fontWeight: 700,
+                fontSize: 15,
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.35)',
+                '&:hover': {
+                  boxShadow: '0 6px 20px rgba(102, 126, 234, 0.5)',
+                },
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
             </Button>
           </form>
 
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
-            <Typography variant="caption" display="block" gutterBottom>
-              <strong>Test Credentials:</strong>
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>Admin:</strong> admin / admin
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>Operator:</strong> operator / operator
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>Viewer:</strong> viewer / viewer
-            </Typography>
-            <Typography variant="caption" color="error" display="block" sx={{ mt: 1 }}>
-              ⚠️ Change passwords in production!
-            </Typography>
+          <Divider sx={{ my: 2 }}>
+            <Chip label="Demo Accounts" size="small" variant="outlined" sx={{ fontSize: 11 }} />
+          </Divider>
+
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+            {[
+              { user: 'admin', role: 'Admin' },
+              { user: 'operator', role: 'Operator' },
+              { user: 'viewer', role: 'Viewer' },
+            ].map((demo) => (
+              <Button
+                key={demo.user}
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setUsername(demo.user);
+                  setPassword(demo.user);
+                }}
+                sx={{
+                  borderRadius: 2,
+                  fontSize: 11,
+                  textTransform: 'none',
+                  borderColor: 'divider',
+                  color: 'text.secondary',
+                  '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                }}
+              >
+                {demo.role}
+              </Button>
+            ))}
           </Box>
+          <Typography variant="caption" color="error" display="block" textAlign="center" sx={{ mt: 1.5 }}>
+            Change default passwords in production
+          </Typography>
         </Paper>
-      </Container>
+      </Box>
     </Box>
   );
 }
