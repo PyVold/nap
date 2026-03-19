@@ -49,6 +49,7 @@ logs/
 
 # License System - IMPORTANT: Never commit license files!
 license_output/
+license_output_correct/
 !license_output/README.md
 *.license.txt
 *.license.json
