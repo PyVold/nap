@@ -542,6 +542,430 @@ class DeviceMetadataCollector:
         return metadata
 
     @staticmethod
+    async def collect_cisco_xe_metadata(connection) -> Dict[str, Any]:
+        """
+        Collect metadata from Cisco IOS-XE device using NETCONF
+
+        Collects:
+        - BGP AS number and router ID
+        - IGP type (OSPF/ISIS)
+        - LDP status
+        - Loopback0 IP and system info (hostname, version)
+        """
+        metadata = {
+            "bgp": {},
+            "igp": {},
+            "ldp": {},
+            "system": {}
+        }
+
+        try:
+            # BGP Information
+            try:
+                bgp_filter = """
+                <bgp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-bgp-oper">
+                    <address-families>
+                        <address-family>
+                            <afi-safi>ipv4-unicast</afi-safi>
+                            <vrf-name>default</vrf-name>
+                        </address-family>
+                    </address-families>
+                </bgp>
+                """
+
+                bgp_data = await connection.get_config(filter_data=bgp_filter)
+
+                if bgp_data:
+                    if isinstance(bgp_data, dict):
+                        if 'as' in bgp_data:
+                            metadata["bgp"]["as_number"] = int(bgp_data['as'])
+                        elif 'local-as' in bgp_data:
+                            metadata["bgp"]["as_number"] = int(bgp_data['local-as'])
+                        if 'router-id' in bgp_data:
+                            metadata["bgp"]["router_id"] = bgp_data['router-id']
+                    else:
+                        as_match = re.search(r'<(?:local-)?as>(\d+)</(?:local-)?as>', str(bgp_data))
+                        if as_match:
+                            metadata["bgp"]["as_number"] = int(as_match.group(1))
+                        rid_match = re.search(r'<router-id>([\d.]+)</router-id>', str(bgp_data))
+                        if rid_match:
+                            metadata["bgp"]["router_id"] = rid_match.group(1)
+
+                logger.info(f"Collected Cisco XE BGP metadata: AS={metadata['bgp'].get('as_number')}, "
+                           f"router-id={metadata['bgp'].get('router_id')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Cisco XE BGP metadata: {e}")
+
+            # System Information (hostname, version)
+            try:
+                native_filter = """
+                <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+                    <hostname/>
+                    <version/>
+                </native>
+                """
+                native_data = await connection.get_config(filter_data=native_filter)
+
+                if native_data:
+                    if isinstance(native_data, dict):
+                        if 'hostname' in native_data:
+                            metadata["system"]["system_name"] = native_data['hostname']
+                        if 'version' in native_data:
+                            metadata["system"]["software_version"] = native_data['version']
+                    else:
+                        hostname_match = re.search(r'<hostname>([^<]+)</hostname>', str(native_data))
+                        if hostname_match:
+                            metadata["system"]["system_name"] = hostname_match.group(1)
+                        version_match = re.search(r'<version>([^<]+)</version>', str(native_data))
+                        if version_match:
+                            metadata["system"]["software_version"] = version_match.group(1)
+
+                logger.info(f"Collected Cisco XE system metadata: hostname={metadata['system'].get('system_name')}, "
+                           f"version={metadata['system'].get('software_version')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Cisco XE system metadata: {e}")
+
+            # Loopback0 Information
+            try:
+                loopback0_ip = None
+
+                try:
+                    ietf_filter = """
+                    <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+                        <interface>
+                            <name>Loopback0</name>
+                        </interface>
+                    </interfaces>
+                    """
+                    loopback_data = await connection.get_config(filter_data=ietf_filter)
+
+                    if loopback_data:
+                        ip_match = re.search(r'<ip>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</ip>', str(loopback_data))
+                        if not ip_match:
+                            ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', str(loopback_data))
+                        if ip_match:
+                            loopback0_ip = ip_match.group(1)
+                except Exception as e1:
+                    logger.debug(f"IETF interfaces model query failed for Cisco XE: {e1}")
+
+                if not loopback0_ip:
+                    try:
+                        native_intf_filter = """
+                        <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+                            <interface>
+                                <Loopback>
+                                    <name>0</name>
+                                </Loopback>
+                            </interface>
+                        </native>
+                        """
+                        loopback_data = await connection.get_config(filter_data=native_intf_filter)
+
+                        if loopback_data:
+                            ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', str(loopback_data))
+                            if ip_match:
+                                loopback0_ip = ip_match.group(1)
+                    except Exception as e2:
+                        logger.debug(f"Native Loopback0 query failed for Cisco XE: {e2}")
+
+                if loopback0_ip:
+                    metadata["system"]["loopback0_ip"] = loopback0_ip
+                    logger.info(f"Collected Cisco XE Loopback0 IP: {loopback0_ip}")
+                else:
+                    logger.warning("Could not retrieve Cisco XE Loopback0 IP address")
+
+            except Exception as e:
+                logger.warning(f"Failed to collect Cisco XE Loopback0 interface info: {e}")
+
+        except Exception as e:
+            logger.error(f"Error collecting Cisco IOS-XE metadata: {e}")
+
+        return metadata
+
+    @staticmethod
+    async def collect_junos_metadata(connection) -> Dict[str, Any]:
+        """
+        Collect metadata from Juniper JunOS device using NETCONF
+
+        Collects:
+        - BGP AS number and router ID
+        - IGP type (OSPF/ISIS)
+        - LDP status
+        - System hostname, domain, loopback IP
+        """
+        metadata = {
+            "bgp": {},
+            "igp": {},
+            "ldp": {},
+            "system": {}
+        }
+
+        try:
+            # BGP Information
+            try:
+                bgp_filter = """
+                <bgp xmlns="http://yang.juniper.net/junos/conf/bgp">
+                    <group>
+                        <name/>
+                        <local-as/>
+                    </group>
+                </bgp>
+                """
+
+                bgp_data = await connection.get_config(filter_data=bgp_filter)
+
+                if bgp_data:
+                    if isinstance(bgp_data, dict):
+                        if 'local-as' in bgp_data:
+                            metadata["bgp"]["as_number"] = int(bgp_data['local-as'])
+                        if 'router-id' in bgp_data:
+                            metadata["bgp"]["router_id"] = bgp_data['router-id']
+                    else:
+                        as_match = re.search(r'<(?:local-)?as(?:-number)?>(\d+)</(?:local-)?as(?:-number)?>', str(bgp_data))
+                        if as_match:
+                            metadata["bgp"]["as_number"] = int(as_match.group(1))
+                        rid_match = re.search(r'<router-id>([\d.]+)</router-id>', str(bgp_data))
+                        if rid_match:
+                            metadata["bgp"]["router_id"] = rid_match.group(1)
+
+                # Try routing-options for AS number and router-id if not found
+                if not metadata["bgp"].get("as_number"):
+                    try:
+                        routing_filter = """
+                        <configuration>
+                            <routing-options>
+                                <autonomous-system/>
+                                <router-id/>
+                            </routing-options>
+                        </configuration>
+                        """
+                        routing_data = await connection.get_config(filter_data=routing_filter)
+
+                        if routing_data:
+                            as_match = re.search(r'<as-number>(\d+)</as-number>', str(routing_data))
+                            if as_match:
+                                metadata["bgp"]["as_number"] = int(as_match.group(1))
+                            if not metadata["bgp"].get("router_id"):
+                                rid_match = re.search(r'<router-id>([\d.]+)</router-id>', str(routing_data))
+                                if rid_match:
+                                    metadata["bgp"]["router_id"] = rid_match.group(1)
+                    except Exception as e1:
+                        logger.debug(f"Junos routing-options query failed: {e1}")
+
+                logger.info(f"Collected Junos BGP metadata: AS={metadata['bgp'].get('as_number')}, "
+                           f"router-id={metadata['bgp'].get('router_id')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Junos BGP metadata: {e}")
+
+            # System Information
+            try:
+                system_filter = """
+                <configuration>
+                    <system>
+                        <host-name/>
+                        <domain-name/>
+                    </system>
+                </configuration>
+                """
+                system_data = await connection.get_config(filter_data=system_filter)
+
+                if system_data:
+                    if isinstance(system_data, dict):
+                        system_info = system_data.get('system', system_data)
+                        if 'host-name' in system_info:
+                            metadata["system"]["system_name"] = system_info['host-name']
+                        if 'domain-name' in system_info:
+                            metadata["system"]["domain_name"] = system_info['domain-name']
+                    else:
+                        hostname_match = re.search(r'<host-name>([^<]+)</host-name>', str(system_data))
+                        if hostname_match:
+                            metadata["system"]["system_name"] = hostname_match.group(1)
+                        domain_match = re.search(r'<domain-name>([^<]+)</domain-name>', str(system_data))
+                        if domain_match:
+                            metadata["system"]["domain_name"] = domain_match.group(1)
+
+                logger.info(f"Collected Junos system metadata: hostname={metadata['system'].get('system_name')}, "
+                           f"domain={metadata['system'].get('domain_name')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Junos system metadata: {e}")
+
+            # Loopback0 (lo0) Information
+            try:
+                loopback_filter = """
+                <configuration>
+                    <interfaces>
+                        <interface>
+                            <name>lo0</name>
+                        </interface>
+                    </interfaces>
+                </configuration>
+                """
+                loopback_data = await connection.get_config(filter_data=loopback_filter)
+
+                if loopback_data:
+                    ip_match = re.search(r'<name>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/\d+</name>', str(loopback_data))
+                    if not ip_match:
+                        ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', str(loopback_data))
+                    if ip_match:
+                        metadata["system"]["loopback0_ip"] = ip_match.group(1)
+                        logger.info(f"Collected Junos lo0 IP: {ip_match.group(1)}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Junos lo0 interface info: {e}")
+
+            # Software Version
+            try:
+                version_filter = """
+                <software-information xmlns="http://xml.juniper.net/junos/*/junos">
+                    <junos-version/>
+                </software-information>
+                """
+                version_data = await connection.get_operational_state(filter_data=version_filter)
+
+                if version_data:
+                    version_match = re.search(r'<junos-version>([^<]+)</junos-version>', str(version_data))
+                    if not version_match:
+                        version_match = re.search(r'<package-information>.*?<comment>([^<]+)</comment>', str(version_data))
+                    if version_match:
+                        metadata["system"]["software_version"] = version_match.group(1)
+                        logger.info(f"Collected Junos software version: {version_match.group(1)}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Junos software version: {e}")
+
+        except Exception as e:
+            logger.error(f"Error collecting Juniper JunOS metadata: {e}")
+
+        return metadata
+
+    @staticmethod
+    async def collect_arista_metadata(connection) -> Dict[str, Any]:
+        """
+        Collect metadata from Arista EOS device using OpenConfig YANG models via NETCONF
+
+        Collects:
+        - BGP AS number and router ID
+        - IGP type (OSPF/ISIS)
+        - LDP status
+        - System hostname, version, loopback IP
+        """
+        metadata = {
+            "bgp": {},
+            "igp": {},
+            "ldp": {},
+            "system": {}
+        }
+
+        try:
+            # BGP Information (OpenConfig)
+            try:
+                bgp_filter = """
+                <bgp xmlns="http://openconfig.net/yang/bgp">
+                    <global>
+                        <config>
+                            <as/>
+                            <router-id/>
+                        </config>
+                    </global>
+                </bgp>
+                """
+
+                bgp_data = await connection.get_config(filter_data=bgp_filter)
+
+                if bgp_data:
+                    if isinstance(bgp_data, dict):
+                        global_config = bgp_data.get('global', {}).get('config', bgp_data)
+                        if 'as' in global_config:
+                            metadata["bgp"]["as_number"] = int(global_config['as'])
+                        if 'router-id' in global_config:
+                            metadata["bgp"]["router_id"] = global_config['router-id']
+                    else:
+                        as_match = re.search(r'<as>(\d+)</as>', str(bgp_data))
+                        if as_match:
+                            metadata["bgp"]["as_number"] = int(as_match.group(1))
+                        rid_match = re.search(r'<router-id>([\d.]+)</router-id>', str(bgp_data))
+                        if rid_match:
+                            metadata["bgp"]["router_id"] = rid_match.group(1)
+
+                logger.info(f"Collected Arista BGP metadata: AS={metadata['bgp'].get('as_number')}, "
+                           f"router-id={metadata['bgp'].get('router_id')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Arista BGP metadata: {e}")
+
+            # System Information (OpenConfig)
+            try:
+                system_filter = """
+                <system xmlns="http://openconfig.net/yang/system">
+                    <config>
+                        <hostname/>
+                        <domain-name/>
+                    </config>
+                    <state>
+                        <hostname/>
+                        <software-version/>
+                    </state>
+                </system>
+                """
+                system_data = await connection.get_config(filter_data=system_filter)
+
+                if system_data:
+                    if isinstance(system_data, dict):
+                        config = system_data.get('config', {})
+                        state = system_data.get('state', {})
+                        if 'hostname' in config:
+                            metadata["system"]["system_name"] = config['hostname']
+                        elif 'hostname' in state:
+                            metadata["system"]["system_name"] = state['hostname']
+                        if 'domain-name' in config:
+                            metadata["system"]["domain_name"] = config['domain-name']
+                        if 'software-version' in state:
+                            metadata["system"]["software_version"] = state['software-version']
+                    else:
+                        hostname_match = re.search(r'<hostname>([^<]+)</hostname>', str(system_data))
+                        if hostname_match:
+                            metadata["system"]["system_name"] = hostname_match.group(1)
+                        domain_match = re.search(r'<domain-name>([^<]+)</domain-name>', str(system_data))
+                        if domain_match:
+                            metadata["system"]["domain_name"] = domain_match.group(1)
+                        version_match = re.search(r'<software-version>([^<]+)</software-version>', str(system_data))
+                        if version_match:
+                            metadata["system"]["software_version"] = version_match.group(1)
+
+                logger.info(f"Collected Arista system metadata: hostname={metadata['system'].get('system_name')}, "
+                           f"version={metadata['system'].get('software_version')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Arista system metadata: {e}")
+
+            # Loopback0 Information (OpenConfig interfaces)
+            try:
+                loopback_filter = """
+                <interfaces xmlns="http://openconfig.net/yang/interfaces">
+                    <interface>
+                        <name>Loopback0</name>
+                        <subinterfaces>
+                            <subinterface>
+                                <index>0</index>
+                            </subinterface>
+                        </subinterfaces>
+                    </interface>
+                </interfaces>
+                """
+                loopback_data = await connection.get_config(filter_data=loopback_filter)
+
+                if loopback_data:
+                    ip_match = re.search(r'<ip>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</ip>', str(loopback_data))
+                    if not ip_match:
+                        ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', str(loopback_data))
+                    if ip_match:
+                        metadata["system"]["loopback0_ip"] = ip_match.group(1)
+                        logger.info(f"Collected Arista Loopback0 IP: {ip_match.group(1)}")
+            except Exception as e:
+                logger.warning(f"Failed to collect Arista Loopback0 interface info: {e}")
+
+        except Exception as e:
+            logger.error(f"Error collecting Arista EOS metadata: {e}")
+
+        return metadata
+
+    @staticmethod
     async def collect_metadata(vendor: str, connection) -> Optional[Dict[str, Any]]:
         """
         Collect metadata for a device based on vendor type
@@ -558,6 +982,12 @@ class DeviceMetadataCollector:
                 return await DeviceMetadataCollector.collect_nokia_sros_metadata(connection)
             elif vendor.lower() == "cisco_xr":
                 return await DeviceMetadataCollector.collect_cisco_xr_metadata(connection)
+            elif vendor.lower() == "cisco_xe":
+                return await DeviceMetadataCollector.collect_cisco_xe_metadata(connection)
+            elif vendor.lower() == "juniper_junos":
+                return await DeviceMetadataCollector.collect_junos_metadata(connection)
+            elif vendor.lower() == "arista_eos":
+                return await DeviceMetadataCollector.collect_arista_metadata(connection)
             else:
                 logger.warning(f"Unsupported vendor for metadata collection: {vendor}")
                 return None

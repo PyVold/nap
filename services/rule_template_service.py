@@ -206,6 +206,458 @@ class RuleTemplateService:
             "framework": "Best Practice",
             "tags": {"category": "monitoring"}
         },
+
+        # ====================================================================
+        # Additional Cisco IOS-XR Templates
+        # ====================================================================
+        {
+            "name": "Best Practice: BGP MD5 Authentication",
+            "description": "Ensure BGP sessions use MD5 authentication to prevent unauthorized peering",
+            "category": "Best Practice",
+            "vendor": VendorType.CISCO_XR.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/router/bgp/neighbor/password",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "routing_security"}
+        },
+        {
+            "name": "Best Practice: Console Timeout",
+            "description": "Ensure console line has an idle timeout configured to prevent unauthorized access",
+            "category": "Best Practice",
+            "vendor": VendorType.CISCO_XR.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/line/console/exec-timeout",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "access_control"}
+        },
+        {
+            "name": "PCI-DSS: ACL Configuration",
+            "description": "Ensure access control lists are configured to restrict traffic (PCI-DSS 1.2)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.CISCO_XR.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/ipv4/access-list",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "1.2", "category": "firewall"}
+        },
+
+        # ====================================================================
+        # Additional Nokia SROS Templates
+        # ====================================================================
+        {
+            "name": "Best Practice: Nokia BGP Authentication",
+            "description": "Ensure BGP sessions use authentication on Nokia SROS to prevent unauthorized peering",
+            "category": "Best Practice",
+            "vendor": VendorType.NOKIA_SROS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configure/router/bgp/group/auth-keychain",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "routing_security"}
+        },
+        {
+            "name": "NIST: Nokia Access Control",
+            "description": "Verify access control policy implementation on Nokia SROS (NIST AC-1)",
+            "category": "NIST 800-53",
+            "vendor": VendorType.NOKIA_SROS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configure/system/security/profile",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "NIST",
+            "tags": {"nist": "AC-1", "category": "access_control"}
+        },
+        {
+            "name": "PCI-DSS: Nokia Logging",
+            "description": "Ensure logging is properly configured on Nokia SROS (PCI-DSS 10.1)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.NOKIA_SROS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configure/log/log-id",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "10.1", "category": "logging"}
+        },
+
+        # ====================================================================
+        # Cisco IOS-XE Templates
+        # ====================================================================
+        {
+            "name": "CIS: SSH v2 Configuration",
+            "description": "Ensure SSH version 2 is configured on Cisco IOS-XE (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/native/ip/ssh",
+            "expected_value": "2",
+            "check_type": "contains",
+            "framework": "CIS",
+            "tags": {"cis": "5.2.4", "category": "access_control"}
+        },
+        {
+            "name": "CIS: AAA Authentication",
+            "description": "Ensure AAA authentication is enabled on Cisco IOS-XE (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.CRITICAL.value,
+            "xpath": "/native/aaa",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "CIS",
+            "tags": {"cis": "4.1.1", "category": "authentication"}
+        },
+        {
+            "name": "CIS: Login Banner",
+            "description": "Ensure a login banner is configured on Cisco IOS-XE (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/native/banner",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "CIS",
+            "tags": {"cis": "1.1.1", "category": "general"}
+        },
+        {
+            "name": "PCI-DSS: Strong Cryptography",
+            "description": "Ensure strong cryptography is configured on Cisco IOS-XE (PCI-DSS 8.2.1)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.CRITICAL.value,
+            "xpath": "/native/ip/ssh",
+            "expected_value": "aes256",
+            "check_type": "contains",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "8.2.1", "category": "encryption"}
+        },
+        {
+            "name": "PCI-DSS: Logging and Monitoring",
+            "description": "Ensure logging is enabled on Cisco IOS-XE (PCI-DSS 10.1)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/native/logging",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "10.1", "category": "logging"}
+        },
+        {
+            "name": "NIST: Access Control Policy",
+            "description": "Verify access control policy implementation on Cisco IOS-XE (NIST AC-1)",
+            "category": "NIST 800-53",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/native/aaa",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "NIST",
+            "tags": {"nist": "AC-1", "category": "access_control"}
+        },
+        {
+            "name": "Best Practice: NTP Configuration",
+            "description": "Ensure NTP is configured on Cisco IOS-XE for time synchronization",
+            "category": "Best Practice",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/native/ntp",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "time_sync"}
+        },
+        {
+            "name": "Best Practice: SNMPv3 Only",
+            "description": "Ensure only SNMPv3 is enabled on Cisco IOS-XE for security",
+            "category": "Best Practice",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/native/snmp-server",
+            "expected_value": "v3",
+            "check_type": "contains",
+            "framework": "Best Practice",
+            "tags": {"category": "monitoring"}
+        },
+        {
+            "name": "Best Practice: Console Line Timeout",
+            "description": "Ensure console line timeout is configured on Cisco IOS-XE to prevent unauthorized access",
+            "category": "Best Practice",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/native/line/con",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "access_control"}
+        },
+        {
+            "name": "Best Practice: BGP Authentication",
+            "description": "Ensure BGP neighbor authentication is configured on Cisco IOS-XE",
+            "category": "Best Practice",
+            "vendor": VendorType.CISCO_XE.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/native/router/bgp/neighbor/password",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "routing_security"}
+        },
+
+        # ====================================================================
+        # Juniper JunOS Templates
+        # ====================================================================
+        {
+            "name": "CIS: SSH Configuration",
+            "description": "Ensure SSH is properly configured on Juniper JunOS (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configuration/system/services/ssh",
+            "expected_value": "v2",
+            "check_type": "contains",
+            "framework": "CIS",
+            "tags": {"cis": "5.2", "category": "access_control"}
+        },
+        {
+            "name": "CIS: Authentication Order",
+            "description": "Ensure proper authentication order is configured on Juniper JunOS (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.CRITICAL.value,
+            "xpath": "/configuration/system/authentication-order",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "CIS",
+            "tags": {"cis": "4.1", "category": "authentication"}
+        },
+        {
+            "name": "CIS: Login Message",
+            "description": "Ensure login message is configured on Juniper JunOS (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/configuration/system/login/message",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "CIS",
+            "tags": {"cis": "1.1", "category": "general"}
+        },
+        {
+            "name": "PCI-DSS: Security Policies",
+            "description": "Ensure security policies are configured on Juniper JunOS (PCI-DSS 1.2)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.CRITICAL.value,
+            "xpath": "/configuration/security",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "1.2", "category": "firewall"}
+        },
+        {
+            "name": "PCI-DSS: System Logging",
+            "description": "Ensure system logging is configured on Juniper JunOS (PCI-DSS 10.1)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configuration/system/syslog",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "10.1", "category": "logging"}
+        },
+        {
+            "name": "NIST: Access Control",
+            "description": "Verify access control implementation on Juniper JunOS (NIST AC-1)",
+            "category": "NIST 800-53",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configuration/system/login",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "NIST",
+            "tags": {"nist": "AC-1", "category": "access_control"}
+        },
+        {
+            "name": "Best Practice: NTP Configuration",
+            "description": "Ensure NTP is configured on Juniper JunOS for time synchronization",
+            "category": "Best Practice",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/configuration/system/ntp",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "time_sync"}
+        },
+        {
+            "name": "Best Practice: SNMP v3",
+            "description": "Ensure SNMPv3 is configured on Juniper JunOS for secure monitoring",
+            "category": "Best Practice",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configuration/snmp",
+            "expected_value": "v3",
+            "check_type": "contains",
+            "framework": "Best Practice",
+            "tags": {"category": "monitoring"}
+        },
+        {
+            "name": "Best Practice: BGP Authentication",
+            "description": "Ensure BGP authentication is configured on Juniper JunOS",
+            "category": "Best Practice",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configuration/protocols/bgp",
+            "expected_value": "authentication-key",
+            "check_type": "contains",
+            "framework": "Best Practice",
+            "tags": {"category": "routing_security"}
+        },
+        {
+            "name": "Best Practice: Firewall Filter Lo0 Protection",
+            "description": "Ensure firewall filter is applied to loopback interface on Juniper JunOS for control plane protection",
+            "category": "Best Practice",
+            "vendor": VendorType.JUNIPER_JUNOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/configuration/interfaces/interface[name='lo0']/unit/family/inet/filter",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "control_plane_security"}
+        },
+
+        # ====================================================================
+        # Arista EOS Templates
+        # ====================================================================
+        {
+            "name": "CIS: SSH Configuration",
+            "description": "Ensure SSH is properly configured on Arista EOS (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/system/ssh-server",
+            "expected_value": "v2",
+            "check_type": "contains",
+            "framework": "CIS",
+            "tags": {"cis": "5.2", "category": "access_control"}
+        },
+        {
+            "name": "CIS: AAA Authentication",
+            "description": "Ensure AAA authentication is enabled on Arista EOS (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.CRITICAL.value,
+            "xpath": "/system/aaa",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "CIS",
+            "tags": {"cis": "4.1", "category": "authentication"}
+        },
+        {
+            "name": "CIS: Login Banner",
+            "description": "Ensure a login banner is configured on Arista EOS (CIS Benchmark)",
+            "category": "CIS Benchmark",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/system/config/login-banner",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "CIS",
+            "tags": {"cis": "1.1", "category": "general"}
+        },
+        {
+            "name": "PCI-DSS: Encryption Configuration",
+            "description": "Ensure strong encryption is configured on Arista EOS (PCI-DSS 8.2.1)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.CRITICAL.value,
+            "xpath": "/system/ssh-server",
+            "expected_value": "aes256",
+            "check_type": "contains",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "8.2.1", "category": "encryption"}
+        },
+        {
+            "name": "PCI-DSS: Logging Configuration",
+            "description": "Ensure logging is properly configured on Arista EOS (PCI-DSS 10.1)",
+            "category": "PCI-DSS",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/system/logging",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "PCI-DSS",
+            "tags": {"pci": "10.1", "category": "logging"}
+        },
+        {
+            "name": "NIST: Access Control Policy",
+            "description": "Verify access control policy implementation on Arista EOS (NIST AC-1)",
+            "category": "NIST 800-53",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/system/aaa",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "NIST",
+            "tags": {"nist": "AC-1", "category": "access_control"}
+        },
+        {
+            "name": "Best Practice: NTP Configuration",
+            "description": "Ensure NTP is configured on Arista EOS for time synchronization",
+            "category": "Best Practice",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/system/ntp",
+            "expected_value": None,
+            "check_type": "exists",
+            "framework": "Best Practice",
+            "tags": {"category": "time_sync"}
+        },
+        {
+            "name": "Best Practice: SNMP v3",
+            "description": "Ensure SNMPv3 is configured on Arista EOS for secure monitoring",
+            "category": "Best Practice",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/system/snmp",
+            "expected_value": "v3",
+            "check_type": "contains",
+            "framework": "Best Practice",
+            "tags": {"category": "monitoring"}
+        },
+        {
+            "name": "Best Practice: BGP Authentication",
+            "description": "Ensure BGP neighbor authentication is configured on Arista EOS",
+            "category": "Best Practice",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.HIGH.value,
+            "xpath": "/network-instances/network-instance/protocols/protocol",
+            "expected_value": "auth-password",
+            "check_type": "contains",
+            "framework": "Best Practice",
+            "tags": {"category": "routing_security"}
+        },
+        {
+            "name": "Best Practice: MLAG Configuration Check",
+            "description": "Ensure MLAG is properly configured on Arista EOS for high availability",
+            "category": "Best Practice",
+            "vendor": VendorType.ARISTA_EOS.value,
+            "severity": SeverityLevel.MEDIUM.value,
+            "xpath": "/interfaces/interface",
+            "expected_value": "mlag",
+            "check_type": "contains",
+            "framework": "Best Practice",
+            "tags": {"category": "high_availability"}
+        },
     ]
 
     @staticmethod

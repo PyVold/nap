@@ -38,6 +38,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { hardwareInventoryAPI } from '../api/api';
+import { VENDOR_CONFIG, getVendorLabel } from '../utils/vendorConfig';
 
 // Component Row for displaying hardware components
 const ComponentRow = ({ component }) => {
@@ -165,7 +166,7 @@ const DeviceInventoryRow = ({ deviceSummary, onScan }) => {
               {deviceSummary.device_name}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {deviceSummary.device_ip || 'No IP'} • {deviceSummary.vendor}
+              {deviceSummary.device_ip || 'No IP'} • {getVendorLabel(deviceSummary.vendor)}
             </Typography>
           </Box>
         </TableCell>
@@ -513,8 +514,9 @@ export default function HardwareInventory() {
                 }}
               >
                 <MenuItem value="">All Vendors</MenuItem>
-                <MenuItem value="nokia_sros">Nokia SROS</MenuItem>
-                <MenuItem value="cisco_ios_xr">Cisco IOS-XR</MenuItem>
+                {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+                  <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>

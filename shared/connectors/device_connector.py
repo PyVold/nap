@@ -8,6 +8,8 @@ from models.device import Device
 from models.enums import VendorType
 from .nokia_sros_connector import NokiaSROSConnector
 from .netconf_connector import NetconfConnector
+from .junos_connector import JunOSConnector
+from .arista_connector import AristaConnector
 from shared.logger import setup_logger
 from shared.exceptions import DeviceConnectionError
 
@@ -36,8 +38,18 @@ class DeviceConnector:
                 # Fall back to NETCONF if pysros not available
                 logger.warning(f"pySROS not available, using NETCONF for {self.device.hostname}")
                 self.connector = NetconfConnector(self.device)
+        elif self.device.vendor == VendorType.JUNIPER_JUNOS:
+            self.connector = JunOSConnector(self.device)
+            logger.debug(f"Selected JunOSConnector for {self.device.hostname}")
+        elif self.device.vendor == VendorType.ARISTA_EOS:
+            self.connector = AristaConnector(self.device)
+            logger.debug(f"Selected AristaConnector for {self.device.hostname}")
+        elif self.device.vendor == VendorType.CISCO_XE:
+            # Cisco XE uses standard NETCONF with CSR device params
+            self.connector = NetconfConnector(self.device)
+            logger.debug(f"Selected NetconfConnector for Cisco XE device {self.device.hostname}")
         else:
-            # Use NETCONF for all other vendors
+            # Use NETCONF for all other vendors (including Cisco XR)
             self.connector = NetconfConnector(self.device)
             logger.debug(f"Selected NetconfConnector for {self.device.hostname}")
 

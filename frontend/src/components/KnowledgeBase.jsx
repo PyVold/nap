@@ -11,6 +11,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { aiAPI } from '../api/api';
+import { VENDOR_CONFIG, getVendorLabel } from '../utils/vendorConfig';
 import { useCanModify } from './RoleBasedAccess';
 
 const KnowledgeBase = () => {

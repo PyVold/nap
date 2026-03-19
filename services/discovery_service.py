@@ -73,8 +73,75 @@ class DiscoveryService:
                 capabilities = m.server_capabilities
                 is_nokia = any('nokia' in cap.lower() or 'alu' in cap.lower() for cap in capabilities)
                 is_cisco = any('cisco' in cap.lower() for cap in capabilities)
+                is_juniper = any('juniper' in cap.lower() or 'junos' in cap.lower() for cap in capabilities)
+                is_arista = any('arista' in cap.lower() or 'eos' in cap.lower() for cap in capabilities)
+                is_cisco_xe = any('cisco-ios-xe' in cap.lower() or 'Cisco-IOS-XE' in cap for cap in capabilities)
 
-                logger.debug(f"Device {ip} capabilities suggest - Nokia: {is_nokia}, Cisco: {is_cisco}")
+                logger.debug(f"Device {ip} capabilities suggest - Nokia: {is_nokia}, Cisco: {is_cisco}, "
+                            f"Cisco XE: {is_cisco_xe}, Juniper: {is_juniper}, Arista: {is_arista}")
+
+                # Try Juniper JunOS detection
+                if is_juniper:
+                    try:
+                        filter_junos = """
+                        <configuration>
+                            <system>
+                                <host-name/>
+                            </system>
+                        </configuration>
+                        """
+                        result = m.get_config(source='running', filter=('subtree', filter_junos))
+                        root = etree.fromstring(result.data_xml.encode())
+                        hostname_elem = root.find('.//{http://xml.juniper.net/xnm/1.1/xnm}host-name')
+                        if hostname_elem is None:
+                            hostname_elem = root.find('.//host-name')
+                        if hostname_elem is not None and hostname_elem.text:
+                            hostname = hostname_elem.text
+                            vendor = VendorType.JUNIPER_JUNOS
+                            logger.info(f"Detected Juniper JunOS device at {ip}: {hostname}")
+                            return True, hostname, vendor
+                    except Exception as e:
+                        logger.debug(f"Juniper detection failed for {ip}: {str(e)}")
+
+                # Try Arista EOS detection
+                if is_arista:
+                    try:
+                        filter_arista = """
+                        <system xmlns="http://openconfig.net/yang/system">
+                            <config>
+                                <hostname/>
+                            </config>
+                        </system>
+                        """
+                        result = m.get(filter=('subtree', filter_arista))
+                        root = etree.fromstring(result.data_xml.encode())
+                        hostname_elem = root.find('.//{http://openconfig.net/yang/system}hostname')
+                        if hostname_elem is not None and hostname_elem.text:
+                            hostname = hostname_elem.text
+                            vendor = VendorType.ARISTA_EOS
+                            logger.info(f"Detected Arista EOS device at {ip}: {hostname}")
+                            return True, hostname, vendor
+                    except Exception as e:
+                        logger.debug(f"Arista detection failed for {ip}: {str(e)}")
+
+                # Try Cisco IOS-XE detection
+                if is_cisco and is_cisco_xe:
+                    try:
+                        filter_xe = """
+                        <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+                            <hostname/>
+                        </native>
+                        """
+                        result = m.get_config(source='running', filter=('subtree', filter_xe))
+                        root = etree.fromstring(result.data_xml.encode())
+                        hostname_elem = root.find('.//{http://cisco.com/ns/yang/Cisco-IOS-XE-native}hostname')
+                        if hostname_elem is not None and hostname_elem.text:
+                            hostname = hostname_elem.text
+                            vendor = VendorType.CISCO_XE
+                            logger.info(f"Detected Cisco XE device at {ip}: {hostname}")
+                            return True, hostname, vendor
+                    except Exception as e:
+                        logger.debug(f"Cisco XE detection failed for {ip}: {str(e)}")
 
                 # Try Nokia SROS first if capabilities suggest it
                 if is_nokia or not is_cisco:
@@ -179,8 +246,14 @@ class DiscoveryService:
 
                 # If we got here, we connected but couldn't get specific info
                 # Use capabilities to make best guess on vendor
-                if is_nokia:
+                if is_juniper:
+                    vendor = VendorType.JUNIPER_JUNOS
+                elif is_arista:
+                    vendor = VendorType.ARISTA_EOS
+                elif is_nokia:
                     vendor = VendorType.NOKIA_SROS
+                elif is_cisco and is_cisco_xe:
+                    vendor = VendorType.CISCO_XE
                 elif is_cisco:
                     vendor = VendorType.CISCO_XR
 

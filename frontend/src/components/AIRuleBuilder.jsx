@@ -9,6 +9,7 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { aiAPI } from '../api/api';
+import { VENDOR_CONFIG, getVendorLabel } from '../utils/vendorConfig';
 import { useCanModify } from './RoleBasedAccess';
 import AIFeedbackWidget from './AIFeedbackWidget';
 
@@ -113,9 +114,10 @@ const AIRuleBuilder = () => {
             <FormControl fullWidth size="small">
               <InputLabel>Vendor (optional)</InputLabel>
               <Select value={vendor} onChange={(e) => setVendor(e.target.value)} label="Vendor (optional)">
-                <MenuItem value="">Both vendors</MenuItem>
-                <MenuItem value="cisco_xr">Cisco IOS-XR</MenuItem>
-                <MenuItem value="nokia_sros">Nokia SR OS</MenuItem>
+                <MenuItem value="">All vendors</MenuItem>
+                {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+                  <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -182,7 +184,7 @@ const AIRuleBuilder = () => {
                 } />
                 <Chip label={result.generated_rule.category} size="small" variant="outlined" />
                 {result.generated_rule.vendors.map((v) => (
-                  <Chip key={v} label={v} size="small" variant="outlined" color="info" />
+                  <Chip key={v} label={getVendorLabel(v)} size="small" variant="outlined" color="info" />
                 ))}
               </Box>
             </CardContent>

@@ -1,5 +1,6 @@
 # ============================================================================
-# connectors/netconf_connector.py
+# connectors/junos_connector.py
+# NETCONF connector for Juniper JunOS devices
 # ============================================================================
 
 import asyncio
@@ -14,18 +15,17 @@ from shared.exceptions import DeviceConnectionError
 
 logger = setup_logger(__name__)
 
-class NetconfConnector(BaseConnector):
-    """NETCONF connector implementation"""
-    
+class JunOSConnector(BaseConnector):
+    """NETCONF connector for Juniper JunOS devices"""
+
     def __init__(self, device: Device):
         self.device = device
         self.connection = None
-    
+
     async def connect(self) -> bool:
-        """Establish NETCONF connection"""
+        """Establish NETCONF connection to JunOS device"""
         try:
             loop = asyncio.get_event_loop()
-            device_params = self._get_device_params()
 
             self.connection = await loop.run_in_executor(
                 None,
@@ -34,7 +34,7 @@ class NetconfConnector(BaseConnector):
                     port=self.device.port,
                     username=self.device.username,
                     password=self.device.password,
-                    device_params=device_params,
+                    device_params={'name': 'junos'},
                     hostkey_verify=False,
                     timeout=30,
                     allow_agent=False,
@@ -49,84 +49,55 @@ class NetconfConnector(BaseConnector):
                 except:
                     pass  # If we can't set it, continue anyway
 
-            logger.info(f"Connected to {self.device.hostname}")
+            logger.info(f"Connected to JunOS device {self.device.hostname}")
             return True
 
         except Exception as e:
             logger.error(f"Connection failed to {self.device.hostname}: {str(e)}")
             raise DeviceConnectionError(f"Failed to connect to {self.device.hostname}: {str(e)}")
-    
-    def _get_device_params(self) -> Dict[str, Any]:
-        """Get vendor-specific device parameters"""
-        if self.device.vendor == VendorType.CISCO_XR:
-            return {'name': 'iosxr'}
-        elif self.device.vendor == VendorType.CISCO_XE:
-            return {'name': 'csr'}
-        elif self.device.vendor == VendorType.JUNIPER_JUNOS:
-            return {'name': 'junos'}
-        elif self.device.vendor == VendorType.ARISTA_EOS:
-            return {'name': 'default'}
-        elif self.device.vendor == VendorType.NOKIA_SROS:
-            # Use default handler - more generic and may avoid device-specific XPath formatting issues
-            return {'name': 'default'}
-        return {'name': 'default'}
-    
+
     async def get_config(self, source: str = 'running', filter_data: Optional[str] = None, xpath: Optional[str] = None) -> str:
-        """Retrieve device configuration"""
+        """
+        Retrieve device configuration via NETCONF
+
+        Args:
+            source: Configuration datastore ('running' or 'candidate')
+            filter_data: XML subtree filter
+            xpath: XPath filter (JunOS supports standard NETCONF XPath filters)
+                   e.g. '/configuration/system/services/ssh',
+                        '/configuration/protocols/bgp'
+
+        Returns:
+            Configuration as XML string
+        """
         if not self.connection:
             raise DeviceConnectionError("Not connected to device")
 
         try:
             loop = asyncio.get_event_loop()
 
-            # Use XPath when provided (typically for Nokia SROS or Juniper JunOS)
             if xpath:
+                # JunOS uses standard NETCONF XPath filter
                 logger.debug(f"Getting config from {self.device.hostname} with XPath: {xpath}")
-                # Nokia SROS: Use <get> operation with proper XML filter including namespaces
-                # Nokia returns configuration data via <get> when using XPath
-                if self.device.vendor == VendorType.NOKIA_SROS:
-                    logger.info(f"Using <get> operation for Nokia SROS with XPath")
-                    # Create proper XML filter with namespace declarations for Nokia
-                    # Nokia SROS uses specific namespaces in their YANG models
-                    xml_filter = f'''
-                    <filter type="xpath"
-                            xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"
-                            xmlns:sros="urn:nokia.com:sros:ns:yang:sr"
-                            select="{xpath}" />
-                    '''
-                    result = await loop.run_in_executor(
-                        None,
-                        lambda: self.connection.get(filter=xml_filter)
-                    )
-                elif self.device.vendor == VendorType.JUNIPER_JUNOS:
-                    # Juniper JunOS uses standard NETCONF XPath filter
-                    logger.info(f"Using standard NETCONF XPath filter for JunOS")
-                    result = await loop.run_in_executor(
-                        None,
-                        lambda: self.connection.get_config(source=source, filter=('xpath', xpath))
-                    )
-                else:
-                    result = await loop.run_in_executor(
-                        None,
-                        lambda: self.connection.get_config(source=source, filter=('xpath', xpath))
-                    )
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: self.connection.get_config(source=source, filter=('xpath', xpath))
+                )
             elif filter_data:
-                # Cisco XR and others use subtree filter
+                # Subtree filter
                 logger.debug(f"Getting config from {self.device.hostname} with filter: {filter_data[:100]}...")
                 result = await loop.run_in_executor(
                     None,
                     lambda: self.connection.get_config(source=source, filter=('subtree', filter_data))
                 )
             else:
-                # No filter specified
+                # No filter - full config
                 logger.debug(f"Getting full config from {self.device.hostname}")
                 result = await loop.run_in_executor(
                     None,
                     lambda: self.connection.get_config(source=source)
                 )
 
-            # Nokia SROS may return data in JSON format within XML envelope
-            # Extract the actual data content
             return result.data_xml
 
         except RPCError as e:
@@ -139,14 +110,21 @@ class NetconfConnector(BaseConnector):
         except Exception as e:
             logger.error(f"Failed to get config from {self.device.hostname}: {str(e)}")
             raise
-    
+
     async def get_operational_state(self, filter_data: Optional[str] = None, xpath: Optional[str] = None) -> str:
-        """Retrieve operational state data"""
+        """
+        Retrieve operational state data via NETCONF RPC get with subtree filters
+
+        Args:
+            filter_data: XML subtree filter
+            xpath: XPath filter
+
+        Returns:
+            Operational state as XML string
+        """
         if not self.connection:
             raise DeviceConnectionError("Not connected to device")
 
-        # If no filter is specified, we can't retrieve operational state safely
-        # (full operational state can be huge and cause XML parsing issues)
         if not xpath and not filter_data:
             logger.warning(f"No filter specified for get operation on {self.device.hostname}, skipping")
             raise ValueError("Filter or XPath must be specified for get operations")
@@ -155,13 +133,15 @@ class NetconfConnector(BaseConnector):
             loop = asyncio.get_event_loop()
 
             if xpath:
-                # Nokia SROS uses XPath
+                # JunOS XPath filter for operational state
+                logger.debug(f"Getting operational state from {self.device.hostname} with XPath: {xpath}")
                 result = await loop.run_in_executor(
                     None,
                     lambda: self.connection.get(filter=('xpath', xpath))
                 )
             else:
-                # Cisco uses subtree filter
+                # Subtree filter for operational state
+                logger.debug(f"Getting operational state from {self.device.hostname} with subtree filter")
                 result = await loop.run_in_executor(
                     None,
                     lambda: self.connection.get(filter=('subtree', filter_data))
@@ -176,7 +156,7 @@ class NetconfConnector(BaseConnector):
     async def get_config_cli(self) -> str:
         """
         Retrieve device configuration in CLI format
-        For Cisco: Returns full running configuration (equivalent to 'show running-config')
+        For JunOS: Uses 'display set' format via NETCONF
 
         Returns:
             Configuration as string
@@ -188,7 +168,8 @@ class NetconfConnector(BaseConnector):
             loop = asyncio.get_event_loop()
             logger.debug(f"Getting CLI config from {self.device.hostname}")
 
-            # For Cisco and other NETCONF devices, get full running config
+            # For JunOS, get full running config in XML and return it
+            # JunOS NETCONF returns configuration in XML format
             result = await loop.run_in_executor(
                 None,
                 lambda: self.connection.get_config(source='running').data_xml
@@ -206,10 +187,10 @@ class NetconfConnector(BaseConnector):
         Edit device configuration using NETCONF edit-config
 
         Args:
-            config_xml: XML configuration to apply
-            target: Target datastore ('candidate' or 'running')
+            config_xml: XML configuration to apply (JunOS configuration hierarchy)
+            target: Target datastore ('candidate' recommended for JunOS)
             validate: Whether to validate before committing
-            xpath: Not used for NETCONF (only for Nokia SROS pysros)
+            xpath: Not used for NETCONF edit-config on JunOS
             filter_xml: Not used for NETCONF edit-config
 
         Returns:
@@ -221,31 +202,49 @@ class NetconfConnector(BaseConnector):
         try:
             loop = asyncio.get_event_loop()
 
-            # Edit the configuration
-            logger.info(f"Applying configuration to {self.device.hostname}")
+            # Lock the candidate configuration
+            logger.debug(f"Locking candidate config on {self.device.hostname}")
             await loop.run_in_executor(
                 None,
-                lambda: self.connection.edit_config(target=target, config=config_xml)
+                lambda: self.connection.lock(target='candidate')
             )
 
-            # Validate if using candidate datastore
-            if target == 'candidate' and validate:
-                logger.debug(f"Validating configuration on {self.device.hostname}")
+            try:
+                # Edit the configuration
+                logger.info(f"Applying configuration to {self.device.hostname}")
                 await loop.run_in_executor(
                     None,
-                    self.connection.validate
+                    lambda: self.connection.edit_config(target=target, config=config_xml)
                 )
 
-            # Commit if using candidate datastore
-            if target == 'candidate':
-                logger.info(f"Committing configuration on {self.device.hostname}")
-                await loop.run_in_executor(
-                    None,
-                    self.connection.commit
-                )
+                # Validate if using candidate datastore
+                if target == 'candidate' and validate:
+                    logger.debug(f"Validating configuration on {self.device.hostname}")
+                    await loop.run_in_executor(
+                        None,
+                        self.connection.validate
+                    )
 
-            logger.info(f"Configuration applied successfully to {self.device.hostname}")
-            return True
+                # Commit if using candidate datastore
+                if target == 'candidate':
+                    logger.info(f"Committing configuration on {self.device.hostname}")
+                    await loop.run_in_executor(
+                        None,
+                        self.connection.commit
+                    )
+
+                logger.info(f"Configuration applied successfully to {self.device.hostname}")
+                return True
+
+            finally:
+                # Always unlock the candidate configuration
+                try:
+                    await loop.run_in_executor(
+                        None,
+                        lambda: self.connection.unlock(target='candidate')
+                    )
+                except:
+                    pass
 
         except RPCError as e:
             logger.error(f"NETCONF RPC Error applying config to {self.device.hostname}: {str(e)}")
@@ -266,13 +265,13 @@ class NetconfConnector(BaseConnector):
             try:
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, self.connection.close_session)
-                logger.info(f"Disconnected from {self.device.hostname}")
+                logger.info(f"Disconnected from JunOS device {self.device.hostname}")
             except Exception as e:
                 logger.error(f"Error disconnecting from {self.device.hostname}: {str(e)}")
 
     @staticmethod
     def test_connection(host: str, port: int, username: str, password: str) -> bool:
-        """Test NETCONF connectivity to a device"""
+        """Test NETCONF connectivity to a JunOS device"""
         try:
             connection = manager.connect(
                 host=host,
@@ -281,7 +280,7 @@ class NetconfConnector(BaseConnector):
                 password=password,
                 hostkey_verify=False,
                 timeout=10,
-                device_params={'name': 'default'}
+                device_params={'name': 'junos'}
             )
             connection.close_session()
             return True
