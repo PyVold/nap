@@ -36,6 +36,7 @@ import {
   Compare as CompareIcon,
 } from '@mui/icons-material';
 import { configBackupsAPI } from '../api/api';
+import { getVendorLabel } from '../utils/vendorConfig';
 import { useAuth } from '../contexts/AuthContext';
 import { useHasPermission } from './RoleBasedAccess';
 
@@ -141,7 +142,7 @@ const DeviceBackupRow = ({ deviceSummary, onCreateBackup, onViewBackup, selected
               {deviceSummary.device_name}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {deviceSummary.device_ip || 'No IP'} • {deviceSummary.vendor}
+              {deviceSummary.device_ip || 'No IP'} • {getVendorLabel(deviceSummary.vendor)}
             </Typography>
           </Box>
         </TableCell>

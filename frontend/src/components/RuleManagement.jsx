@@ -590,12 +590,12 @@ const RuleManagement = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="XML Filter (Cisco XR / NETCONF)"
+                  label="XML Filter (NETCONF)"
                   multiline
                   rows={3}
                   value={checkForm.filter_xml}
                   onChange={(e) => setCheckForm({ ...checkForm, filter_xml: e.target.value })}
-                  helperText="For Cisco XR and other NETCONF devices - XML subtree filter"
+                  helperText="For Cisco, Juniper, Arista, and other NETCONF devices - XML subtree filter"
                 />
               </Grid>
             )}
@@ -677,7 +677,7 @@ const RuleManagement = () => {
                               </TableCell>
                             </>
                           )}
-                          {(formData.vendors.includes('cisco_xr') || !formData.vendors.includes('nokia_sros')) && (
+                          {(formData.vendors.some(v => v !== 'nokia_sros') || !formData.vendors.includes('nokia_sros')) && (
                             <TableCell>
                               <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {check.filter_xml || '-'}
