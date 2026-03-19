@@ -30,6 +30,7 @@ import {
   Router,
 } from '@mui/icons-material';
 import { healthAPI, devicesAPI } from '../api/api';
+import { getVendorLabel, getVendorColor } from '../utils/vendorConfig';
 
 const DeviceHealthRow = ({ device, onCheckHealth }) => {
   const [open, setOpen] = useState(false);
@@ -120,10 +121,10 @@ const DeviceHealthRow = ({ device, onCheckHealth }) => {
         <TableCell>{device.ip || 'N/A'}</TableCell>
         <TableCell>
           <Chip
-            label={device.vendor}
+            label={getVendorLabel(device.vendor)}
             size="small"
-            color="primary"
             variant="outlined"
+            sx={{ borderColor: getVendorColor(device.vendor), color: getVendorColor(device.vendor) }}
           />
         </TableCell>
         <TableCell>

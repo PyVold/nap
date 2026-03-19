@@ -212,8 +212,9 @@ const KnowledgeBase = () => {
           <InputLabel>Vendor</InputLabel>
           <Select value={vendorFilter} onChange={(e) => setVendorFilter(e.target.value)} label="Vendor">
             <MenuItem value="">All Vendors</MenuItem>
-            <MenuItem value="cisco_xr">Cisco IOS-XR</MenuItem>
-            <MenuItem value="nokia_sros">Nokia SR OS</MenuItem>
+            {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+              <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+            ))}
           </Select>
         </FormControl>
         <Box sx={{ flex: 1 }} />
@@ -240,7 +241,7 @@ const KnowledgeBase = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
                 <Typography variant="body1" fontWeight="bold">{entry.title}</Typography>
                 <Chip label={entry.category} size="small" color={getCategoryColor(entry.category)} />
-                {entry.vendor && <Chip label={entry.vendor} size="small" variant="outlined" />}
+                {entry.vendor && <Chip label={getVendorLabel(entry.vendor)} size="small" variant="outlined" />}
               </Box>
             </AccordionSummary>
             <AccordionDetails>
@@ -301,8 +302,9 @@ const KnowledgeBase = () => {
                 <InputLabel>Vendor</InputLabel>
                 <Select value={newEntry.vendor} onChange={(e) => setNewEntry({ ...newEntry, vendor: e.target.value })} label="Vendor">
                   <MenuItem value="">Generic (all vendors)</MenuItem>
-                  <MenuItem value="cisco_xr">Cisco IOS-XR</MenuItem>
-                  <MenuItem value="nokia_sros">Nokia SR OS</MenuItem>
+                  {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+                    <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>

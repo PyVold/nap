@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { auditAPI, healthAPI, systemAPI, devicesAPI, activityFeedAPI, dashboardAPI } from '../api/api';
+import { getVendorLabel } from '../utils/vendorConfig';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const QUICK_ACTIONS = [
@@ -594,7 +595,7 @@ const Dashboard = () => {
                   </Box>
                   {extendedStats.devices?.by_vendor && Object.entries(extendedStats.devices.by_vendor).map(([vendor, count]) => (
                     <Box key={vendor} display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" color="text.secondary">{vendor}</Typography>
+                      <Typography variant="body2" color="text.secondary">{getVendorLabel(vendor)}</Typography>
                       <Chip label={count} size="small" variant="outlined" />
                     </Box>
                   ))}
