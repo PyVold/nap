@@ -18,7 +18,6 @@ import {
 import {
   CloudUpload,
   Download,
-  CheckCircle,
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { deviceImportAPI } from '../api/api';
@@ -268,7 +267,7 @@ export default function DeviceImport() {
                   <strong>Optional fields:</strong> port (default: 830), username, password, description, location, tags
                 </Typography>
                 <Typography variant="body2" paragraph>
-                  <strong>Supported vendors:</strong> CISCO_XR, NOKIA_SROS
+                  <strong>Supported vendors:</strong> CISCO_XR, CISCO_XE, NOKIA_SROS, JUNIPER_JUNOS, ARISTA_EOS
                 </Typography>
                 <Typography variant="body2">
                   <strong>Tags format:</strong> key1:value1,key2:value2

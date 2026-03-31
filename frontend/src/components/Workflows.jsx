@@ -32,7 +32,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  LinearProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,

@@ -577,9 +577,101 @@ class SystemConfigDB(Base):
 
 
 # ============================================================================
-# Advanced Models - Using separate model files for reference
+# AI & MCP Models
 # ============================================================================
-# Note: Advanced models are defined in separate files for documentation
-# but we use the existing DB models in this file to avoid duplicate table definitions
-# The separate model files serve as reference for API development
+
+class AIInteractionDB(Base):
+    """Track all AI interactions for feedback and learning"""
+    __tablename__ = "ai_interactions"
+    __table_args__ = (
+        Index('ix_ai_interactions_type_time', 'interaction_type', 'created_at'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True)
+    interaction_type = Column(String(50), index=True, nullable=False)  # rule_builder, remediation, chat_query, report, anomaly
+    input_prompt = Column(Text, nullable=False)
+    ai_response = Column(JSON, nullable=True)
+    model_used = Column(String(100), nullable=True)
+    tokens_used = Column(Integer, default=0)
+    feedback = Column(String(50), nullable=True)  # positive, negative, neutral
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class AIRuleDraftDB(Base):
+    """AI-generated audit rules awaiting approval"""
+    __tablename__ = "ai_rule_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_prompt = Column(Text, nullable=False)
+    generated_rule = Column(JSON, nullable=False)
+    confidence_score = Column(Float, default=0.0)
+    status = Column(String(50), default="pending", index=True)  # pending, approved, rejected, modified
+    approved_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIRemediationDraftDB(Base):
+    """AI-generated remediation plans awaiting approval"""
+    __tablename__ = "ai_remediation_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey('devices.id', ondelete='CASCADE'), nullable=False)
+    audit_result_id = Column(Integer, nullable=True)
+    generated_plan = Column(JSON, nullable=False)
+    confidence_score = Column(Float, default=0.0)
+    status = Column(String(50), default="pending_approval", index=True)  # pending_approval, approved, rejected, executed
+    approved_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    device = relationship("DeviceDB")
+
+
+class AIReportDB(Base):
+    """AI-generated compliance reports"""
+    __tablename__ = "ai_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(500), nullable=False)
+    report_type = Column(String(50), nullable=False, index=True)  # executive, detailed, framework
+    framework = Column(String(100), nullable=True)  # SOX, PCI-DSS, NIST, ISO27001
+    content = Column(Text, nullable=False)  # Full markdown report
+    executive_summary = Column(Text, nullable=True)
+    key_findings = Column(JSON, nullable=True)  # List of key findings
+    recommendations = Column(JSON, nullable=True)  # List of recommendations
+    data_sources = Column(JSON, nullable=True)  # What data was analyzed
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class MCPConnectionDB(Base):
+    """External MCP server connections"""
+    __tablename__ = "mcp_connections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, index=True, nullable=False)
+    server_url = Column(String(512), nullable=False)
+    transport = Column(String(50), default="sse")  # sse, stdio
+    auth_config = Column(Text, nullable=True)  # Encrypted JSON
+    capabilities = Column(JSON, nullable=True)
+    status = Column(String(50), default="disconnected")  # connected, disconnected, unreachable
+    last_connected = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class KnowledgeBaseDB(Base):
+    """Vendor knowledge base entries for RAG-powered AI features"""
+    __tablename__ = "knowledge_base"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(500), nullable=False)
+    content = Column(Text, nullable=False)
+    category = Column(String(100), default="general")  # vendor_docs, best_practices, troubleshooting, config_examples
+    vendor = Column(String(50), nullable=True)  # cisco_xr, nokia_sros, or null for generic
+    tags = Column(JSON, default=list)
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -3,7 +3,9 @@
 # Workflow Execution Engine with DAG Support
 # ============================================================================
 
+import ast
 import asyncio
+import operator
 import time
 from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
@@ -21,6 +23,68 @@ from db_models import (
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+
+# Safe expression evaluation helpers — no eval() or exec() used
+SAFE_OPERATORS = {
+    ast.Eq: operator.eq,
+    ast.NotEq: operator.ne,
+    ast.Lt: operator.lt,
+    ast.LtE: operator.le,
+    ast.Gt: operator.gt,
+    ast.GtE: operator.ge,
+    ast.And: lambda a, b: a and b,
+    ast.Or: lambda a, b: a or b,
+    ast.Not: operator.not_,
+    ast.In: lambda a, b: a in b,
+    ast.NotIn: lambda a, b: a not in b,
+}
+
+
+def safe_eval(expression: str, context: Dict[str, Any]) -> bool:
+    """Safely evaluate a boolean expression with context variables."""
+    try:
+        tree = ast.parse(expression, mode='eval')
+        return _eval_node(tree.body, context)
+    except Exception:
+        return False
+
+
+def _eval_node(node: ast.expr, context: Dict[str, Any]) -> Any:
+    """Recursively evaluate an AST node using only whitelisted operations."""
+    if isinstance(node, ast.BoolOp):
+        if isinstance(node.op, ast.And):
+            return all(_eval_node(v, context) for v in node.values)
+        elif isinstance(node.op, ast.Or):
+            return any(_eval_node(v, context) for v in node.values)
+    elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return not _eval_node(node.operand, context)
+    elif isinstance(node, ast.Compare):
+        left = _eval_node(node.left, context)
+        for op, comparator in zip(node.ops, node.comparators):
+            right = _eval_node(comparator, context)
+            if type(op) not in SAFE_OPERATORS:
+                raise ValueError(f"Unsupported operator: {type(op).__name__}")
+            if not SAFE_OPERATORS[type(op)](left, right):
+                return False
+            left = right
+        return True
+    elif isinstance(node, ast.Name):
+        if node.id in context:
+            return context[node.id]
+        raise ValueError(f"Unknown variable: {node.id}")
+    elif isinstance(node, ast.Constant):
+        return node.value
+    elif isinstance(node, ast.Attribute):
+        value = _eval_node(node.value, context)
+        if isinstance(value, dict):
+            return value.get(node.attr)
+        return getattr(value, node.attr, None)
+    elif isinstance(node, ast.Subscript):
+        value = _eval_node(node.value, context)
+        key = _eval_node(node.slice, context)
+        return value[key]
+    raise ValueError(f"Unsupported expression: {type(node).__name__}")
 
 
 class WorkflowContext:
@@ -72,7 +136,7 @@ class WorkflowContext:
         return template.render(**template_context)
 
     def evaluate_condition(self, condition: str) -> bool:
-        """Evaluate a condition string"""
+        """Evaluate a condition string safely without using eval()"""
         if not condition:
             return True
 
@@ -86,12 +150,13 @@ class WorkflowContext:
             elif rendered.lower() in ['false', '0', 'no', '']:
                 return False
 
-            # Try to evaluate as Python expression
+            # Build safe context for expression evaluation
             context = {
                 **self.variables,
                 **self.step_outputs
             }
-            return bool(eval(rendered, {"__builtins__": {}}, context))
+
+            return bool(safe_eval(rendered, context))
         except Exception as e:
             logger.error(f"Error evaluating condition '{condition}': {e}")
             return False

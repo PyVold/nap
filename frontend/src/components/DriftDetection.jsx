@@ -23,12 +23,10 @@ import {
 } from '@mui/material';
 import {
   Refresh,
-  Warning,
-  CheckCircle,
   Verified,
-  CompareArrows,
 } from '@mui/icons-material';
 import { driftDetectionAPI, devicesAPI } from '../api/api';
+import { getVendorLabel } from '../utils/vendorConfig';
 
 export default function DriftDetection() {
   const [drifts, setDrifts] = useState([]);
@@ -277,7 +275,7 @@ export default function DriftDetection() {
                       devices.slice(0, 10).map((device) => (
                         <TableRow key={device.id}>
                           <TableCell>{device.hostname}</TableCell>
-                          <TableCell>{device.vendor}</TableCell>
+                          <TableCell>{getVendorLabel(device.vendor)}</TableCell>
                           <TableCell align="right">
                             <Button
                               size="small"

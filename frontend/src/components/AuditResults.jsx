@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Typography,
   Table,
   TableBody,
@@ -31,7 +29,6 @@ import {
   TextField,
   InputAdornment,
   Tooltip,
-  Badge,
 } from '@mui/material';
 import {
   PlayArrow,
@@ -43,8 +40,6 @@ import {
   Warning,
   Assessment,
   Search as SearchIcon,
-  CheckBox as CheckBoxIcon,
-  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
   Build as FixIcon,
 } from '@mui/icons-material';
 import { auditAPI, devicesAPI, rulesAPI, remediationAPI } from '../api/api';
@@ -330,7 +325,7 @@ const AuditResults = () => {
   useEffect(() => {
     console.log('AuditResults component mounted');
     fetchResults();
-    
+
     // Cleanup on unmount
     return () => {
       if (pollInterval) {
@@ -340,7 +335,7 @@ const AuditResults = () => {
         clearInterval(autoRefreshInterval);
       }
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Continuous auto-refresh effect
   useEffect(() => {
@@ -361,12 +356,12 @@ const AuditResults = () => {
         setAutoRefreshInterval(null);
       }
     }
-  }, [autoRefreshEnabled]);
-  
+  }, [autoRefreshEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     console.log('Results state updated:', results.length, 'results');
   }, [results]);
-  
+
   useEffect(() => {
     console.log('Loading state updated:', loading);
   }, [loading]);

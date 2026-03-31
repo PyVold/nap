@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Typography,
   Table,
   TableBody,
@@ -41,6 +39,7 @@ import { Search as SearchIcon } from '@mui/icons-material';
 import InputAdornment from '@mui/material/InputAdornment';
 import { rulesAPI } from '../api/api';
 import { useCanModify, useHasPermission } from './RoleBasedAccess';
+import { VENDOR_CONFIG, getVendorLabel, getVendorColor } from '../utils/vendorConfig';
 
 const RuleManagement = () => {
   const canModify = useCanModify();
@@ -396,7 +395,7 @@ const RuleManagement = () => {
                 <TableCell>{rule.category}</TableCell>
                 <TableCell>
                   {rule.vendors.map((vendor, idx) => (
-                    <Chip key={idx} label={vendor} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                    <Chip key={idx} label={getVendorLabel(vendor)} size="small" sx={{ mr: 0.5, mb: 0.5, borderColor: getVendorColor(vendor), color: getVendorColor(vendor) }} variant="outlined" />
                   ))}
                 </TableCell>
                 <TableCell>{rule.checks?.length || 0}</TableCell>
@@ -525,8 +524,9 @@ const RuleManagement = () => {
                   onChange={(e) => setFormData({ ...formData, vendors: e.target.value })}
                   renderValue={(selected) => selected.join(', ')}
                 >
-                  <MenuItem value="cisco_xr">Cisco XR</MenuItem>
-                  <MenuItem value="nokia_sros">Nokia SROS</MenuItem>
+                  {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+                    <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -585,17 +585,17 @@ const RuleManagement = () => {
               </>
             )}
 
-            {/* Show Cisco/other vendor fields only if Cisco or other vendors selected */}
-            {(formData.vendors.includes('cisco_xr') || formData.vendors.length === 0 || !formData.vendors.includes('nokia_sros')) && (
+            {/* Show XML/NETCONF fields if any non-Nokia vendor is selected or no vendors selected */}
+            {(formData.vendors.length === 0 || formData.vendors.some(v => v !== 'nokia_sros')) && (
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="XML Filter (Cisco XR / NETCONF)"
+                  label="XML Filter (NETCONF)"
                   multiline
                   rows={3}
                   value={checkForm.filter_xml}
                   onChange={(e) => setCheckForm({ ...checkForm, filter_xml: e.target.value })}
-                  helperText="For Cisco XR and other NETCONF devices - XML subtree filter"
+                  helperText="For Cisco, Juniper, Arista, and other NETCONF devices - XML subtree filter"
                 />
               </Grid>
             )}
@@ -644,8 +644,8 @@ const RuleManagement = () => {
                             <TableCell><strong>Filter (Nokia)</strong></TableCell>
                           </>
                         )}
-                        {(formData.vendors.includes('cisco_xr') || !formData.vendors.includes('nokia_sros')) && (
-                          <TableCell><strong>Filter XML (Cisco/NETCONF)</strong></TableCell>
+                        {(formData.vendors.length === 0 || formData.vendors.some(v => v !== 'nokia_sros')) && (
+                          <TableCell><strong>Filter XML (NETCONF)</strong></TableCell>
                         )}
                         <TableCell align="center"><strong>Actions</strong></TableCell>
                       </TableRow>
@@ -677,7 +677,7 @@ const RuleManagement = () => {
                               </TableCell>
                             </>
                           )}
-                          {(formData.vendors.includes('cisco_xr') || !formData.vendors.includes('nokia_sros')) && (
+                          {(formData.vendors.some(v => v !== 'nokia_sros') || !formData.vendors.includes('nokia_sros')) && (
                             <TableCell>
                               <Typography variant="caption" sx={{ maxWidth: 150, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {check.filter_xml || '-'}

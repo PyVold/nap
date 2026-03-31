@@ -15,23 +15,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
   IconButton,
   Tooltip,
-  Paper,
   CircularProgress
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import InfoIcon from '@mui/icons-material/Info';
 import KeyIcon from '@mui/icons-material/Key';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import WarningIcon from '@mui/icons-material/Warning';
 import api from '../api/api';
 import { useLicense } from '../contexts/LicenseContext';
@@ -116,31 +108,6 @@ export default function LicenseManagement() {
     } finally {
       setActivating(false);
     }
-  };
-
-  const handleDeactivateLicense = async () => {
-    if (!window.confirm('Are you sure you want to deactivate the current license?')) {
-      return;
-    }
-
-    try {
-      await api.post('/license/deactivate');
-      setSuccess('License deactivated');
-      
-      // Refresh both local and global license state
-      await Promise.all([
-        fetchLicenseStatus(),
-        refetchLicenseContext()
-      ]);
-    } catch (err) {
-      setError('Failed to deactivate license');
-    }
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setSuccess('Copied to clipboard!');
-    setTimeout(() => setSuccess(null), 2000);
   };
 
   // Module definitions with descriptions

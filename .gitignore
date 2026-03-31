@@ -24,7 +24,12 @@ wheels/
 venv/
 ENV/
 env/
+
+# Environment files (NEVER commit secrets)
 .env
+.env.prod
+.env.local
+.env.*.local
 
 # IDE
 .vscode/
@@ -44,6 +49,7 @@ logs/
 
 # License System - IMPORTANT: Never commit license files!
 license_output/
+license_output_correct/
 !license_output/README.md
 *.license.txt
 *.license.json

@@ -6,6 +6,7 @@ A comprehensive enterprise network audit and compliance platform for Cisco IOS-X
 ![Python](https://img.shields.io/badge/Python-3.9+-green)
 ![React](https://img.shields.io/badge/React-18.2-61dafb)
 ![License](https://img.shields.io/badge/License-Commercial-red)
+![Version](https://img.shields.io/badge/Version-2.0.0-orange)
 
 ## Features
 
@@ -15,118 +16,138 @@ A comprehensive enterprise network audit and compliance platform for Cisco IOS-X
 - **Discovery Groups**: Organize devices into logical groups for batch operations
 - **Metadata Collection**: Automatic collection of BGP, IGP, MPLS, and system information
 - **Health Monitoring**: Real-time connectivity checks (Ping, NETCONF, SSH)
+- **Hardware Inventory**: Track chassis, line cards, optics, and firmware versions
 
 ### Compliance & Auditing
 - **Rule-Based Auditing**: Create custom audit rules with XPath queries and XML filters
 - **Multi-Check Rules**: Define multiple validation checks per rule
+- **Rule Templates**: Pre-built compliance templates for common standards
 - **Severity Levels**: Critical, High, Medium, Low classifications
 - **Category Organization**: Group rules by routing, security, interfaces, etc.
-- **Scheduled Audits**: Automated compliance checking on schedule
-- **Compliance Scoring**: Real-time compliance percentage tracking
+- **Scheduled Audits**: Automated compliance checking on configurable schedules
+- **Compliance Scoring**: Real-time compliance percentage tracking per device and fleet-wide
 
 ### Configuration Management
-- **Configuration Backup**: Automated backup of device configurations
-- **Drift Detection**: Detect unauthorized configuration changes
-- **Configuration Comparison**: Side-by-side diff viewing
+- **Configuration Backup**: Automated backup of device configurations with scheduling
+- **Drift Detection**: Detect unauthorized configuration changes between backups
+- **Configuration Comparison**: Side-by-side diff viewing with highlighted changes
 - **Remediation Workflows**: Guided remediation for compliance violations
 
+### AI-Powered Features (v2.0)
+- **Natural Language Rule Builder**: Describe audit rules in plain English, AI generates XPath/XML
+- **AI Chat Assistant**: Context-aware chat for network troubleshooting and analysis
+- **Intelligent Reports**: AI-generated compliance summaries and executive reports
+- **Anomaly Detection**: ML-based detection of unusual configuration patterns
+- **Compliance Prediction**: Predict compliance drift before it happens
+- **Impact Analysis**: Assess the blast radius of configuration changes
+- **Automated Remediation**: AI-suggested fixes for compliance violations
+- **MCP Integration Hub**: Connect NAP as a data source for AI operations tools
+
 ### Analytics & Reporting
-- **Dashboard**: Real-time compliance scores and statistics
-- **Trend Analysis**: Historical compliance and health trends
-- **Export Reports**: Generate compliance reports for auditors
-- **Visualizations**: Charts and graphs for quick insights
+- **Dashboard**: Real-time compliance scores, device health, and fleet statistics
+- **Trend Analysis**: Historical compliance and health trends with charts
+- **Export Reports**: Generate compliance reports for auditors (PDF/CSV)
+- **Visualizations**: Charts and graphs powered by Recharts
 
 ### Administration
 - **User Management**: Role-based access control (Admin, Operator, Viewer)
-- **License Management**: Commercial licensing with feature controls
+- **Group-Based Permissions**: Fine-grained permission assignment via user groups
+- **License Management**: Commercial licensing with feature and device quota controls
+- **Module Access Control**: Enable/disable platform modules per user group
 - **Audit Logging**: Complete audit trail of all actions
-- **Dark/Light Mode**: User preference for interface theme
+- **Integration Hub**: Webhook, syslog, and third-party integrations
+
+## Architecture
+
+NAP uses a microservices architecture with 8 backend services behind an API gateway:
+
+```
+                    ┌──────────────────────────┐
+                    │   Frontend (React/Nginx)  │
+                    │        Port: 80           │
+                    └────────────┬─────────────┘
+                                 │
+                    ┌────────────▼─────────────┐
+                    │   API Gateway (FastAPI)   │
+                    │       Port: 3000          │
+                    └────────────┬─────────────┘
+                                 │
+       ┌──────────┬──────────┬───┴───┬──────────┬──────────┐
+       ▼          ▼          ▼       ▼          ▼          ▼
+  ┌─────────┐┌─────────┐┌───────┐┌───────┐┌─────────┐┌────────┐
+  │ Device  ││  Rule   ││ Admin ││Backup ││Inventory││  AI    │
+  │ Service ││ Service ││Service││Service││ Service ││Service │
+  │ :3001   ││ :3002   ││ :3003 ││ :3004 ││ :3005   ││ :3006  │
+  └────┬────┘└────┬────┘└───┬───┘└───┬───┘└────┬────┘└────┬───┘
+       └──────────┴─────────┴────┬───┴─────────┴──────────┘
+                                 ▼
+                    ┌────────────────────────┐
+                    │  PostgreSQL Database   │
+                    │      Port: 5432        │
+                    └────────────────────────┘
+```
 
 ## Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
 - Network access to devices via NETCONF (port 830)
-- Valid license key (contact sales for trial)
+- Valid license key
 
 ### Installation
 
 1. **Clone and configure:**
 ```bash
-git clone https://github.com/your-org/nap.git
+git clone <repository-url>
 cd nap
 cp .env.example .env
-# Edit .env with your configuration
+cp .env.prod.example .env.prod
+# Edit .env with your configuration - set all SECRET/KEY values
 ```
 
 2. **Start the platform:**
 ```bash
+# Development
 docker-compose up -d
+
+# Production
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 3. **Access the web interface:**
 - URL: http://localhost:80
-- Default login: admin / admin (change immediately)
+- Default login: admin / admin (**change immediately after first login**)
 
 4. **Activate your license:**
-- Navigate to Administration > License
-- Upload your license file or enter the license key
+- Navigate to Administration > License Management
+- Enter your license key
 
-## Usage Guide
+## Configuration
 
-### Adding Devices
+All configuration is managed through environment variables. Copy `.env.example` to `.env` and configure:
 
-1. Navigate to **Devices** in the sidebar
-2. Click **Add Device** or use **Discovery**
-3. For manual addition:
-   - Enter hostname, IP address, and credentials
-   - Select vendor type (Cisco XR or Nokia SROS)
-   - Test connection before saving
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `JWT_SECRET` | Secret key for JWT token signing | Yes |
+| `ENCRYPTION_KEY` | Key for encrypting device credentials at rest | Yes |
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `LICENSE_ENCRYPTION_KEY` | License system encryption key | Yes |
+| `LICENSE_SECRET_SALT` | License validation salt | Yes |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed frontend origins | Yes |
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | No |
 
-### Creating Audit Rules
-
-1. Navigate to **Rules** in the sidebar
-2. Click **Create Rule**
-3. Configure:
-   - Name and description
-   - Severity level (Critical/High/Medium/Low)
-   - Target vendors
-   - Add checks with XPath/XML filters
-
-**Example: Check BGP is configured on Nokia**
-```yaml
-Name: BGP Configuration Check
-Vendor: Nokia SROS
-XPath: /configure/router[router-name="Base"]/bgp
-Comparison: exists
-```
-
-### Running Audits
-
-1. Navigate to **Audits** in the sidebar
-2. Click **Run Audit**
-3. Select:
-   - Devices to audit (or all)
-   - Rules to apply (or all enabled)
-4. View results in real-time
-
-### Health Monitoring
-
-1. Navigate to **Health** in the sidebar
-2. View device health status at a glance
-3. Click on a device for detailed history
-4. Configure health check intervals in Settings
+**Important:** Never commit `.env` or `.env.prod` files to version control.
 
 ## Supported Platforms
 
-| Vendor | Model | Protocol | Features |
-|--------|-------|----------|----------|
-| Cisco | IOS-XR | NETCONF | Full audit, backup, remediation |
-| Nokia | SR OS 23.x+ | pysros/NETCONF | Full audit, backup, remediation |
+| Vendor | Platform | Protocol | Features |
+|--------|----------|----------|----------|
+| Cisco | IOS-XR | NETCONF | Full audit, backup, remediation, health monitoring |
+| Nokia | SR OS 23.x+ | pysros/NETCONF | Full audit, backup, remediation, health monitoring |
 
 ## System Requirements
 
-### Minimum Requirements
+### Minimum
 - CPU: 4 cores
 - RAM: 8 GB
 - Storage: 50 GB SSD
@@ -138,21 +159,39 @@ Comparison: exists
 - Storage: 200+ GB SSD
 - Network: 1 Gbps
 
-## Support
+## Deployment Options
 
-- **Documentation**: See DEVELOPER.md for technical details
-- **Issues**: Contact support@your-company.com
-- **Sales**: Contact sales@your-company.com for licensing
+| Option | File | Use Case |
+|--------|------|----------|
+| Development | `docker-compose.yml` | Local development and testing |
+| Production | `docker-compose.prod.yml` | Production with monitoring stack |
+| Air-Gapped | `docker-compose.online.yml` | Offline/disconnected environments |
 
-## Security Notice
+## Documentation
 
-This platform manages network device credentials. Ensure:
-- Use HTTPS in production (configure reverse proxy)
-- Change default passwords immediately
-- Restrict network access to the platform
-- Regular backup of the database
-- Follow your organization's security policies
+- **[Developer Guide](DEVELOPER.md)** — Architecture, project structure, API reference
+- **[API Documentation](docs/API.md)** — REST API endpoints and examples
+- **[Deployment Guide](docs/DEPLOYMENT.md)** — Production deployment instructions
+- **[AI Features Roadmap](docs/FEATURE_BRAINSTORM_AI_MCP.md)** — AI and MCP integration plans
+
+## Security
+
+This platform manages network device credentials and configurations. Follow these security practices:
+
+- **Always use HTTPS** in production (configure a reverse proxy with TLS)
+- **Change default credentials** immediately after installation
+- **Set strong encryption keys** — never use default values
+- **Restrict network access** to the platform management interface
+- **Regular database backups** — use the built-in backup scheduler
+- **Review audit logs** regularly for unauthorized access attempts
+- **Keep the platform updated** to receive security patches
+
+## License
+
+Commercial software. All rights reserved.
+
+Contact your account manager for licensing inquiries.
 
 ---
 
-**Copyright 2024 Your Company. All Rights Reserved.**
+**Copyright 2025 PyVold. All Rights Reserved.**

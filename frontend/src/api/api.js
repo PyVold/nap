@@ -326,4 +326,100 @@ export const adminAPI = {
   deleteUser: (id) => api.delete(`/user-management/${id}`)
 };
 
+// AI Service API
+export const aiAPI = {
+  // Status
+  getStatus: () => api.get('/ai/status'),
+
+  // Natural Language Rule Builder
+  generateRule: (request) => api.post('/ai/rules/generate', request),
+  getRuleDrafts: (status) => api.get('/ai/rules/drafts', { params: status ? { status_filter: status } : {} }),
+  actionRuleDraft: (draftId, action) => api.post(`/ai/rules/drafts/${draftId}/action`, action),
+
+  // AI Chat
+  chat: (request) => api.post('/ai/chat', request),
+
+  // Remediation Advisor
+  generateRemediation: (request) => api.post('/ai/remediation/generate', request),
+  getRemediationDrafts: (status) => api.get('/ai/remediation/drafts', { params: status ? { status_filter: status } : {} }),
+  actionRemediationDraft: (draftId, action) => api.post(`/ai/remediation/drafts/${draftId}/action`, action),
+
+  // Report Generation
+  generateReport: (request) => api.post('/ai/reports/generate', request),
+  getReports: () => api.get('/ai/reports'),
+  getReport: (reportId) => api.get(`/ai/reports/${reportId}`),
+
+  // Anomaly Detection
+  detectAnomalies: (request) => api.post('/ai/anomalies/detect', request),
+
+  // Feedback
+  submitFeedback: (feedback) => api.post('/ai/feedback', feedback),
+  submitDirectFeedback: (data) => api.post('/ai/feedback/direct', data),
+  getAIHistory: (params) => api.get('/ai/interactions', { params }),
+  getFeedbackStats: () => api.get('/ai/feedback/stats'),
+
+  // Knowledge Base
+  getKnowledgeBase: (params) => api.get('/ai/knowledge-base', { params }),
+  addKnowledgeEntry: (data) => api.post('/ai/knowledge-base', null, { params: data }),
+  deleteKnowledgeEntry: (entryId) => api.delete(`/ai/knowledge-base/${entryId}`),
+  queryKnowledgeBase: (data) => api.post('/ai/knowledge-base/query', null, { params: data }),
+
+  // Phase 3: Impact Analysis
+  analyzeImpact: (request) => api.post('/ai/impact/analyze', request),
+
+  // Phase 3: Compliance Prediction
+  predictCompliance: (params) => api.post('/ai/compliance/predict', null, { params }),
+  whatIfAnalysis: (scenario, deviceIds) => api.post('/ai/compliance/what-if', null, { params: { scenario, device_ids: deviceIds } }),
+
+  // Phase 3: Config Optimization
+  optimizeConfig: (deviceId) => api.post(`/ai/config/optimize/${deviceId}`),
+  compareGroupConfigs: (groupId) => api.post(`/ai/config/compare-group/${groupId}`),
+
+  // Phase 3: Config Search
+  searchConfigs: (query, maxResults, vendor) => api.post('/ai/config/search', null, { params: { query, max_results: maxResults, vendor } }),
+  findSimilarConfigs: (deviceId, section) => api.post(`/ai/config/similar/${deviceId}`, null, { params: section ? { section } : {} }),
+
+  // Phase 4: Multi-Agent Operations
+  orchestrate: (request, context) => api.post('/ai/agents/orchestrate', null, { params: { request }, data: context }),
+
+  // Phase 4: Adaptive Monitoring
+  evaluateMonitoring: () => api.post('/ai/monitoring/evaluate'),
+  getMonitoringRecommendations: () => api.get('/ai/monitoring/recommendations'),
+
+  // Phase 4: Self-Healing
+  createSelfHealingPlan: (triggerEvent) => api.post('/ai/self-heal', triggerEvent),
+};
+
+// MCP API
+export const mcpAPI = {
+  // MCP Server (NAP as server)
+  initialize: () => api.post('/mcp/initialize'),
+  getTools: () => api.get('/mcp/tools'),
+  callTool: (toolName, args) => api.post('/mcp/tools/call', { tool_name: toolName, arguments: args }),
+  getResources: () => api.get('/mcp/resources'),
+  readResource: (uri) => api.post('/mcp/resources/read', { uri }),
+  getPrompts: () => api.get('/mcp/prompts'),
+  getPrompt: (name, args) => api.post('/mcp/prompts/get', { name, arguments: args }),
+
+  // MCP Hub (NAP as client)
+  getConnections: () => api.get('/mcp/hub/connections'),
+  createConnection: (connection) => api.post('/mcp/hub/connections', connection),
+  deleteConnection: (id) => api.delete(`/mcp/hub/connections/${id}`),
+  testConnection: (id) => api.post(`/mcp/hub/connections/${id}/test`),
+  getConnectionTools: (id) => api.get(`/mcp/hub/connections/${id}/tools`),
+  callExternalTool: (connId, toolName, args) => api.post(`/mcp/hub/connections/${connId}/tools/call`, { tool_name: toolName, arguments: args }),
+};
+
+// Activity Feed API
+export const activityFeedAPI = {
+  getActivity: (params = {}) => api.get('/activity-feed/', { params }),
+  getSummary: (hours = 24) => api.get('/activity-feed/summary', { params: { hours } }),
+};
+
+// Extended Dashboard API
+export const dashboardAPI = {
+  getExtended: () => api.get('/analytics/dashboard/extended'),
+  getQuickStats: () => api.get('/analytics/dashboard/quick-stats'),
+};
+
 export default api;

@@ -36,9 +36,7 @@ import {
   Edit as EditIcon,
   PlayArrow as TestIcon,
   Sync as SyncIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { integrationsAPI } from '../api/api';
 
@@ -57,7 +55,6 @@ function Integrations() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState(null);
   const [currentTab, setCurrentTab] = useState(0);
-  const [logs, setLogs] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     integration_type: 'netbox',
@@ -155,28 +152,6 @@ function Integrations() {
       loadIntegrations();
     } catch (err) {
       setError('Failed to sync: ' + err.message);
-    }
-  };
-
-  const loadLogs = async (id) => {
-    try {
-      const response = await integrationsAPI.getLogs(id);
-      setLogs(response.data);
-    } catch (err) {
-      setError('Failed to load logs: ' + err.message);
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircleIcon color="success" />;
-      case 'error':
-        return <ErrorIcon color="error" />;
-      case 'warning':
-        return <WarningIcon color="warning" />;
-      default:
-        return null;
     }
   };
 

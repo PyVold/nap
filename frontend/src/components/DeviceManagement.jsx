@@ -45,11 +45,11 @@ import {
   ErrorOutline,
 } from '@mui/icons-material';
 import { devicesAPI } from '../api/api';
-import { useCanModify, useHasPermission } from './RoleBasedAccess';
+import { useHasPermission } from './RoleBasedAccess';
 import InputAdornment from '@mui/material/InputAdornment';
+import { VENDOR_CONFIG, getVendorLabel, getVendorColor } from '../utils/vendorConfig';
 
 const DeviceManagement = () => {
-  const canModify = useCanModify();
   const canCreateDevices = useHasPermission('create_devices');
   const canDeleteDevices = useHasPermission('delete_devices');
   const canModifyDevices = useHasPermission('modify_devices');
@@ -578,30 +578,24 @@ const DeviceManagement = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)' }}>
-            <CardContent>
-              <Typography variant="h4" color="white" fontWeight="bold">
-                {devices.filter((d) => d.vendor === 'cisco_xr').length}
-              </Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.9)">
-                Cisco XR
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #2196f3 0%, #64b5f6 100%)' }}>
-            <CardContent>
-              <Typography variant="h4" color="white" fontWeight="bold">
-                {devices.filter((d) => d.vendor === 'nokia_sros').length}
-              </Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.9)">
-                Nokia SROS
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {Object.entries(VENDOR_CONFIG).map(([vendorKey, vendorInfo]) => {
+          const count = devices.filter((d) => d.vendor === vendorKey).length;
+          if (count === 0) return null;
+          return (
+            <Grid item xs={12} sm={6} md={3} key={vendorKey}>
+              <Card sx={{ background: `linear-gradient(135deg, ${vendorInfo.color} 0%, ${vendorInfo.color}99 100%)` }}>
+                <CardContent>
+                  <Typography variant="h4" color="white" fontWeight="bold">
+                    {count}
+                  </Typography>
+                  <Typography variant="body2" color="rgba(255,255,255,0.9)">
+                    {vendorInfo.short}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          );
+        })}
       </Grid>
 
       <TableContainer component={Paper}>
@@ -688,9 +682,9 @@ const DeviceManagement = () => {
                 <TableCell>{device.ip || 'N/A'}</TableCell>
                 <TableCell>
                   <Chip
-                    label={device.vendor === 'cisco_xr' ? 'Cisco XR' : 'Nokia SROS'}
+                    label={getVendorLabel(device.vendor)}
                     size="small"
-                    color="primary"
+                    sx={{ borderColor: getVendorColor(device.vendor), color: getVendorColor(device.vendor) }}
                     variant="outlined"
                   />
                 </TableCell>
@@ -839,8 +833,9 @@ const DeviceManagement = () => {
                   label="Vendor"
                   onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                 >
-                  <MenuItem value="cisco_xr">Cisco XR</MenuItem>
-                  <MenuItem value="nokia_sros">Nokia SROS</MenuItem>
+                  {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+                    <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>

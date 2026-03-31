@@ -34,7 +34,6 @@ import {
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon,
   PersonAdd as PersonAddIcon,
   People as PeopleIcon,
   Extension as ExtensionIcon,
@@ -87,7 +86,7 @@ export default function AdminPanel() {
     if (isAuthenticated) {
       loadData();
     }
-  }, [tabValue, isAuthenticated]);
+  }, [tabValue, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {

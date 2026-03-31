@@ -38,18 +38,7 @@ import {
   Paper,
   IconButton,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tooltip,
-  CircularProgress,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Checkbox,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -64,11 +53,7 @@ import {
   Save as SaveIcon,
   Refresh as RefreshIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Schedule as ScheduleIcon,
-  Storage as StorageIcon,
   Notifications as NotificationsIcon,
-  Email as EmailIcon,
   Send as SendIcon,
 } from '@mui/icons-material';
 import api from '../api/api';
@@ -141,17 +126,22 @@ export default function AdminDashboard() {
   // Users State
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [userDialogOpen, setUserDialogOpen] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedUser, setSelectedUser] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [selectedGroup, setSelectedGroup] = useState(null);
 
   // System Health State
+  // eslint-disable-next-line no-unused-vars
   const [systemHealth, setSystemHealth] = useState(null);
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadInitialData = async () => {
     setLoading(true);

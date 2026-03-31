@@ -46,11 +46,20 @@ class AuditEngine:
 
         findings = []
 
-        # Use pysros for Nokia devices, ncclient for others
+        # Select connector based on vendor type
         if device.vendor == VendorType.NOKIA_SROS:
             logger.info(f"Using pysros connector for Nokia SROS device {device.hostname}")
             connector = NokiaSROSConnector(device)
+        elif device.vendor == VendorType.JUNIPER_JUNOS:
+            logger.info(f"Using JunOS connector for Juniper device {device.hostname}")
+            from connectors import JunOSConnector
+            connector = JunOSConnector(device)
+        elif device.vendor == VendorType.ARISTA_EOS:
+            logger.info(f"Using Arista connector for Arista EOS device {device.hostname}")
+            from connectors import AristaConnector
+            connector = AristaConnector(device)
         else:
+            # Cisco XR/XE use the standard NETCONF connector
             logger.info(f"Using NETCONF connector for {device.vendor.value} device {device.hostname}")
             connector = NetconfConnector(device)
 

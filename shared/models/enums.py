@@ -7,7 +7,10 @@ from enum import Enum
 
 class VendorType(str, Enum):
     CISCO_XR = "cisco_xr"
+    CISCO_XE = "cisco_xe"
     NOKIA_SROS = "nokia_sros"
+    JUNIPER_JUNOS = "juniper_junos"
+    ARISTA_EOS = "arista_eos"
 
 class SeverityLevel(str, Enum):
     CRITICAL = "critical"

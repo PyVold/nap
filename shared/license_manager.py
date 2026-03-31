@@ -184,7 +184,9 @@ class LicenseManager:
             self.cipher = Fernet(key)
             logger.info("Fallback: Generated new temporary Fernet key")
         
-        self.secret_salt = os.getenv("LICENSE_SECRET_SALT", "network-audit-platform-salt-2025")
+        self.secret_salt = os.getenv("LICENSE_SECRET_SALT")
+        if not self.secret_salt:
+            raise RuntimeError("LICENSE_SECRET_SALT environment variable must be set. Cannot start with default license salt.")
     
     def validate_license(self, license_key: str) -> Dict:
         """

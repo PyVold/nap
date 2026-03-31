@@ -30,6 +30,7 @@ import {
   Router,
 } from '@mui/icons-material';
 import { healthAPI, devicesAPI } from '../api/api';
+import { getVendorLabel, getVendorColor } from '../utils/vendorConfig';
 
 const DeviceHealthRow = ({ device, onCheckHealth }) => {
   const [open, setOpen] = useState(false);
@@ -64,7 +65,7 @@ const DeviceHealthRow = ({ device, onCheckHealth }) => {
   // Fetch history on mount to get latest status
   useEffect(() => {
     fetchHistory();
-  }, [device.id]);
+  }, [device.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -120,10 +121,10 @@ const DeviceHealthRow = ({ device, onCheckHealth }) => {
         <TableCell>{device.ip || 'N/A'}</TableCell>
         <TableCell>
           <Chip
-            label={device.vendor}
+            label={getVendorLabel(device.vendor)}
             size="small"
-            color="primary"
             variant="outlined"
+            sx={{ borderColor: getVendorColor(device.vendor), color: getVendorColor(device.vendor) }}
           />
         </TableCell>
         <TableCell>
@@ -248,12 +249,12 @@ const DeviceHealth = () => {
 
   useEffect(() => {
     fetchDevices();
-    
+
     if (autoRefreshEnabled) {
       const interval = setInterval(fetchDevices, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
-  }, [autoRefreshEnabled]);
+  }, [autoRefreshEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCheckDevice = async (deviceId) => {
     try {

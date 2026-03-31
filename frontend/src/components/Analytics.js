@@ -23,7 +23,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -40,8 +39,7 @@ import {
   BubbleChart as AnomalyIcon,
   Assessment as AssessmentIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon
+  Error as ErrorIcon
 } from '@mui/icons-material';
 import { analyticsAPI } from '../api/api';
 
@@ -68,7 +66,7 @@ function Analytics() {
 
   useEffect(() => {
     loadData();
-  }, [timeRange]);
+  }, [timeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {

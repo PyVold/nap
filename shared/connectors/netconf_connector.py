@@ -60,6 +60,12 @@ class NetconfConnector(BaseConnector):
         """Get vendor-specific device parameters"""
         if self.device.vendor == VendorType.CISCO_XR:
             return {'name': 'iosxr'}
+        elif self.device.vendor == VendorType.CISCO_XE:
+            return {'name': 'csr'}
+        elif self.device.vendor == VendorType.JUNIPER_JUNOS:
+            return {'name': 'junos'}
+        elif self.device.vendor == VendorType.ARISTA_EOS:
+            return {'name': 'default'}
         elif self.device.vendor == VendorType.NOKIA_SROS:
             # Use default handler - more generic and may avoid device-specific XPath formatting issues
             return {'name': 'default'}
@@ -73,7 +79,7 @@ class NetconfConnector(BaseConnector):
         try:
             loop = asyncio.get_event_loop()
 
-            # Use XPath when provided (typically for Nokia SROS)
+            # Use XPath when provided (typically for Nokia SROS or Juniper JunOS)
             if xpath:
                 logger.debug(f"Getting config from {self.device.hostname} with XPath: {xpath}")
                 # Nokia SROS: Use <get> operation with proper XML filter including namespaces
@@ -91,6 +97,13 @@ class NetconfConnector(BaseConnector):
                     result = await loop.run_in_executor(
                         None,
                         lambda: self.connection.get(filter=xml_filter)
+                    )
+                elif self.device.vendor == VendorType.JUNIPER_JUNOS:
+                    # Juniper JunOS uses standard NETCONF XPath filter
+                    logger.info(f"Using standard NETCONF XPath filter for JunOS")
+                    result = await loop.run_in_executor(
+                        None,
+                        lambda: self.connection.get_config(source=source, filter=('xpath', xpath))
                     )
                 else:
                     result = await loop.run_in_executor(
