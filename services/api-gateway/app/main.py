@@ -230,10 +230,12 @@ async def proxy_request(request: Request, path: str):
 
     try:
         # Don't follow redirects - we're sending the correct URL format
-        # Increase timeout for long-running operations like discovery
+        # Increase timeout for long-running operations
         request_timeout = 30.0
         if '/discover' in path or '/discovery' in path:
             request_timeout = 120.0  # 2 minutes for discovery operations
+        elif '/ai/' in f'/{path}' or path.startswith('ai/'):
+            request_timeout = 300.0  # 5 minutes for AI/LLM calls (local models are slow on CPU)
         
         async with httpx.AsyncClient(follow_redirects=False) as client:
             # Forward request with same method, headers, and body

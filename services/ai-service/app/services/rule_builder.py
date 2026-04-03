@@ -4,6 +4,7 @@ Generates audit rules from plain English descriptions.
 """
 
 import json
+import re
 from typing import Optional
 from sqlalchemy.orm import Session
 from models.schemas import (
@@ -105,18 +106,11 @@ Return ONLY the JSON object, no markdown fences or extra text."""
 
     # Parse the LLM response
     try:
-        # Strip any markdown fences if present
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        content = content.strip()
-
-        parsed = json.loads(content)
-    except json.JSONDecodeError as e:
+        parsed = _extract_json(llm_response.content)
+    except (json.JSONDecodeError, ValueError) as e:
         logger.error(f"Failed to parse LLM response as JSON: {e}")
         logger.debug(f"Raw response: {llm_response.content}")
-        raise ValueError(f"AI generated invalid response. Please try rephrasing your request.")
+        raise ValueError("AI generated invalid response. Please try rephrasing your request.")
 
     # Extract explanation before building the rule
     explanation = parsed.pop("explanation", "Rule generated from natural language description.")
@@ -170,6 +164,32 @@ Return ONLY the JSON object, no markdown fences or extra text."""
         original_prompt=request.description,
         interaction_id=interaction_id,
     )
+
+
+def _extract_json(text: str) -> dict:
+    """Extract JSON from LLM response, handling markdown fences and trailing text."""
+    content = text.strip()
+
+    # Strip markdown code fences
+    if content.startswith("```"):
+        content = content.split("\n", 1)[1]
+        content = content.rsplit("```", 1)[0].strip()
+
+    # Try direct parse first
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to find a JSON object in the text
+    match = re.search(r'\{[\s\S]*\}', content)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError("No valid JSON found in LLM response")
 
 
 def _compute_confidence(rule: GeneratedRule, request: RuleBuilderRequest) -> float:
