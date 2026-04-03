@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from models.schemas import LLMRequest
 from services.llm_adapter import call_llm
+from services.llm_response_parser import safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -301,18 +302,11 @@ Return JSON:
 
     llm_response = await call_llm(llm_request)
 
-    try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        result = json.loads(content.strip())
-    except json.JSONDecodeError:
-        result = {
-            "answer": llm_response.content,
-            "sources_used": [],
-            "confidence": 0.5,
-        }
+    result = safe_extract_json(llm_response.content, fallback={
+        "answer": llm_response.content,
+        "sources_used": [],
+        "confidence": 0.5,
+    })
 
     result["total_entries_searched"] = len(entries)
     result["query"] = query

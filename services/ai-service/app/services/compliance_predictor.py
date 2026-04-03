@@ -11,6 +11,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from models.schemas import LLMRequest, InteractionType
 from services.llm_adapter import call_llm
+from services.llm_response_parser import safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -91,18 +92,11 @@ Return JSON:
 
     llm_response = await call_llm(llm_request)
 
-    try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        prediction = json.loads(content.strip())
-    except json.JSONDecodeError:
-        prediction = {
-            "narrative": llm_response.content[:500],
-            "predicted_score": trend_analysis.get("projected_score"),
-            "trend_direction": trend_analysis.get("trend_direction", "stable"),
-        }
+    prediction = safe_extract_json(llm_response.content, fallback={
+        "narrative": llm_response.content[:500],
+        "predicted_score": trend_analysis.get("projected_score"),
+        "trend_direction": trend_analysis.get("trend_direction", "stable"),
+    })
 
     # Merge statistical and AI predictions
     result = {
@@ -185,14 +179,9 @@ Return JSON:
 
     llm_response = await call_llm(llm_request)
 
-    try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        return json.loads(content.strip())
-    except json.JSONDecodeError:
-        return {"scenario": scenario, "analysis": llm_response.content}
+    return safe_extract_json(llm_response.content, fallback={
+        "scenario": scenario, "analysis": llm_response.content,
+    })
 
 
 def _analyze_trends(history: list, forecast_days: int) -> dict:

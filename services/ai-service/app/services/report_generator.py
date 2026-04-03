@@ -13,6 +13,7 @@ from models.schemas import (
     ReportRequest, ReportResponse, ReportFormat, LLMRequest, InteractionType,
 )
 from services.llm_adapter import call_llm
+from services.llm_response_parser import safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -143,18 +144,11 @@ Respond with JSON:
 
     extract_response = await call_llm(extract_request)
 
-    try:
-        content = extract_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        extracted = json.loads(content.strip())
-    except json.JSONDecodeError:
-        extracted = {
-            "executive_summary": "Report generated successfully. See full content for details.",
-            "key_findings": [],
-            "recommendations": [],
-        }
+    extracted = safe_extract_json(extract_response.content, fallback={
+        "executive_summary": "Report generated successfully. See full content for details.",
+        "key_findings": [],
+        "recommendations": [],
+    })
 
     # Save report to database
     from shared.db_models import AIReportDB

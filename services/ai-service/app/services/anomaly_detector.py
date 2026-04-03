@@ -14,6 +14,7 @@ from models.schemas import (
     AnomalySeverity, LLMRequest, InteractionType,
 )
 from services.llm_adapter import call_llm
+from services.llm_response_parser import extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -244,11 +245,7 @@ One object per change, in the same order."""
             max_tokens=2048,
         )
         response = await call_llm(llm_request)
-        content = response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        return json.loads(content.strip())
+        return extract_json(response.content)
     except Exception as e:
         logger.warning(f"AI anomaly analysis failed: {e}")
         return [{"score": sc["score"], "additional_reasons": []} for sc in scored_changes]

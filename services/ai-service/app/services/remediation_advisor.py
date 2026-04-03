@@ -13,6 +13,7 @@ from models.schemas import (
     RemediationStep, LLMRequest, InteractionType,
 )
 from services.llm_adapter import call_llm
+from services.llm_response_parser import extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -108,12 +109,8 @@ Generate a safe, step-by-step remediation plan. Return ONLY the JSON object."""
 
     # Parse response
     try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        parsed = json.loads(content.strip())
-    except json.JSONDecodeError:
+        parsed = extract_json(llm_response.content)
+    except (ValueError, json.JSONDecodeError):
         raise ValueError("AI generated invalid remediation plan. Please try again.")
 
     # Build the plan

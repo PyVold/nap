@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from models.schemas import ChatRequest, ChatResponse, ChatMessage, LLMRequest, InteractionType
 from services.llm_adapter import call_llm
+from services.llm_response_parser import safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -87,13 +88,8 @@ async def process_chat(
     llm_response = await call_llm(llm_request)
 
     # Parse LLM plan
-    try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        plan = json.loads(content.strip())
-    except json.JSONDecodeError:
+    plan = safe_extract_json(llm_response.content)
+    if not plan:
         # If LLM didn't return valid JSON, treat as direct response
         return ChatResponse(
             message=llm_response.content,
