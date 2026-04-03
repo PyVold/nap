@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from shared.database import get_db
 from shared.deps import get_current_user, require_admin_or_operator
-from shared.license_middleware import require_license_module
 from shared.logger import setup_logger
 from models.schemas import (
     RuleBuilderRequest, RuleBuilderResponse, RuleDraftApproval,
