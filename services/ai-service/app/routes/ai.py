@@ -726,14 +726,31 @@ async def query_knowledge_base(
 @router.get("/status")
 async def ai_status():
     """Get AI service status and available providers"""
-    from services.llm_adapter import get_available_providers, get_default_provider
+    from services.llm_adapter import (
+        get_available_providers, get_default_provider, check_local_llm_status,
+        LOCAL_LLM_URL, LOCAL_LLM_API_FORMAT, LOCAL_MODEL,
+        ANTHROPIC_MODEL, OPENAI_MODEL,
+    )
     providers = get_available_providers()
     default = get_default_provider()
+    local_status = await check_local_llm_status()
 
     return {
         "status": "online",
         "available_providers": [p.value for p in providers],
         "default_provider": default.value,
+        "provider_config": {
+            "anthropic": {"model": ANTHROPIC_MODEL},
+            "openai": {"model": OPENAI_MODEL},
+            "local": {
+                "url": LOCAL_LLM_URL,
+                "model": LOCAL_MODEL,
+                "api_format": LOCAL_LLM_API_FORMAT,
+                "reachable": local_status["reachable"],
+                "available_models": local_status.get("models", []),
+                "error": local_status.get("error"),
+            },
+        },
         "features": {
             "phase_1": ["rule_builder", "chat_query", "mcp_server", "llm_adapter"],
             "phase_2": ["remediation_advisor", "report_generator", "anomaly_detection", "mcp_hub"],
