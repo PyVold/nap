@@ -1,10 +1,10 @@
 """
 LLM Adapter - Provider-agnostic LLM integration layer.
-Supports Anthropic Claude, OpenAI GPT, and local models.
+Supports Anthropic Claude, OpenAI GPT, local models (Ollama),
+and any OpenAI-compatible API (vLLM, LocalAI, text-generation-webui, etc.).
 """
 
 import os
-import json
 import httpx
 from typing import Optional
 from models.schemas import LLMRequest, LLMResponse, AIProvider
@@ -15,7 +15,8 @@ logger = setup_logger(__name__)
 # Provider configuration from environment
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-LOCAL_LLM_URL = os.getenv("LOCAL_LLM_URL", "http://localhost:11434")
+LOCAL_LLM_URL = os.getenv("LOCAL_LLM_URL", "http://ollama:11434")
+LOCAL_LLM_API_FORMAT = os.getenv("LOCAL_LLM_API_FORMAT", "ollama")  # ollama or openai
 
 # Default models per provider
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
@@ -23,7 +24,11 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 LOCAL_MODEL = os.getenv("LOCAL_MODEL", "llama3")
 
 # Default provider priority
-DEFAULT_PROVIDER = os.getenv("AI_PROVIDER", "anthropic")
+DEFAULT_PROVIDER = os.getenv("AI_PROVIDER", "local")
+
+# Timeouts
+CLOUD_TIMEOUT = float(os.getenv("LLM_CLOUD_TIMEOUT", "120"))
+LOCAL_TIMEOUT = float(os.getenv("LLM_LOCAL_TIMEOUT", "300"))
 
 
 def get_available_providers() -> list:
@@ -51,7 +56,9 @@ def get_default_provider() -> AIProvider:
     except ValueError:
         pass
 
-    # Fallback order
+    # Fallback order: local first for air-gapped environments
+    if DEFAULT_PROVIDER == "local":
+        return AIProvider.LOCAL
     if ANTHROPIC_API_KEY:
         return AIProvider.ANTHROPIC
     if OPENAI_API_KEY:
@@ -59,9 +66,36 @@ def get_default_provider() -> AIProvider:
     return AIProvider.LOCAL
 
 
+async def check_local_llm_status() -> dict:
+    """Check if local LLM is reachable and list available models"""
+    result = {"reachable": False, "url": LOCAL_LLM_URL, "api_format": LOCAL_LLM_API_FORMAT, "models": [], "error": None}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            if LOCAL_LLM_API_FORMAT == "ollama":
+                resp = await client.get(f"{LOCAL_LLM_URL}/api/tags")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    result["reachable"] = True
+                    result["models"] = [m["name"] for m in data.get("models", [])]
+            else:
+                # OpenAI-compatible API
+                resp = await client.get(f"{LOCAL_LLM_URL}/v1/models")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    result["reachable"] = True
+                    result["models"] = [m["id"] for m in data.get("data", [])]
+    except httpx.ConnectError:
+        result["error"] = f"Cannot connect to {LOCAL_LLM_URL}"
+    except Exception as e:
+        result["error"] = str(e)
+    return result
+
+
 async def call_llm(request: LLMRequest) -> LLMResponse:
     """Route LLM call to the appropriate provider"""
     provider = request.provider or get_default_provider()
+
+    logger.info(f"LLM call using provider: {provider.value}, model: {_get_model_for_provider(provider)}")
 
     if provider == AIProvider.ANTHROPIC:
         return await _call_anthropic(request)
@@ -73,12 +107,20 @@ async def call_llm(request: LLMRequest) -> LLMResponse:
         raise ValueError(f"Unknown provider: {provider}")
 
 
+def _get_model_for_provider(provider: AIProvider) -> str:
+    if provider == AIProvider.ANTHROPIC:
+        return ANTHROPIC_MODEL
+    elif provider == AIProvider.OPENAI:
+        return OPENAI_MODEL
+    return LOCAL_MODEL
+
+
 async def _call_anthropic(request: LLMRequest) -> LLMResponse:
     """Call Anthropic Claude API"""
     if not ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY not configured")
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=CLOUD_TIMEOUT) as client:
         response = await client.post(
             "https://api.anthropic.com/v1/messages",
             headers={
@@ -115,7 +157,7 @@ async def _call_openai(request: LLMRequest) -> LLMResponse:
     if not OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY not configured")
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=CLOUD_TIMEOUT) as client:
         response = await client.post(
             "https://api.openai.com/v1/chat/completions",
             headers={
@@ -147,8 +189,15 @@ async def _call_openai(request: LLMRequest) -> LLMResponse:
 
 
 async def _call_local(request: LLMRequest) -> LLMResponse:
-    """Call local LLM (Ollama-compatible API)"""
-    async with httpx.AsyncClient(timeout=300.0) as client:
+    """Call local LLM - supports Ollama native API and OpenAI-compatible APIs"""
+    if LOCAL_LLM_API_FORMAT == "openai":
+        return await _call_local_openai_compat(request)
+    return await _call_local_ollama(request)
+
+
+async def _call_local_ollama(request: LLMRequest) -> LLMResponse:
+    """Call local LLM via Ollama native API (/api/chat)"""
+    async with httpx.AsyncClient(timeout=LOCAL_TIMEOUT) as client:
         try:
             response = await client.post(
                 f"{LOCAL_LLM_URL}/api/chat",
@@ -178,4 +227,46 @@ async def _call_local(request: LLMRequest) -> LLMResponse:
                 provider=AIProvider.LOCAL,
             )
         except httpx.ConnectError:
-            raise ValueError(f"Cannot connect to local LLM at {LOCAL_LLM_URL}. Ensure Ollama or compatible server is running.")
+            raise ValueError(
+                f"Cannot connect to local LLM at {LOCAL_LLM_URL}. "
+                "Ensure Ollama is running. Start with: "
+                "docker compose --profile local-llm up -d ollama && "
+                f"docker exec nap-ollama-1 ollama pull {LOCAL_MODEL}"
+            )
+
+
+async def _call_local_openai_compat(request: LLMRequest) -> LLMResponse:
+    """Call local LLM via OpenAI-compatible API (/v1/chat/completions).
+    Works with vLLM, LocalAI, text-generation-webui, LM Studio, etc."""
+    async with httpx.AsyncClient(timeout=LOCAL_TIMEOUT) as client:
+        try:
+            response = await client.post(
+                f"{LOCAL_LLM_URL}/v1/chat/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": LOCAL_MODEL,
+                    "max_tokens": request.max_tokens,
+                    "temperature": request.temperature,
+                    "messages": [
+                        {"role": "system", "content": request.system_prompt},
+                        {"role": "user", "content": request.user_prompt},
+                    ],
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            content = data["choices"][0]["message"]["content"] if data.get("choices") else ""
+            tokens = data.get("usage", {}).get("total_tokens", 0)
+
+            return LLMResponse(
+                content=content,
+                model=LOCAL_MODEL,
+                tokens_used=tokens,
+                provider=AIProvider.LOCAL,
+            )
+        except httpx.ConnectError:
+            raise ValueError(
+                f"Cannot connect to local LLM at {LOCAL_LLM_URL}. "
+                "Ensure your OpenAI-compatible LLM server is running."
+            )

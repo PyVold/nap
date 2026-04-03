@@ -78,10 +78,11 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Detailed health check"""
-    from services.llm_adapter import get_available_providers, get_default_provider
+    from services.llm_adapter import get_available_providers, get_default_provider, check_local_llm_status
 
     providers = get_available_providers()
     default = get_default_provider()
+    local_status = await check_local_llm_status()
 
     return {
         "status": "healthy",
@@ -89,6 +90,7 @@ async def health_check():
         "database": "connected",
         "ai_providers": [p.value for p in providers],
         "default_provider": default.value,
+        "local_llm": local_status,
     }
 
 

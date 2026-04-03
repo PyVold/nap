@@ -86,6 +86,7 @@ services:
       - inventory-service
       - admin-service
       - analytics-service
+      - ai-service
     env_file:
       - .env.prod
     environment:
@@ -300,6 +301,70 @@ services:
           memory: 512M
 
   # ==========================================================================
+  # AI Service - LLM-powered features
+  # ==========================================================================
+  ai-service:
+    build:
+      context: .
+      dockerfile: services/ai-service/Dockerfile.offline
+    restart: always
+    ports:
+      - "${AI_SERVICE_PORT:-3007}:3007"
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PORT=3007
+      - DEVICE_SERVICE_URL=${DEVICE_SERVICE_URL:-http://device-service:3001}
+      - RULE_SERVICE_URL=${RULE_SERVICE_URL:-http://rule-service:3002}
+      - BACKUP_SERVICE_URL=${BACKUP_SERVICE_URL:-http://backup-service:3003}
+      - INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL:-http://inventory-service:3004}
+      - ADMIN_SERVICE_URL=${ADMIN_SERVICE_URL:-http://admin-service:3005}
+      - ANALYTICS_SERVICE_URL=${ANALYTICS_SERVICE_URL:-http://analytics-service:3006}
+      - AI_PROVIDER=${AI_PROVIDER:-local}
+      - LOCAL_LLM_URL=${LOCAL_LLM_URL:-http://ollama:11434}
+      - LOCAL_MODEL=${LOCAL_MODEL:-llama3}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ==========================================================================
+  # Ollama - Local LLM Server (Optional - use --profile local-llm to enable)
+  # ==========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    profiles:
+      - local-llm
+    deploy:
+      resources:
+        limits:
+          memory: ${OLLAMA_MEMORY_LIMIT:-8G}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ==========================================================================
   # Frontend - React application
   # ==========================================================================
   frontend:
@@ -311,6 +376,7 @@ services:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
       - api-gateway
+      - ai-service
     environment:
       - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:3000}
     healthcheck:
@@ -376,6 +442,8 @@ volumes:
   redis_data:
     driver: local
   backup_data:
+    driver: local
+  ollama_data:
     driver: local
   prometheus_data:
     driver: local

@@ -19,15 +19,18 @@ import {
   FormControl,
 } from '@mui/material';
 import {
-  Brightness4,
-  Brightness7,
   Notifications as NotificationsIcon,
   Speed as PerformanceIcon,
   Palette as ThemeIcon,
   Save as SaveIcon,
   RestartAlt as ResetIcon,
+  SmartToy as AIIcon,
+  CheckCircle as ConnectedIcon,
+  Cancel as DisconnectedIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/api';
 
 const DEFAULT_SETTINGS = {
   dashboardRefreshInterval: 30,
@@ -46,6 +49,20 @@ const Settings = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const fetchAIStatus = async () => {
+    setAiLoading(true);
+    try {
+      const res = await api.get('/ai/status');
+      setAiStatus(res.data);
+    } catch {
+      setAiStatus({ error: 'AI service unreachable' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem('nap_user_settings');
@@ -54,6 +71,7 @@ const Settings = () => {
         setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
       } catch { /* ignore */ }
     }
+    fetchAIStatus();
   }, []);
 
   const handleChange = (key, value) => {
@@ -231,6 +249,103 @@ const Settings = () => {
               />
             </Grid>
           </Grid>
+        </CardContent>
+      </Card>
+
+      {/* AI Provider Status */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <AIIcon color="primary" />
+              <Typography variant="h6" fontWeight="bold">
+                AI Provider Status
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={fetchAIStatus}
+              disabled={aiLoading}
+            >
+              Refresh
+            </Button>
+          </Box>
+          {aiStatus?.error ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {aiStatus.error} — AI features will not work until the ai-service container is running.
+            </Alert>
+          ) : aiStatus ? (
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                  <Typography variant="body2" color="text.secondary">
+                    Default Provider:
+                  </Typography>
+                  <Chip
+                    label={aiStatus.default_provider?.toUpperCase()}
+                    color="primary"
+                    size="small"
+                  />
+                </Box>
+              </Grid>
+              {aiStatus.provider_config?.local && (
+                <Grid item xs={12}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      border: 1,
+                      borderColor: aiStatus.provider_config.local.reachable ? 'success.main' : 'warning.main',
+                      borderRadius: 1,
+                      bgcolor: aiStatus.provider_config.local.reachable ? 'success.50' : 'warning.50',
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      {aiStatus.provider_config.local.reachable ? (
+                        <ConnectedIcon color="success" fontSize="small" />
+                      ) : (
+                        <DisconnectedIcon color="warning" fontSize="small" />
+                      )}
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        Local LLM (Ollama)
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      URL: {aiStatus.provider_config.local.url}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Model: {aiStatus.provider_config.local.model}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      API Format: {aiStatus.provider_config.local.api_format}
+                    </Typography>
+                    {aiStatus.provider_config.local.available_models?.length > 0 && (
+                      <Box mt={1} display="flex" gap={0.5} flexWrap="wrap">
+                        <Typography variant="body2" color="text.secondary">
+                          Available models:
+                        </Typography>
+                        {aiStatus.provider_config.local.available_models.map((m) => (
+                          <Chip key={m} label={m} size="small" variant="outlined" />
+                        ))}
+                      </Box>
+                    )}
+                    {aiStatus.provider_config.local.error && (
+                      <Alert severity="info" sx={{ mt: 1 }} variant="outlined">
+                        {aiStatus.provider_config.local.error}
+                        <Typography variant="caption" display="block" mt={0.5}>
+                          Start with: <code>docker compose --profile local-llm up -d ollama</code>
+                        </Typography>
+                      </Alert>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Loading AI status...
+            </Typography>
+          )}
         </CardContent>
       </Card>
 
