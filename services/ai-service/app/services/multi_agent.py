@@ -11,6 +11,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from models.schemas import LLMRequest
 from services.llm_adapter import call_llm
+from services.llm_response_parser import safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -183,14 +184,9 @@ async def _create_plan(request: str, context: Optional[dict]) -> dict:
 
     response = await call_llm(llm_request)
 
-    try:
-        content = response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        return json.loads(content.strip())
-    except json.JSONDecodeError:
-        return {"plan_summary": "Failed to parse plan", "tasks": []}
+    return safe_extract_json(response.content, fallback={
+        "plan_summary": "Failed to parse plan", "tasks": [],
+    })
 
 
 async def _execute_agent_task(

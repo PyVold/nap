@@ -10,6 +10,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from models.schemas import LLMRequest, InteractionType
 from services.llm_adapter import call_llm
+from services.llm_response_parser import extract_json, safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -90,15 +91,12 @@ Each finding must have: category, severity, description, location, recommendatio
 
     llm_response = await call_llm(llm_request)
 
-    try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        findings = json.loads(content.strip())
-        if isinstance(findings, dict):
-            findings = findings.get("findings", [findings])
-    except json.JSONDecodeError:
+    parsed = safe_extract_json(llm_response.content, fallback=[])
+    if isinstance(parsed, dict):
+        findings = parsed.get("findings", [parsed])
+    elif isinstance(parsed, list):
+        findings = parsed
+    else:
         findings = []
 
     # Compute summary
@@ -207,14 +205,9 @@ Return JSON:
 
     llm_response = await call_llm(llm_request)
 
-    try:
-        content = llm_response.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1]
-            content = content.rsplit("```", 1)[0]
-        return json.loads(content.strip())
-    except json.JSONDecodeError:
-        return {"analysis": llm_response.content}
+    return safe_extract_json(llm_response.content, fallback={
+        "analysis": llm_response.content,
+    })
 
 
 def _compute_config_metrics(config: str) -> dict:

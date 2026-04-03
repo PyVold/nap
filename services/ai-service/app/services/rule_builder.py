@@ -4,7 +4,6 @@ Generates audit rules from plain English descriptions.
 """
 
 import json
-import re
 from typing import Optional
 from sqlalchemy.orm import Session
 from models.schemas import (
@@ -12,6 +11,7 @@ from models.schemas import (
     GeneratedCheck, LLMRequest, InteractionType
 )
 from services.llm_adapter import call_llm
+from services.llm_response_parser import extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -106,7 +106,7 @@ Return ONLY the JSON object, no markdown fences or extra text."""
 
     # Parse the LLM response
     try:
-        parsed = _extract_json(llm_response.content)
+        parsed = extract_json(llm_response.content)
     except (json.JSONDecodeError, ValueError) as e:
         logger.error(f"Failed to parse LLM response as JSON: {e}")
         logger.debug(f"Raw response: {llm_response.content}")
@@ -164,32 +164,6 @@ Return ONLY the JSON object, no markdown fences or extra text."""
         original_prompt=request.description,
         interaction_id=interaction_id,
     )
-
-
-def _extract_json(text: str) -> dict:
-    """Extract JSON from LLM response, handling markdown fences and trailing text."""
-    content = text.strip()
-
-    # Strip markdown code fences
-    if content.startswith("```"):
-        content = content.split("\n", 1)[1]
-        content = content.rsplit("```", 1)[0].strip()
-
-    # Try direct parse first
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        pass
-
-    # Try to find a JSON object in the text
-    match = re.search(r'\{[\s\S]*\}', content)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    raise ValueError("No valid JSON found in LLM response")
 
 
 def _compute_confidence(rule: GeneratedRule, request: RuleBuilderRequest) -> float:
