@@ -6,8 +6,8 @@ and any OpenAI-compatible API (vLLM, LocalAI, text-generation-webui, etc.).
 
 import os
 import httpx
-from typing import Optional
-from models.schemas import LLMRequest, LLMResponse, AIProvider
+from typing import Optional, List
+from models.schemas import LLMRequest, LLMResponse, AIProvider, LLMMessage
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -115,6 +115,14 @@ def _get_model_for_provider(provider: AIProvider) -> str:
     return LOCAL_MODEL
 
 
+def _build_messages(request: LLMRequest) -> list:
+    """Build the messages list for chat APIs. If request.messages is set,
+    use those (multi-turn). Otherwise fall back to a single user message."""
+    if request.messages:
+        return [{"role": m.role, "content": m.content} for m in request.messages]
+    return [{"role": "user", "content": request.user_prompt}]
+
+
 async def _call_anthropic(request: LLMRequest) -> LLMResponse:
     """Call Anthropic Claude API"""
     if not ANTHROPIC_API_KEY:
@@ -133,9 +141,7 @@ async def _call_anthropic(request: LLMRequest) -> LLMResponse:
                 "max_tokens": request.max_tokens,
                 "temperature": request.temperature,
                 "system": request.system_prompt,
-                "messages": [
-                    {"role": "user", "content": request.user_prompt}
-                ],
+                "messages": _build_messages(request),
             },
         )
         response.raise_for_status()
@@ -170,7 +176,7 @@ async def _call_openai(request: LLMRequest) -> LLMResponse:
                 "temperature": request.temperature,
                 "messages": [
                     {"role": "system", "content": request.system_prompt},
-                    {"role": "user", "content": request.user_prompt},
+                    *_build_messages(request),
                 ],
             },
         )
@@ -205,7 +211,7 @@ async def _call_local_ollama(request: LLMRequest) -> LLMResponse:
                     "model": LOCAL_MODEL,
                     "messages": [
                         {"role": "system", "content": request.system_prompt},
-                        {"role": "user", "content": request.user_prompt},
+                        *_build_messages(request),
                     ],
                     "stream": False,
                     "options": {
@@ -249,7 +255,7 @@ async def _call_local_openai_compat(request: LLMRequest) -> LLMResponse:
                     "temperature": request.temperature,
                     "messages": [
                         {"role": "system", "content": request.system_prompt},
-                        {"role": "user", "content": request.user_prompt},
+                        *_build_messages(request),
                     ],
                 },
             )

@@ -19,7 +19,7 @@ import httpx
 from datetime import datetime
 from typing import Optional, Dict, List
 from sqlalchemy.orm import Session
-from models.schemas import ChatRequest, ChatResponse, LLMRequest, InteractionType
+from models.schemas import ChatRequest, ChatResponse, LLMRequest, LLMMessage, InteractionType
 from services.llm_adapter import call_llm
 from shared.logger import setup_logger
 
@@ -45,24 +45,23 @@ MAX_HISTORY_MESSAGES = 10
 # When total messages exceed this, trigger summarization of older ones
 SUMMARIZE_THRESHOLD = 20
 
-SYSTEM_PROMPT = """You are the AI assistant for the Network Audit Platform (NAP), an enterprise network compliance and audit tool.
+SYSTEM_PROMPT_BASE = """You are the AI assistant for the Network Audit Platform (NAP), a senior network engineer assistant.
 
-You are a senior network engineer assistant. You handle all types of queries naturally:
-
-- **Data questions** ("show me devices", "what's the compliance score?") — Use the PLATFORM DATA below to answer. Present data clearly with markdown tables, lists, and bold metrics.
-- **Technical questions** ("how do I configure BGP on IOS-XR?", "explain MPLS LDP") — Answer with detailed technical guidance, CLI examples in code blocks, and best practices.
-- **Troubleshooting** ("device is unreachable", "audit failing") — Provide step-by-step troubleshooting guidance.
-- **Conversational** ("hello", "what can you do?", "thanks") — Respond naturally and briefly.
+You handle all types of queries naturally:
+- Data questions — reference the platform data provided below
+- Technical questions — give detailed guidance with CLI examples
+- Troubleshooting — step-by-step guidance
+- Conversational — respond naturally and briefly
 
 Supported vendors: Cisco IOS-XR, Cisco IOS-XE, Nokia SR OS, Juniper JunOS, Arista EOS.
 
 Guidelines:
-- Be concise but thorough
-- Use markdown formatting: **bold**, `code`, tables, lists
-- Show CLI examples in ```code blocks``` with the vendor name
-- If platform data is empty or has errors, say so and suggest next steps
-- If the question is unrelated to networking, politely redirect
-- You have memory of our previous conversations in this session — use it naturally"""
+- Be concise but thorough. Only respond to the user's latest message.
+- Use markdown: **bold**, `code`, tables, lists
+- CLI examples in ```code blocks``` with vendor name
+- If platform data is empty, say so and suggest next steps
+- Do NOT repeat or summarize platform data unless the user asks about it
+- You remember our conversation history — use it naturally when relevant"""
 
 
 async def _fetch_platform_context(auth_token: str = "") -> str:
@@ -218,59 +217,63 @@ async def process_chat(
     auth_token: str = "",
     user_id: int = None,
 ) -> ChatResponse:
-    """Process any query with a single LLM call, platform data as context, persistent memory."""
+    """Process a chat query with proper separation:
+    - System prompt: role definition + platform data (reference only)
+    - Messages: proper role-based conversation history
+    - Current message: the user's actual question (last in messages)
+    """
 
     message = request.message.strip()
 
     # --- Session management ---
     session_obj = None
-    history_for_llm = ""
+    history_messages: List[LLMMessage] = []
+    summary_text = ""
 
     if user_id:
         if request.session_id:
-            # Load existing session
             session_obj, stored_messages, summary = _load_session(db, request.session_id, user_id)
             if session_obj:
-                # Build history from summary + recent messages
-                if summary:
-                    history_for_llm += f"[Previous conversation summary: {summary}]\n\n"
+                summary_text = summary or ""
+                # Convert stored messages to LLMMessage objects
                 for msg in stored_messages[-MAX_HISTORY_MESSAGES:]:
-                    history_for_llm += f"{msg['role']}: {msg['content']}\n"
+                    history_messages.append(LLMMessage(role=msg["role"], content=msg["content"]))
         else:
-            # Create new session
             session_obj = _create_session(db, user_id, message)
 
-    # Fallback: use conversation_history from request (for clients that don't use sessions yet)
-    if not history_for_llm and request.conversation_history:
-        for msg in (request.conversation_history or [])[-3:]:
-            history_for_llm += f"{msg.role}: {msg.content}\n"
+    # Fallback: use conversation_history from request (for clients that don't use sessions)
+    if not history_messages and request.conversation_history:
+        for msg in (request.conversation_history or [])[-6:]:
+            history_messages.append(LLMMessage(role=msg.role, content=msg.content))
 
-    # Pre-fetch platform data in parallel (fast, ~100-500ms)
+    # Pre-fetch platform data (fast, ~100-500ms) — goes into system prompt
     logger.info("Fetching platform context...")
     platform_context = await _fetch_platform_context(auth_token)
 
-    # Single LLM call with full context
-    user_prompt = f"""{platform_context}
+    # Build system prompt: base instructions + platform data as reference
+    system_prompt = SYSTEM_PROMPT_BASE + "\n\n" + platform_context
+    if summary_text:
+        system_prompt += f"\n\n[Earlier conversation summary: {summary_text}]"
 
-{history_for_llm}User: {message}"""
+    # Build messages: history turns + current user message
+    messages = list(history_messages)
+    messages.append(LLMMessage(role="user", content=message))
 
     llm_request = LLMRequest(
-        system_prompt=SYSTEM_PROMPT,
-        user_prompt=user_prompt,
+        system_prompt=system_prompt,
+        messages=messages,
         temperature=0.3,
         max_tokens=1024,
     )
 
-    logger.info(f"Calling LLM for: {message[:80]}")
+    logger.info(f"Calling LLM for: {message[:80]} (history: {len(history_messages)} msgs)")
     llm_response = await call_llm(llm_request)
 
     # Save to session
     if session_obj:
         _save_messages(db, session_obj, message, llm_response.content)
-        # Summarize old messages if conversation is getting long
         await _maybe_summarize(db, session_obj, call_llm)
 
-    # Log interaction
     interaction_id = _log_interaction(db, message, llm_response)
 
     return ChatResponse(

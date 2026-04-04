@@ -51,10 +51,19 @@ class AnomalySeverity(str, Enum):
 # LLM Adapter Schemas
 # ============================================================================
 
+class LLMMessage(BaseModel):
+    """A single message in a multi-turn conversation"""
+    role: str  # "user" or "assistant"
+    content: str
+
+
 class LLMRequest(BaseModel):
-    """Internal LLM request"""
+    """Internal LLM request. Supports both single-turn (user_prompt) and
+    multi-turn (messages) conversations. If messages is provided, user_prompt
+    is ignored — messages already contains the full conversation."""
     system_prompt: str
-    user_prompt: str
+    user_prompt: str = ""
+    messages: Optional[List[LLMMessage]] = None  # Multi-turn: overrides user_prompt
     temperature: float = 0.3
     max_tokens: int = 4096
     provider: Optional[AIProvider] = None
