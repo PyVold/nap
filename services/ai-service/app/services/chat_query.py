@@ -1,16 +1,22 @@
 """
 Natural Language Network Query Service
 Translates user questions into NAP API calls and returns formatted results.
+
+Optimized for local LLM performance:
+- Keyword-based routing detects data queries vs conversational queries
+- Data queries use a single LLM call (fetches data first, then asks LLM to summarize)
+- Conversational/technical queries go directly to LLM with NAP context
+- No JSON parsing required from the LLM for routing
 """
 
 import json
 import os
+import re
 import httpx
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from models.schemas import ChatRequest, ChatResponse, ChatMessage, LLMRequest, InteractionType
 from services.llm_adapter import call_llm
-from services.llm_response_parser import safe_extract_json
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -22,34 +28,59 @@ BACKUP_SERVICE_URL = os.getenv("BACKUP_SERVICE_URL", "http://backup-service:3003
 ADMIN_SERVICE_URL = os.getenv("ADMIN_SERVICE_URL", "http://admin-service:3005")
 ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:3006")
 
-SYSTEM_PROMPT = """You are an AI assistant for the Network Audit Platform (NAP). You help network engineers
-query network state, compliance data, and device information using natural language.
-
-You have access to these NAP API endpoints that you can call to answer user questions:
-
-AVAILABLE FUNCTIONS:
-1. get_devices() - List all devices. Returns: [{id, hostname, vendor, ip, status, compliance, last_audit}]
-2. get_device(device_id) - Get specific device details
-3. get_audit_results(device_id=null, latest_only=true) - Get audit results. Filter by device_id optionally
-4. get_compliance() - Get overall compliance summary: {total_devices, compliant_devices, average_compliance, ...}
-5. get_rules(enabled_only=true) - List audit rules
-6. get_health_summary() - Get device health summary
-7. get_config_changes(device_id=null, limit=20) - Get recent config changes
-8. get_drift_summary() - Get configuration drift summary
-9. get_device_groups() - List device groups and their members
-10. get_backup_summary() - Get config backup summary per device
-
-INSTRUCTIONS:
-1. Analyze the user's question to determine which API calls are needed
-2. Respond with a JSON object containing:
-   - "functions": Array of function calls to make, e.g. [{"name": "get_devices", "args": {}}]
-   - "response_template": A template string for formatting the response. Use {results[0]}, {results[1]}, etc. to reference function call results.
-
-If the question is conversational or doesn't need data, respond with:
-   - "functions": []
-   - "direct_response": "Your direct answer here"
-
-Respond with ONLY valid JSON, no markdown fences."""
+# Keyword-based intent detection — avoids burning an LLM call just to classify the query
+DATA_INTENT_PATTERNS = [
+    {
+        "keywords": ["device", "devices", "router", "switch", "routers", "switches", "inventory"],
+        "functions": ["get_devices"],
+        "description": "device inventory",
+    },
+    {
+        "keywords": ["compliance", "compliant", "non-compliant", "score", "posture"],
+        "functions": ["get_compliance"],
+        "description": "compliance status",
+    },
+    {
+        "keywords": ["audit", "audit result", "findings", "failed", "failures", "violations"],
+        "functions": ["get_audit_results"],
+        "description": "audit results",
+    },
+    {
+        "keywords": ["rule", "rules", "policy", "policies", "checks"],
+        "functions": ["get_rules"],
+        "description": "audit rules",
+    },
+    {
+        "keywords": ["health", "status", "up", "down", "unreachable", "reachable"],
+        "functions": ["get_health_summary"],
+        "description": "device health",
+    },
+    {
+        "keywords": ["config change", "configuration change", "changed", "modified", "changes"],
+        "functions": ["get_config_changes"],
+        "description": "configuration changes",
+    },
+    {
+        "keywords": ["drift", "drifted", "out of sync", "deviation"],
+        "functions": ["get_drift_summary"],
+        "description": "configuration drift",
+    },
+    {
+        "keywords": ["group", "groups", "device group"],
+        "functions": ["get_device_groups"],
+        "description": "device groups",
+    },
+    {
+        "keywords": ["backup", "backups", "config backup", "saved config"],
+        "functions": ["get_backup_summary"],
+        "description": "configuration backups",
+    },
+    {
+        "keywords": ["overview", "summary", "dashboard", "how is the network", "network status"],
+        "functions": ["get_devices", "get_compliance", "get_health_summary"],
+        "description": "network overview",
+    },
+]
 
 # Map function names to actual API calls
 FUNCTION_MAP = {
@@ -59,11 +90,79 @@ FUNCTION_MAP = {
     "get_compliance": {"url": f"{RULE_SERVICE_URL}/audit/compliance", "method": "GET"},
     "get_rules": {"url": f"{RULE_SERVICE_URL}/rules/", "method": "GET"},
     "get_health_summary": {"url": f"{DEVICE_SERVICE_URL}/health/summary", "method": "GET"},
-    "get_config_changes": {"url": f"{BACKUP_SERVICE_URL}/config-backups/device/{{device_id}}/changes", "method": "GET"},
+    "get_config_changes": {"url": f"{BACKUP_SERVICE_URL}/drift-detection/changes", "method": "GET"},
     "get_drift_summary": {"url": f"{BACKUP_SERVICE_URL}/drift-detection/summary", "method": "GET"},
     "get_device_groups": {"url": f"{DEVICE_SERVICE_URL}/device-groups/", "method": "GET"},
     "get_backup_summary": {"url": f"{BACKUP_SERVICE_URL}/config-backups/devices/summary", "method": "GET"},
 }
+
+# System prompt for the single LLM call
+CONVERSATIONAL_PROMPT = """You are the AI assistant for the Network Audit Platform (NAP), a network compliance and audit tool.
+
+You help network engineers with:
+- Network compliance, auditing, and troubleshooting questions
+- Explaining networking concepts (BGP, OSPF, MPLS, VPN, ACL, NTP, SNMP, etc.)
+- Cisco IOS-XR, Cisco IOS-XE, Nokia SR OS, Juniper JunOS, and Arista EOS configuration guidance
+- Best practices for network security, routing, and operations
+- Interpreting audit results and compliance data
+- Remediation advice for configuration issues
+
+Be concise, technical, and helpful. Use markdown formatting (bold, lists, code blocks) for readability.
+When discussing vendor-specific configs, show example CLI commands in code blocks."""
+
+DATA_SUMMARY_PROMPT = """You are the AI assistant for the Network Audit Platform (NAP).
+The user asked a question and I've fetched relevant data from the platform.
+
+Summarize the data clearly and concisely to answer the user's question.
+Use markdown formatting: tables for tabular data, bold for key metrics, lists for items.
+If the data is empty or shows errors, say so clearly and suggest what the user can do."""
+
+
+def _detect_data_intent(message: str) -> Optional[Dict]:
+    """Detect if the user's message requires fetching platform data.
+    Returns matched intent or None for conversational queries."""
+    msg_lower = message.lower()
+
+    best_match = None
+    best_score = 0
+
+    for pattern in DATA_INTENT_PATTERNS:
+        score = sum(1 for kw in pattern["keywords"] if kw in msg_lower)
+        if score > best_score:
+            best_score = score
+            best_match = pattern
+
+    # Require at least one keyword match
+    if best_score > 0:
+        return best_match
+    return None
+
+
+async def _fetch_platform_data(func_names: List[str]) -> tuple:
+    """Fetch data from platform APIs. Returns (results_dict, queries_executed)."""
+    results = {}
+    queries_executed = []
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for func_name in func_names:
+            if func_name not in FUNCTION_MAP:
+                continue
+            func_config = FUNCTION_MAP[func_name]
+            try:
+                response = await client.request(
+                    method=func_config["method"],
+                    url=func_config["url"],
+                )
+                if response.status_code == 200:
+                    results[func_name] = response.json()
+                else:
+                    results[func_name] = {"error": f"API returned {response.status_code}"}
+                queries_executed.append(func_name)
+            except Exception as e:
+                logger.error(f"Error calling {func_name}: {e}")
+                results[func_name] = {"error": str(e)}
+
+    return results, queries_executed
 
 
 async def process_chat(
@@ -72,123 +171,102 @@ async def process_chat(
 ) -> ChatResponse:
     """Process a natural language query about network state"""
 
-    # Build conversation context
-    messages = ""
-    for msg in (request.conversation_history or [])[-5:]:  # Last 5 messages for context
-        messages += f"{msg.role}: {msg.content}\n"
-    messages += f"user: {request.message}"
+    message = request.message.strip()
 
-    llm_request = LLMRequest(
-        system_prompt=SYSTEM_PROMPT,
-        user_prompt=messages,
-        temperature=0.1,
-        max_tokens=2048,
-    )
+    # Build conversation history context
+    history = ""
+    for msg in (request.conversation_history or [])[-3:]:
+        history += f"{msg.role}: {msg.content}\n"
 
-    llm_response = await call_llm(llm_request)
+    # Step 1: Detect if this is a data query or conversational
+    intent = _detect_data_intent(message)
 
-    # Parse LLM plan
-    plan = safe_extract_json(llm_response.content)
-    if not plan:
-        # If LLM didn't return valid JSON, treat as direct response
+    if intent:
+        # DATA QUERY: fetch data first, then one LLM call to summarize
+        logger.info(f"Data query detected: {intent['description']} (functions: {intent['functions']})")
+
+        results, queries_executed = await _fetch_platform_data(intent["functions"])
+
+        # Truncate data to fit in context
+        data_str = json.dumps(results, indent=2, default=str)
+        if len(data_str) > 6000:
+            data_str = data_str[:6000] + "\n... (truncated)"
+
+        user_prompt = f"""{history}User question: {message}
+
+Platform data ({intent['description']}):
+{data_str}
+
+Answer the question based on this data."""
+
+        llm_request = LLMRequest(
+            system_prompt=DATA_SUMMARY_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.2,
+            max_tokens=2048,
+        )
+
+        llm_response = await call_llm(llm_request)
+
+        interaction_id = _log_interaction(
+            db, message, llm_response, queries_executed
+        )
+
         return ChatResponse(
             message=llm_response.content,
-            confidence=0.5,
-        )
-
-    # Handle direct responses
-    if plan.get("direct_response"):
-        return ChatResponse(
-            message=plan["direct_response"],
+            data={"raw_results": results} if len(results) <= 3 else None,
+            query_executed=", ".join(queries_executed),
             confidence=0.8,
+            interaction_id=interaction_id,
         )
 
-    # Execute the planned function calls
-    functions = plan.get("functions", [])
-    if not functions:
+    else:
+        # CONVERSATIONAL / TECHNICAL QUERY: single LLM call, no data fetch
+        logger.info("Conversational/technical query detected")
+
+        user_prompt = f"{history}User: {message}" if history else message
+
+        llm_request = LLMRequest(
+            system_prompt=CONVERSATIONAL_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.3,
+            max_tokens=2048,
+        )
+
+        llm_response = await call_llm(llm_request)
+
+        interaction_id = _log_interaction(db, message, llm_response, [])
+
         return ChatResponse(
-            message="I couldn't determine what data to look up. Could you rephrase your question?",
-            confidence=0.3,
+            message=llm_response.content,
+            confidence=0.8,
+            interaction_id=interaction_id,
         )
 
-    results = []
-    queries_executed = []
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for func in functions:
-            func_name = func.get("name")
-            func_args = func.get("args", {})
 
-            if func_name not in FUNCTION_MAP:
-                results.append({"error": f"Unknown function: {func_name}"})
-                continue
-
-            func_config = FUNCTION_MAP[func_name]
-            url = func_config["url"]
-
-            # Substitute path parameters
-            for key, value in func_args.items():
-                url = url.replace(f"{{{key}}}", str(value))
-
-            # Build query params from remaining args
-            params = {k: v for k, v in func_args.items() if f"{{{k}}}" not in func_config["url"]}
-
-            try:
-                response = await client.request(
-                    method=func_config["method"],
-                    url=url,
-                    params=params if params else None,
-                )
-                if response.status_code == 200:
-                    results.append(response.json())
-                else:
-                    results.append({"error": f"API returned {response.status_code}"})
-                queries_executed.append(f"{func_name}({func_args})")
-            except Exception as e:
-                logger.error(f"Error calling {func_name}: {e}")
-                results.append({"error": str(e)})
-
-    # Now ask LLM to format the results into a human-readable response
-    format_prompt = f"""User asked: "{request.message}"
-
-I retrieved the following data from the NAP API:
-
-{json.dumps(results, indent=2, default=str)[:8000]}
-
-Please provide a clear, concise answer to the user's question based on this data.
-Use markdown formatting for readability (tables, lists, bold for important values).
-If the data doesn't fully answer the question, say so and suggest what additional information might help."""
-
-    format_request = LLMRequest(
-        system_prompt="You are a helpful network operations assistant. Format API data into clear, readable responses for network engineers. Be concise but thorough.",
-        user_prompt=format_prompt,
-        temperature=0.2,
-        max_tokens=4096,
-    )
-
-    format_response = await call_llm(format_request)
-
-    # Log interaction
-    interaction_id = None
+def _log_interaction(
+    db: Session,
+    message: str,
+    llm_response,
+    queries_executed: List[str],
+) -> Optional[int]:
+    """Log AI interaction for feedback loop."""
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
             interaction_type=InteractionType.CHAT_QUERY.value,
-            input_prompt=request.message,
-            ai_response={"content": format_response.content[:2000], "queries": queries_executed},
-            model_used=format_response.model,
-            tokens_used=llm_response.tokens_used + format_response.tokens_used,
+            input_prompt=message,
+            ai_response={
+                "content": llm_response.content[:2000],
+                "queries": queries_executed,
+            },
+            model_used=llm_response.model,
+            tokens_used=llm_response.tokens_used,
         )
         db.add(interaction)
         db.commit()
         db.refresh(interaction)
-        interaction_id = interaction.id
+        return interaction.id
     except Exception as e:
         logger.warning(f"Failed to log interaction: {e}")
-
-    return ChatResponse(
-        message=format_response.content,
-        data={"raw_results": results} if len(results) <= 3 else None,
-        query_executed=", ".join(queries_executed),
-        confidence=0.8,
-        interaction_id=interaction_id,
-    )
+        return None
