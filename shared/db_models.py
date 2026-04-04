@@ -675,3 +675,17 @@ class KnowledgeBaseDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class ChatSessionDB(Base):
+    """Persistent chat sessions with conversation memory"""
+    __tablename__ = "chat_sessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), default="New Chat")
+    messages = Column(JSON, default=list)  # [{role, content, timestamp}]
+    summary = Column(Text, nullable=True)  # Condensed summary of older messages for context window
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

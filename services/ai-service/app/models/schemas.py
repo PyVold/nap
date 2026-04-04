@@ -127,12 +127,14 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000)
+    session_id: Optional[int] = Field(None, description="Chat session ID for memory. Omit to create new session.")
     conversation_history: Optional[List[ChatMessage]] = Field(default_factory=list)
     context: Optional[Dict[str, Any]] = None
 
 
 class ChatResponse(BaseModel):
     message: str
+    session_id: Optional[int] = None
     data: Optional[Dict[str, Any]] = None
     query_executed: Optional[str] = None
     confidence: float = 0.0

@@ -338,6 +338,11 @@ export const aiAPI = {
 
   // AI Chat
   chat: (request) => api.post('/ai/chat', request),
+  getChatSessions: () => api.get('/ai/chat/sessions'),
+  createChatSession: (title) => api.post('/ai/chat/sessions', null, { params: { title } }),
+  getChatSession: (sessionId) => api.get(`/ai/chat/sessions/${sessionId}`),
+  deleteChatSession: (sessionId) => api.delete(`/ai/chat/sessions/${sessionId}`),
+  renameChatSession: (sessionId, title) => api.put(`/ai/chat/sessions/${sessionId}/title`, null, { params: { title } }),
 
   // Remediation Advisor
   generateRemediation: (request) => api.post('/ai/remediation/generate', request),
