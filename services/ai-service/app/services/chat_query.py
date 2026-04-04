@@ -138,10 +138,13 @@ def _detect_data_intent(message: str) -> Optional[Dict]:
     return None
 
 
-async def _fetch_platform_data(func_names: List[str]) -> tuple:
+async def _fetch_platform_data(func_names: List[str], auth_token: str = "") -> tuple:
     """Fetch data from platform APIs. Returns (results_dict, queries_executed)."""
     results = {}
     queries_executed = []
+    headers = {}
+    if auth_token:
+        headers["Authorization"] = auth_token
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         for func_name in func_names:
@@ -152,6 +155,7 @@ async def _fetch_platform_data(func_names: List[str]) -> tuple:
                 response = await client.request(
                     method=func_config["method"],
                     url=func_config["url"],
+                    headers=headers,
                 )
                 if response.status_code == 200:
                     results[func_name] = response.json()
@@ -168,6 +172,7 @@ async def _fetch_platform_data(func_names: List[str]) -> tuple:
 async def process_chat(
     request: ChatRequest,
     db: Session,
+    auth_token: str = "",
 ) -> ChatResponse:
     """Process a natural language query about network state"""
 
@@ -185,7 +190,7 @@ async def process_chat(
         # DATA QUERY: fetch data first, then one LLM call to summarize
         logger.info(f"Data query detected: {intent['description']} (functions: {intent['functions']})")
 
-        results, queries_executed = await _fetch_platform_data(intent["functions"])
+        results, queries_executed = await _fetch_platform_data(intent["functions"], auth_token)
 
         # Truncate data to fit in context
         data_str = json.dumps(results, indent=2, default=str)

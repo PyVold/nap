@@ -3,7 +3,7 @@ AI Service API Routes
 Handles all AI-powered features: rule builder, chat, remediation, reports, anomaly detection.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from shared.database import get_db
@@ -131,13 +131,16 @@ async def list_rule_drafts(
 @router.post("/chat", response_model=ChatResponse)
 async def chat_query(
     request: ChatRequest,
+    raw_request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     """Ask questions about network state in natural language"""
     try:
         from services.chat_query import process_chat
-        return await process_chat(request, db)
+        # Pass the auth token so internal service calls are authenticated
+        auth_header = raw_request.headers.get("authorization", "")
+        return await process_chat(request, db, auth_token=auth_header)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
