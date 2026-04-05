@@ -3,7 +3,7 @@ Natural Language Network Query Service — Agentic MCP Tool-Use
 
 The AI agent has access to MCP tools (get devices, audit results, configs,
 drift, health, hardware, etc.) and decides which tools to call based on the
-user's question. This replaces the old "dump everything in the prompt" approach.
+user's question.
 
 Flow:
 1. User sends a message
@@ -28,10 +28,7 @@ from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Max tool-call rounds before forcing a text response
 MAX_TOOL_ROUNDS = 5
-
-# Max messages to send to LLM (recent ones). Older messages get summarized.
 MAX_HISTORY_MESSAGES = 10
 SUMMARIZE_THRESHOLD = 20
 
@@ -46,6 +43,7 @@ You have access to tools that let you query live platform data. Use them when th
 - Audit rules → use nap_search_rules
 - Configuration drift → use nap_get_drift_summary
 - Running audits → use nap_run_audit (inform user this was triggered)
+- Best practices, troubleshooting guides → use nap_query_knowledge_base
 
 For technical questions, troubleshooting, or conversation — respond directly without tools.
 
@@ -145,15 +143,13 @@ async def _run_agent_loop(
     tools: List[LLMToolDef],
 ) -> tuple:
     """Run the agentic loop: call LLM → execute tools → repeat.
-
-    Returns (final_text: str, total_tokens: int, model: str, tools_used: list)
+    Returns (final_text, total_tokens, model, tools_used)
     """
     total_tokens = 0
     tools_used = []
     model = ""
 
     for round_num in range(MAX_TOOL_ROUNDS):
-        # On the last round, don't pass tools to force a text response
         request_tools = tools if round_num < MAX_TOOL_ROUNDS - 1 else None
 
         llm_request = LLMRequest(
@@ -169,18 +165,15 @@ async def _run_agent_loop(
         total_tokens += response.tokens_used
         model = response.model
 
-        # No tool calls → final text response
         if not response.tool_calls:
             logger.info(f"Agent done after {round_num + 1} round(s), {len(tools_used)} tool calls")
             return response.content, total_tokens, model, tools_used
 
-        # Append assistant message with raw content blocks (tool_use + text)
         messages.append(LLMMessage(
             role="assistant",
             content=response.raw_content or response.content,
         ))
 
-        # Execute each tool call
         for tc in response.tool_calls:
             logger.info(f"Executing tool: {tc.name}({json.dumps(tc.arguments)[:200]})")
             tools_used.append(tc.name)
@@ -188,14 +181,12 @@ async def _run_agent_loop(
             try:
                 result = await execute_tool(tc.name, tc.arguments)
                 result_str = json.dumps(result, default=str)
-                # Cap result size to avoid blowing up context
                 if len(result_str) > 8000:
                     result_str = result_str[:8000] + "... (truncated)"
             except Exception as e:
                 logger.error(f"Tool {tc.name} failed: {e}")
                 result_str = json.dumps({"error": str(e)})
 
-            # Append tool result
             messages.append(LLMMessage(
                 role="tool",
                 content=result_str,
@@ -203,9 +194,8 @@ async def _run_agent_loop(
                 name=tc.name,
             ))
 
-    # Exhausted rounds — return whatever we have
     logger.warning(f"Agent hit max rounds ({MAX_TOOL_ROUNDS})")
-    return response.content or "I gathered some data but couldn't formulate a complete response. Please try a more specific question.", total_tokens, model, tools_used
+    return response.content or "I gathered data but couldn't complete the response. Please try a more specific question.", total_tokens, model, tools_used
 
 
 # ============================================================================
@@ -241,24 +231,20 @@ async def process_chat(
         else:
             session_obj = _create_session(db, user_id, message)
 
-    # Fallback: use conversation_history from request
     if not history_messages and request.conversation_history:
         for msg in (request.conversation_history or [])[-6:]:
             history_messages.append(LLMMessage(role=msg.role, content=msg.content))
 
-    # Build system prompt with optional summary
     system_prompt = SYSTEM_PROMPT
     if summary_text:
         system_prompt += f"\n\n[Earlier conversation summary: {summary_text}]"
 
-    # Build messages: history + current user message
     messages = list(history_messages)
     messages.append(LLMMessage(role="user", content=message))
 
-    # Get MCP tool definitions
     tools = _get_tool_definitions()
 
-    # Run the agentic loop
+    # Run agentic loop
     logger.info(f"Processing chat: {message[:80]} (history: {len(history_messages)} msgs, tools: {len(tools)})")
     final_text, total_tokens, model, tools_used = await _run_agent_loop(
         system_prompt, messages, tools
@@ -269,7 +255,6 @@ async def process_chat(
         _save_messages(db, session_obj, message, final_text)
         await _maybe_summarize(db, session_obj)
 
-    # Log interaction
     interaction_id = _log_interaction(db, message, final_text, model, total_tokens, tools_used)
 
     return ChatResponse(

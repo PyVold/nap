@@ -368,6 +368,17 @@ export const aiAPI = {
   addKnowledgeEntry: (data) => api.post('/ai/knowledge-base', null, { params: data }),
   deleteKnowledgeEntry: (entryId) => api.delete(`/ai/knowledge-base/${entryId}`),
   queryKnowledgeBase: (data) => api.post('/ai/knowledge-base/query', null, { params: data }),
+  uploadKnowledgeDocument: (file, category, vendor, tags) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category || 'general');
+    if (vendor) formData.append('vendor', vendor);
+    if (tags) formData.append('tags', tags);
+    return api.post('/ai/knowledge-base/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
+  },
 
   // Phase 3: Impact Analysis
   analyzeImpact: (request) => api.post('/ai/impact/analyze', request),
