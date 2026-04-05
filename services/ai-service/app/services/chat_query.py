@@ -15,6 +15,7 @@ Flow:
 
 import json
 import os
+import httpx
 from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.orm import Session
@@ -25,6 +26,9 @@ from models.schemas import (
 from services.llm_adapter import call_llm
 from services.mcp_server import MCP_TOOLS, execute_tool
 from shared.logger import setup_logger
+
+DEVICE_SERVICE_URL = os.getenv("DEVICE_SERVICE_URL", "http://device-service:3001")
+RULE_SERVICE_URL = os.getenv("RULE_SERVICE_URL", "http://rule-service:3002")
 
 logger = setup_logger(__name__)
 
@@ -203,6 +207,55 @@ async def _run_agent_loop(
 
 
 # ============================================================================
+# Platform Context Enrichment
+# ============================================================================
+
+async def _fetch_platform_context() -> str:
+    """Fetch a summary of managed devices and compliance to include in system prompt.
+    This ensures the AI knows about the platform state even if tool-calling fails."""
+    context_parts = []
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            # Fetch devices summary
+            try:
+                resp = await client.get(f"{DEVICE_SERVICE_URL}/devices/")
+                if resp.status_code == 200:
+                    devices = resp.json()
+                    if devices:
+                        device_lines = []
+                        for d in devices[:20]:  # Cap at 20
+                            meta = d.get("device_metadata") or {}
+                            line = f"- ID:{d.get('id')} {d.get('hostname', '?')} ({d.get('vendor', '?')}) IP:{d.get('ip_address', '?')} Status:{d.get('status', '?')}"
+                            if d.get('compliance_score') is not None:
+                                line += f" Compliance:{d['compliance_score']}%"
+                            if meta.get("software_version"):
+                                line += f" SW:{meta['software_version']}"
+                            if meta.get("bgp_asn"):
+                                line += f" ASN:{meta['bgp_asn']}"
+                            if meta.get("chassis"):
+                                line += f" Chassis:{meta['chassis']}"
+                            device_lines.append(line)
+                        context_parts.append(f"Managed devices ({len(devices)} total):\n" + "\n".join(device_lines))
+            except Exception as e:
+                logger.debug(f"Failed to fetch devices for context: {e}")
+
+            # Fetch compliance summary
+            try:
+                resp = await client.get(f"{RULE_SERVICE_URL}/audit/compliance")
+                if resp.status_code == 200:
+                    compliance = resp.json()
+                    if compliance:
+                        context_parts.append(f"Fleet compliance: {json.dumps(compliance, default=str)[:500]}")
+            except Exception as e:
+                logger.debug(f"Failed to fetch compliance for context: {e}")
+
+    except Exception as e:
+        logger.debug(f"Platform context enrichment failed: {e}")
+
+    return "\n\n".join(context_parts) if context_parts else ""
+
+
+# ============================================================================
 # Main Entry Point
 # ============================================================================
 
@@ -240,6 +293,12 @@ async def process_chat(
             history_messages.append(LLMMessage(role=msg.role, content=msg.content))
 
     system_prompt = SYSTEM_PROMPT
+
+    # Enrich with live platform context (devices, compliance)
+    platform_context = await _fetch_platform_context()
+    if platform_context:
+        system_prompt += f"\n\n--- CURRENT PLATFORM STATE ---\n{platform_context}\n--- END PLATFORM STATE ---"
+
     if summary_text:
         system_prompt += f"\n\n[Earlier conversation summary: {summary_text}]"
 
@@ -249,7 +308,7 @@ async def process_chat(
     tools = _get_tool_definitions()
 
     # Run agentic loop
-    logger.info(f"Processing chat: {message[:80]} (history: {len(history_messages)} msgs, tools: {len(tools)})")
+    logger.info(f"Processing chat: {message[:80]} (history: {len(history_messages)} msgs, tools: {len(tools)}, platform_ctx: {len(platform_context)} chars)")
     final_text, total_tokens, model, tools_used = await _run_agent_loop(
         system_prompt, messages, tools
     )
