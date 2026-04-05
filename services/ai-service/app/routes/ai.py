@@ -865,8 +865,7 @@ async def upload_knowledge_document(
             "filename": filename,
             "file_size": len(content_bytes),
             "text_length": len(text),
-            "chunks": len(chunks),
-            "entries_created": len(entries_created),
+            "chunks_created": len(entries_created),
             "metadata": doc_metadata,
         }
     except HTTPException:

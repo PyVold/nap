@@ -6,9 +6,10 @@ FROM nap-python-base:latest
 
 WORKDIR /app
 
-# Install ai-service specific dependencies (PDF/DOCX parsing for RAG)
+# Install ai-service specific dependencies
 COPY services/ai-service/requirements.txt /app/requirements-ai.txt
-RUN pip install --no-cache-dir PyPDF2==3.0.1 python-docx==1.1.0 python-multipart==0.0.20 2>/dev/null || true
+RUN pip install --no-cache-dir -r /app/requirements-ai.txt 2>/dev/null || \
+    pip install --no-cache-dir PyPDF2==3.0.1 python-docx==1.1.0 python-multipart==0.0.20 2>/dev/null || true
 
 # Copy shared libraries
 COPY shared /app/shared
