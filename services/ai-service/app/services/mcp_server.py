@@ -145,13 +145,13 @@ MCP_TOOLS = [
     },
     {
         "name": "nap_query_knowledge_base",
-        "description": "Search the vendor knowledge base for best practices, troubleshooting guides, configuration standards, and documentation. Use this for technical questions about BGP, MPLS, NTP, ACLs, NETCONF, drift prevention, etc.",
+        "description": "Search the NAP knowledge base for best practices, troubleshooting guides, configuration examples, vendor documentation, uploaded documents, and any technical reference material. ALWAYS use this tool for any networking question, protocol question (BGP, OSPF, MPLS, NTP, ACL, SNMP, NETCONF, etc.), best practice inquiry, troubleshooting help, or vendor-specific guidance. The knowledge base contains user-uploaded documents, guides, and curated content.",
         "inputSchema": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "Search query (e.g. 'BGP best practices for Cisco IOS-XR')"},
-                "category": {"type": "string", "enum": ["best_practices", "troubleshooting", "general"], "description": "Filter by category"},
-                "vendor": {"type": "string", "enum": ["cisco_xr", "nokia_sros"], "description": "Filter by vendor"},
+                "query": {"type": "string", "description": "Search query — use descriptive keywords (e.g. 'BGP best practices Cisco IOS-XR', 'NTP configuration guide', 'troubleshoot OSPF adjacency')"},
+                "category": {"type": "string", "enum": ["best_practices", "troubleshooting", "vendor_docs", "config_examples", "general"], "description": "Optional: filter by category"},
+                "vendor": {"type": "string", "enum": ["cisco_xr", "nokia_sros"], "description": "Optional: filter by vendor"},
             },
             "required": ["query"],
         },
