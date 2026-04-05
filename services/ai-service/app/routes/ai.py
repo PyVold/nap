@@ -3,7 +3,7 @@ AI Service API Routes
 Handles all AI-powered features: rule builder, chat, remediation, reports, anomaly detection.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from shared.database import get_db
@@ -811,6 +811,98 @@ async def add_knowledge_entry(
     except Exception as e:
         logger.error(f"Knowledge base add failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to add knowledge base entry.")
+
+
+@router.post("/knowledge-base/upload")
+async def upload_knowledge_document(
+    file: UploadFile = File(...),
+    category: str = Form("general"),
+    vendor: str = Form(None),
+    tags: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin_or_operator),
+):
+    """Upload a document (PDF, DOCX, TXT, MD) to the knowledge base.
+    Text is extracted and stored as searchable knowledge base entries."""
+    from services.document_parser import extract_text_from_upload
+
+    try:
+        # Read file content
+        content_bytes = await file.read()
+        filename = file.filename or "unknown"
+
+        # Extract text
+        text, doc_metadata = await extract_text_from_upload(content_bytes, filename)
+
+        if not text or not text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract text from the uploaded file.")
+
+        # Split into chunks if the document is large (> 4000 chars)
+        chunks = _split_text_into_chunks(text, max_chars=4000)
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+        tag_list.append(f"source:{filename}")
+        username = current_user.get("username")
+
+        from services.knowledge_base import add_entry
+        entries_created = []
+        for i, chunk in enumerate(chunks):
+            title = f"{filename}" if len(chunks) == 1 else f"{filename} (part {i + 1}/{len(chunks)})"
+            result = await add_entry(
+                db, title, chunk, category,
+                vendor if vendor else None,
+                tag_list, username
+            )
+            entries_created.append(result)
+
+        return {
+            "status": "uploaded",
+            "filename": filename,
+            "file_size": len(content_bytes),
+            "text_length": len(text),
+            "chunks": len(chunks),
+            "entries_created": len(entries_created),
+            "metadata": doc_metadata,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Knowledge base upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process upload: {str(e)}")
+
+
+def _split_text_into_chunks(text: str, max_chars: int = 4000) -> list:
+    """Split text into chunks, preferring paragraph boundaries."""
+    if len(text) <= max_chars:
+        return [text]
+
+    chunks = []
+    paragraphs = text.split("\n\n")
+    current_chunk = ""
+
+    for para in paragraphs:
+        if len(current_chunk) + len(para) + 2 > max_chars:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+                current_chunk = ""
+            # If a single paragraph is too long, split by sentences
+            if len(para) > max_chars:
+                sentences = para.replace(". ", ".\n").split("\n")
+                for sent in sentences:
+                    if len(current_chunk) + len(sent) + 1 > max_chars:
+                        if current_chunk:
+                            chunks.append(current_chunk.strip())
+                        current_chunk = sent
+                    else:
+                        current_chunk += " " + sent if current_chunk else sent
+            else:
+                current_chunk = para
+        else:
+            current_chunk += "\n\n" + para if current_chunk else para
+
+    if current_chunk.strip():
+        chunks.append(current_chunk.strip())
+
+    return chunks
 
 
 @router.delete("/knowledge-base/{entry_id}")

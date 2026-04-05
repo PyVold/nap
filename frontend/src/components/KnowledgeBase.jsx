@@ -10,6 +10,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { aiAPI } from '../api/api';
 import { VENDOR_CONFIG, getVendorLabel } from '../utils/vendorConfig';
 import { useCanModify } from './RoleBasedAccess';
@@ -36,6 +39,15 @@ const KnowledgeBase = () => {
     title: '', content: '', category: 'general', vendor: '', tags: '',
   });
   const [adding, setAdding] = useState(false);
+
+  // Upload dialog
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadCategory, setUploadCategory] = useState('general');
+  const [uploadVendor, setUploadVendor] = useState('');
+  const [uploadTags, setUploadTags] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
 
   useEffect(() => {
     fetchEntries();
@@ -105,6 +117,38 @@ const KnowledgeBase = () => {
     } catch (err) {
       setError('Failed to delete entry');
     }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFile) return;
+    setUploading(true);
+    setUploadResult(null);
+    try {
+      const response = await aiAPI.uploadKnowledgeDocument(
+        uploadFile,
+        uploadCategory,
+        uploadVendor || undefined,
+        uploadTags || undefined,
+      );
+      const data = response.data;
+      setUploadResult(data);
+      setSuccess(`Uploaded "${uploadFile.name}" — ${data.chunks_created} knowledge base entries created`);
+      fetchEntries();
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to upload document';
+      setError(msg);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadClose = () => {
+    setUploadOpen(false);
+    setUploadFile(null);
+    setUploadCategory('general');
+    setUploadVendor('');
+    setUploadTags('');
+    setUploadResult(null);
   };
 
   const getCategoryColor = (cat) => {
@@ -219,9 +263,14 @@ const KnowledgeBase = () => {
         </FormControl>
         <Box sx={{ flex: 1 }} />
         {canModify && (
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
-            Add Entry
-          </Button>
+          <>
+            <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => setUploadOpen(true)}>
+              Upload Document
+            </Button>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
+              Add Entry
+            </Button>
+          </>
         )}
       </Box>
 
@@ -325,6 +374,121 @@ const KnowledgeBase = () => {
           >
             {adding ? 'Adding...' : 'Add Entry'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Upload Document Dialog */}
+      <Dialog open={uploadOpen} onClose={handleUploadClose} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CloudUploadIcon color="primary" />
+          Upload Document to Knowledge Base
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Upload PDF, DOCX, TXT, MD, CSV, JSON, YAML, or XML files. The document will be parsed and split into searchable knowledge base entries.
+          </Typography>
+
+          {/* File picker */}
+          <Box
+            sx={{
+              border: '2px dashed', borderColor: uploadFile ? 'primary.main' : 'divider',
+              borderRadius: 2, p: 3, textAlign: 'center', mb: 2,
+              bgcolor: uploadFile ? 'primary.50' : 'transparent',
+              cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+            }}
+            onClick={() => document.getElementById('kb-upload-input').click()}
+          >
+            <input
+              id="kb-upload-input"
+              type="file"
+              hidden
+              accept=".pdf,.docx,.doc,.txt,.md,.csv,.json,.yaml,.yml,.conf,.cfg,.log,.xml"
+              onChange={(e) => {
+                if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
+              }}
+            />
+            {uploadFile ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <DescriptionIcon color="primary" />
+                <Typography variant="body1" fontWeight="bold">{uploadFile.name}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  ({(uploadFile.size / 1024).toFixed(1)} KB)
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                <CloudUploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                <Typography variant="body1" color="text.secondary">
+                  Click to select a file
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  PDF, DOCX, TXT, MD, CSV, JSON, YAML, XML (max 20MB)
+                </Typography>
+              </>
+            )}
+          </Box>
+
+          <Grid container spacing={2}>
+            <Grid item xs={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)} label="Category">
+                  <MenuItem value="general">General</MenuItem>
+                  <MenuItem value="best_practices">Best Practices</MenuItem>
+                  <MenuItem value="troubleshooting">Troubleshooting</MenuItem>
+                  <MenuItem value="vendor_docs">Vendor Docs</MenuItem>
+                  <MenuItem value="config_examples">Config Examples</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Vendor</InputLabel>
+                <Select value={uploadVendor} onChange={(e) => setUploadVendor(e.target.value)} label="Vendor">
+                  <MenuItem value="">Generic (all vendors)</MenuItem>
+                  {Object.entries(VENDOR_CONFIG).map(([key, cfg]) => (
+                    <MenuItem key={key} value={key}>{cfg.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={4}>
+              <TextField
+                fullWidth size="small" label="Tags (comma-separated)"
+                value={uploadTags}
+                onChange={(e) => setUploadTags(e.target.value)}
+              />
+            </Grid>
+          </Grid>
+
+          {/* Upload result */}
+          {uploadResult && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              <Typography variant="body2" fontWeight="bold">
+                Document processed successfully
+              </Typography>
+              <Typography variant="body2">
+                {uploadResult.chunks_created} entries created from "{uploadResult.filename}"
+                {uploadResult.metadata?.pages && ` (${uploadResult.metadata.pages} pages)`}
+                {uploadResult.metadata?.text_length && ` — ${uploadResult.metadata.text_length.toLocaleString()} characters extracted`}
+              </Typography>
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleUploadClose}>
+            {uploadResult ? 'Done' : 'Cancel'}
+          </Button>
+          {!uploadResult && (
+            <Button
+              variant="contained"
+              startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
+              onClick={handleUpload}
+              disabled={!uploadFile || uploading}
+            >
+              {uploading ? 'Uploading...' : 'Upload & Process'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
