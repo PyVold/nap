@@ -143,6 +143,42 @@ MCP_TOOLS = [
             "required": ["device_ids"],
         },
     },
+    {
+        "name": "nap_query_knowledge_base",
+        "description": "Search the vendor knowledge base for best practices, troubleshooting guides, configuration standards, and documentation. Use this for technical questions about BGP, MPLS, NTP, ACLs, NETCONF, drift prevention, etc.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query (e.g. 'BGP best practices for Cisco IOS-XR')"},
+                "category": {"type": "string", "enum": ["best_practices", "troubleshooting", "general"], "description": "Filter by category"},
+                "vendor": {"type": "string", "enum": ["cisco_xr", "nokia_sros"], "description": "Filter by vendor"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "nap_get_backup_history",
+        "description": "Get configuration backup history for a specific device, including timestamps, sizes, and change indicators.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_id": {"type": "integer", "description": "Device ID"},
+                "limit": {"type": "integer", "default": 10, "description": "Max backups to return"},
+            },
+            "required": ["device_id"],
+        },
+    },
+    {
+        "name": "nap_get_device_detail",
+        "description": "Get detailed information for a specific device including metadata (software version, chassis, BGP ASN, ISIS NET, interfaces).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_id": {"type": "integer", "description": "Device ID"},
+            },
+            "required": ["device_id"],
+        },
+    },
 ]
 
 # ============================================================================
@@ -243,6 +279,12 @@ async def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Any:
                 return await _get_drift_summary(client)
             elif tool_name == "nap_run_audit":
                 return await _run_audit(client, arguments)
+            elif tool_name == "nap_query_knowledge_base":
+                return await _query_knowledge_base(arguments)
+            elif tool_name == "nap_get_backup_history":
+                return await _get_backup_history(client, arguments)
+            elif tool_name == "nap_get_device_detail":
+                return await _get_device_detail(client, arguments)
             else:
                 return {"error": f"Unknown tool: {tool_name}"}
         except Exception as e:
@@ -487,6 +529,84 @@ async def _run_audit(client: httpx.AsyncClient, args: dict) -> Any:
     if resp.status_code in (200, 202):
         return {"status": "audit_started", "details": resp.json()}
     return {"error": f"Failed to start audit: {resp.status_code}"}
+
+
+async def _query_knowledge_base(args: dict) -> Any:
+    """Search the knowledge base using text matching (RAG-style).
+    Runs inside ai-service — no HTTP call needed."""
+    from shared.database import SessionLocal
+    from shared.db_models import KnowledgeBaseDB
+    from sqlalchemy import or_
+
+    query = args.get("query", "")
+    category = args.get("category")
+    vendor = args.get("vendor")
+
+    db = SessionLocal()
+    try:
+        kb_query = db.query(KnowledgeBaseDB)
+        if category:
+            kb_query = kb_query.filter(KnowledgeBaseDB.category == category)
+        if vendor:
+            kb_query = kb_query.filter(
+                or_(KnowledgeBaseDB.vendor == vendor, KnowledgeBaseDB.vendor.is_(None))
+            )
+
+        entries = kb_query.all()
+
+        if not entries:
+            # Bootstrap defaults
+            from services.knowledge_base import _bootstrap_defaults
+            await _bootstrap_defaults(db)
+            entries = db.query(KnowledgeBaseDB).all()
+
+        # Simple keyword relevance scoring
+        query_words = set(query.lower().split())
+        scored = []
+        for e in entries:
+            text = f"{e.title} {e.content} {' '.join(e.tags or [])}".lower()
+            score = sum(1 for w in query_words if w in text)
+            if score > 0:
+                scored.append((score, e))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top = scored[:5]  # Top 5 relevant entries
+
+        if not top:
+            return {"message": "No relevant knowledge base entries found", "query": query, "results": []}
+
+        return {
+            "query": query,
+            "results": [
+                {
+                    "title": e.title,
+                    "content": e.content,
+                    "category": e.category,
+                    "vendor": e.vendor,
+                    "tags": e.tags or [],
+                    "relevance_score": score,
+                }
+                for score, e in top
+            ],
+        }
+    finally:
+        db.close()
+
+
+async def _get_backup_history(client: httpx.AsyncClient, args: dict) -> Any:
+    device_id = args["device_id"]
+    limit = args.get("limit", 10)
+    resp = await client.get(
+        f"{BACKUP_SERVICE_URL}/config-backups/device/{device_id}/history",
+        params={"limit": limit}
+    )
+    return resp.json() if resp.status_code == 200 else {"error": "Failed to fetch backup history"}
+
+
+async def _get_device_detail(client: httpx.AsyncClient, args: dict) -> Any:
+    device_id = args["device_id"]
+    resp = await client.get(f"{DEVICE_SERVICE_URL}/devices/{device_id}")
+    return resp.json() if resp.status_code == 200 else {"error": f"Device {device_id} not found"}
 
 
 async def _fetch_json(url: str) -> Any:
