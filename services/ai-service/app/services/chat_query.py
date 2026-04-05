@@ -1,143 +1,82 @@
 """
-Natural Language Network Query Service
+Natural Language Network Query Service — Agentic MCP Tool-Use
 
-Single LLM call with platform data as context.
-The LLM decides whether to use the data, answer technically,
-or respond conversationally — all in one pass.
+The AI agent has access to MCP tools (get devices, audit results, configs,
+drift, health, hardware, etc.) and decides which tools to call based on the
+user's question. This replaces the old "dump everything in the prompt" approach.
 
-Platform data is pre-fetched in parallel (fast) and provided as
-context so the LLM can reference it when relevant.
-
-Persistent memory: conversations are stored per-session so the AI
-remembers past exchanges across page reloads.
+Flow:
+1. User sends a message
+2. LLM sees the tool definitions + conversation history
+3. LLM either responds directly (conversational/technical) or calls tools
+4. If tools are called → execute them via mcp_server → feed results back
+5. Repeat until LLM gives a final text response (max 5 rounds)
 """
 
 import json
 import os
-import asyncio
-import httpx
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Optional, List
 from sqlalchemy.orm import Session
-from models.schemas import ChatRequest, ChatResponse, LLMRequest, LLMMessage, InteractionType
+from models.schemas import (
+    ChatRequest, ChatResponse, LLMRequest, LLMMessage,
+    LLMToolDef, InteractionType,
+)
 from services.llm_adapter import call_llm
+from services.mcp_server import MCP_TOOLS, execute_tool
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Internal service URLs
-DEVICE_SERVICE_URL = os.getenv("DEVICE_SERVICE_URL", "http://device-service:3001")
-RULE_SERVICE_URL = os.getenv("RULE_SERVICE_URL", "http://rule-service:3002")
-BACKUP_SERVICE_URL = os.getenv("BACKUP_SERVICE_URL", "http://backup-service:3003")
-ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:3006")
-
-# Quick-fetch endpoints for platform context (all GET, all fast)
-CONTEXT_ENDPOINTS = {
-    "devices": f"{DEVICE_SERVICE_URL}/devices/",
-    "compliance": f"{RULE_SERVICE_URL}/audit/compliance",
-    "health": f"{DEVICE_SERVICE_URL}/health/summary",
-    "rules": f"{RULE_SERVICE_URL}/rules/",
-    "device_groups": f"{DEVICE_SERVICE_URL}/device-groups/",
-}
+# Max tool-call rounds before forcing a text response
+MAX_TOOL_ROUNDS = 5
 
 # Max messages to send to LLM (recent ones). Older messages get summarized.
 MAX_HISTORY_MESSAGES = 10
-# When total messages exceed this, trigger summarization of older ones
 SUMMARIZE_THRESHOLD = 20
 
-SYSTEM_PROMPT_BASE = """You are the AI assistant for the Network Audit Platform (NAP), a senior network engineer assistant.
+SYSTEM_PROMPT = """You are the AI assistant for the Network Audit Platform (NAP), a senior network engineer assistant.
 
-You handle all types of queries naturally:
-- Data questions — reference the platform data provided below
-- Technical questions — give detailed guidance with CLI examples
-- Troubleshooting — step-by-step guidance
-- Conversational — respond naturally and briefly
+You have access to tools that let you query live platform data. Use them when the user asks about:
+- Devices, device status, compliance scores → use nap_get_devices or nap_get_compliance_score
+- Audit results, failed checks → use nap_get_audit_results
+- Config backups, config changes, diffs → use nap_get_device_config, nap_compare_configs, nap_get_config_changes
+- Health status → use nap_get_health_status
+- Hardware inventory → use nap_get_hardware_inventory
+- Audit rules → use nap_search_rules
+- Configuration drift → use nap_get_drift_summary
+- Running audits → use nap_run_audit (inform user this was triggered)
+
+For technical questions, troubleshooting, or conversation — respond directly without tools.
 
 Supported vendors: Cisco IOS-XR, Cisco IOS-XE, Nokia SR OS, Juniper JunOS, Arista EOS.
 
 Guidelines:
-- Be concise but thorough. Only respond to the user's latest message.
+- Only respond to the user's latest message
 - Use markdown: **bold**, `code`, tables, lists
 - CLI examples in ```code blocks``` with vendor name
-- If platform data is empty, say so and suggest next steps
-- Do NOT repeat or summarize platform data unless the user asks about it
-- You remember our conversation history — use it naturally when relevant"""
+- When using tool results, present data clearly — don't dump raw JSON
+- You remember our conversation history — use it naturally"""
 
 
-async def _fetch_platform_context(auth_token: str = "") -> str:
-    """Fetch a compact summary of platform state in parallel.
-    This runs fast (~100-500ms) and gives the LLM real data to work with."""
-    headers = {"Authorization": auth_token} if auth_token else {}
-    context_parts = []
+def _get_tool_definitions() -> List[LLMToolDef]:
+    """Convert MCP_TOOLS to LLMToolDef for the LLM adapter."""
+    return [
+        LLMToolDef(
+            name=tool["name"],
+            description=tool["description"],
+            input_schema=tool.get("inputSchema", {"type": "object", "properties": {}}),
+        )
+        for tool in MCP_TOOLS
+    ]
 
-    async def fetch_one(name: str, url: str) -> tuple:
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(url, headers=headers)
-                if resp.status_code == 200:
-                    return name, resp.json()
-                return name, None
-        except Exception:
-            return name, None
 
-    # Fetch all endpoints in parallel
-    tasks = [fetch_one(name, url) for name, url in CONTEXT_ENDPOINTS.items()]
-    results = await asyncio.gather(*tasks)
-
-    for name, data in results:
-        if data is None:
-            continue
-
-        if name == "devices":
-            devices = data if isinstance(data, list) else data.get("items", data.get("devices", []))
-            if devices:
-                summary = []
-                for d in devices[:30]:
-                    summary.append(
-                        f"  - {d.get('hostname','?')} | {d.get('vendor','?')} | {d.get('ip','?')} | "
-                        f"status:{d.get('status','?')} | compliance:{d.get('compliance','?')}%"
-                    )
-                context_parts.append(f"Devices ({len(devices)} total):\n" + "\n".join(summary))
-
-        elif name == "compliance":
-            if isinstance(data, dict) and data:
-                context_parts.append(
-                    f"Compliance: total_devices={data.get('total_devices',0)}, "
-                    f"compliant={data.get('compliant_devices',0)}, "
-                    f"average_score={data.get('average_compliance',0)}%"
-                )
-
-        elif name == "health":
-            if isinstance(data, dict) and data:
-                parts = [f"{k}={v}" for k, v in data.items()]
-                context_parts.append(f"Health: {', '.join(parts)}")
-
-        elif name == "rules":
-            rules = data if isinstance(data, list) else data.get("items", data.get("rules", []))
-            if rules:
-                context_parts.append(
-                    f"Audit Rules ({len(rules)} total): "
-                    + ", ".join(r.get("name", "?") for r in rules[:15])
-                )
-
-        elif name == "device_groups":
-            groups = data if isinstance(data, list) else data.get("items", data.get("groups", []))
-            if groups:
-                context_parts.append(
-                    f"Device Groups ({len(groups)}): "
-                    + ", ".join(g.get("name", "?") for g in groups[:10])
-                )
-
-    if not context_parts:
-        return "Platform data: No devices or data available yet. The platform appears empty."
-
-    return "PLATFORM DATA:\n" + "\n".join(context_parts)
-
+# ============================================================================
+# Session Management
+# ============================================================================
 
 def _load_session(db: Session, session_id: int, user_id: int):
-    """Load a chat session from DB. Returns (session_obj, messages_list, summary_str)."""
     from shared.db_models import ChatSessionDB
-
     session = (
         db.query(ChatSessionDB)
         .filter(ChatSessionDB.id == session_id, ChatSessionDB.user_id == user_id)
@@ -149,14 +88,10 @@ def _load_session(db: Session, session_id: int, user_id: int):
 
 
 def _create_session(db: Session, user_id: int, first_message: str):
-    """Create a new chat session and auto-title it from the first message."""
     from shared.db_models import ChatSessionDB
-
-    # Auto-title: first 50 chars of the message
     title = first_message[:50].strip()
     if len(first_message) > 50:
         title += "..."
-
     session = ChatSessionDB(user_id=user_id, title=title, messages=[])
     db.add(session)
     db.commit()
@@ -165,7 +100,6 @@ def _create_session(db: Session, user_id: int, first_message: str):
 
 
 def _save_messages(db: Session, session, user_msg: str, assistant_msg: str):
-    """Append user + assistant messages to the session and save."""
     messages = list(session.messages or [])
     now = datetime.utcnow().isoformat()
     messages.append({"role": "user", "content": user_msg, "timestamp": now})
@@ -175,35 +109,25 @@ def _save_messages(db: Session, session, user_msg: str, assistant_msg: str):
     db.commit()
 
 
-async def _maybe_summarize(db: Session, session, llm_request_fn):
-    """If conversation is getting long, summarize older messages to save context."""
+async def _maybe_summarize(db: Session, session):
     messages = session.messages or []
     if len(messages) < SUMMARIZE_THRESHOLD:
         return
 
-    # Keep the last MAX_HISTORY_MESSAGES, summarize the rest
     older = messages[:-MAX_HISTORY_MESSAGES]
     recent = messages[-MAX_HISTORY_MESSAGES:]
-
-    # Build text of older messages for summarization
     older_text = "\n".join(f"{m['role']}: {m['content']}" for m in older)
 
     summary_prompt = LLMRequest(
         system_prompt="Summarize this conversation concisely. Keep key facts, decisions, device names, and technical details. Be brief (2-4 sentences).",
-        user_prompt=older_text[:3000],  # cap input size
+        user_prompt=older_text[:3000],
         temperature=0.2,
         max_tokens=256,
     )
-
     try:
         resp = await call_llm(summary_prompt)
-        existing_summary = session.summary or ""
-        if existing_summary:
-            session.summary = f"{existing_summary}\n{resp.content}"
-        else:
-            session.summary = resp.content
-
-        # Keep only recent messages
+        existing = session.summary or ""
+        session.summary = f"{existing}\n{resp.content}" if existing else resp.content
         session.messages = recent
         db.commit()
         logger.info(f"Summarized session {session.id}: {len(older)} old messages condensed")
@@ -211,18 +135,95 @@ async def _maybe_summarize(db: Session, session, llm_request_fn):
         logger.warning(f"Failed to summarize session {session.id}: {e}")
 
 
+# ============================================================================
+# Agentic Tool-Call Loop
+# ============================================================================
+
+async def _run_agent_loop(
+    system_prompt: str,
+    messages: List[LLMMessage],
+    tools: List[LLMToolDef],
+) -> tuple:
+    """Run the agentic loop: call LLM → execute tools → repeat.
+
+    Returns (final_text: str, total_tokens: int, model: str, tools_used: list)
+    """
+    total_tokens = 0
+    tools_used = []
+    model = ""
+
+    for round_num in range(MAX_TOOL_ROUNDS):
+        # On the last round, don't pass tools to force a text response
+        request_tools = tools if round_num < MAX_TOOL_ROUNDS - 1 else None
+
+        llm_request = LLMRequest(
+            system_prompt=system_prompt,
+            messages=messages,
+            tools=request_tools,
+            temperature=0.3,
+            max_tokens=1024,
+        )
+
+        logger.info(f"Agent round {round_num + 1}: calling LLM...")
+        response = await call_llm(llm_request)
+        total_tokens += response.tokens_used
+        model = response.model
+
+        # No tool calls → final text response
+        if not response.tool_calls:
+            logger.info(f"Agent done after {round_num + 1} round(s), {len(tools_used)} tool calls")
+            return response.content, total_tokens, model, tools_used
+
+        # Append assistant message with raw content blocks (tool_use + text)
+        messages.append(LLMMessage(
+            role="assistant",
+            content=response.raw_content or response.content,
+        ))
+
+        # Execute each tool call
+        for tc in response.tool_calls:
+            logger.info(f"Executing tool: {tc.name}({json.dumps(tc.arguments)[:200]})")
+            tools_used.append(tc.name)
+
+            try:
+                result = await execute_tool(tc.name, tc.arguments)
+                result_str = json.dumps(result, default=str)
+                # Cap result size to avoid blowing up context
+                if len(result_str) > 8000:
+                    result_str = result_str[:8000] + "... (truncated)"
+            except Exception as e:
+                logger.error(f"Tool {tc.name} failed: {e}")
+                result_str = json.dumps({"error": str(e)})
+
+            # Append tool result
+            messages.append(LLMMessage(
+                role="tool",
+                content=result_str,
+                tool_call_id=tc.id,
+                name=tc.name,
+            ))
+
+    # Exhausted rounds — return whatever we have
+    logger.warning(f"Agent hit max rounds ({MAX_TOOL_ROUNDS})")
+    return response.content or "I gathered some data but couldn't formulate a complete response. Please try a more specific question.", total_tokens, model, tools_used
+
+
+# ============================================================================
+# Main Entry Point
+# ============================================================================
+
 async def process_chat(
     request: ChatRequest,
     db: Session,
     auth_token: str = "",
     user_id: int = None,
 ) -> ChatResponse:
-    """Process a chat query with proper separation:
-    - System prompt: role definition + platform data (reference only)
-    - Messages: proper role-based conversation history
-    - Current message: the user's actual question (last in messages)
-    """
+    """Process a chat query using the agentic MCP tool-call loop.
 
+    The LLM decides whether to call tools (data queries) or respond
+    directly (technical/conversational). Tools are executed via the
+    MCP server's execute_tool() function.
+    """
     message = request.message.strip()
 
     # --- Session management ---
@@ -235,65 +236,60 @@ async def process_chat(
             session_obj, stored_messages, summary = _load_session(db, request.session_id, user_id)
             if session_obj:
                 summary_text = summary or ""
-                # Convert stored messages to LLMMessage objects
                 for msg in stored_messages[-MAX_HISTORY_MESSAGES:]:
                     history_messages.append(LLMMessage(role=msg["role"], content=msg["content"]))
         else:
             session_obj = _create_session(db, user_id, message)
 
-    # Fallback: use conversation_history from request (for clients that don't use sessions)
+    # Fallback: use conversation_history from request
     if not history_messages and request.conversation_history:
         for msg in (request.conversation_history or [])[-6:]:
             history_messages.append(LLMMessage(role=msg.role, content=msg.content))
 
-    # Pre-fetch platform data (fast, ~100-500ms) — goes into system prompt
-    logger.info("Fetching platform context...")
-    platform_context = await _fetch_platform_context(auth_token)
-
-    # Build system prompt: base instructions + platform data as reference
-    system_prompt = SYSTEM_PROMPT_BASE + "\n\n" + platform_context
+    # Build system prompt with optional summary
+    system_prompt = SYSTEM_PROMPT
     if summary_text:
         system_prompt += f"\n\n[Earlier conversation summary: {summary_text}]"
 
-    # Build messages: history turns + current user message
+    # Build messages: history + current user message
     messages = list(history_messages)
     messages.append(LLMMessage(role="user", content=message))
 
-    llm_request = LLMRequest(
-        system_prompt=system_prompt,
-        messages=messages,
-        temperature=0.3,
-        max_tokens=1024,
-    )
+    # Get MCP tool definitions
+    tools = _get_tool_definitions()
 
-    logger.info(f"Calling LLM for: {message[:80]} (history: {len(history_messages)} msgs)")
-    llm_response = await call_llm(llm_request)
+    # Run the agentic loop
+    logger.info(f"Processing chat: {message[:80]} (history: {len(history_messages)} msgs, tools: {len(tools)})")
+    final_text, total_tokens, model, tools_used = await _run_agent_loop(
+        system_prompt, messages, tools
+    )
 
     # Save to session
     if session_obj:
-        _save_messages(db, session_obj, message, llm_response.content)
-        await _maybe_summarize(db, session_obj, call_llm)
+        _save_messages(db, session_obj, message, final_text)
+        await _maybe_summarize(db, session_obj)
 
-    interaction_id = _log_interaction(db, message, llm_response)
+    # Log interaction
+    interaction_id = _log_interaction(db, message, final_text, model, total_tokens, tools_used)
 
     return ChatResponse(
-        message=llm_response.content,
+        message=final_text,
         session_id=session_obj.id if session_obj else None,
-        confidence=0.8,
+        confidence=0.9 if tools_used else 0.8,
         interaction_id=interaction_id,
+        query_executed=", ".join(tools_used) if tools_used else None,
     )
 
 
-def _log_interaction(db, message, llm_response) -> Optional[int]:
-    """Log AI interaction."""
+def _log_interaction(db, message, response_text, model, tokens, tools_used) -> Optional[int]:
     try:
         from shared.db_models import AIInteractionDB
         interaction = AIInteractionDB(
             interaction_type=InteractionType.CHAT_QUERY.value,
             input_prompt=message,
-            ai_response={"content": llm_response.content[:2000]},
-            model_used=llm_response.model,
-            tokens_used=llm_response.tokens_used,
+            ai_response={"content": response_text[:2000], "tools_used": tools_used},
+            model_used=model,
+            tokens_used=tokens,
         )
         db.add(interaction)
         db.commit()

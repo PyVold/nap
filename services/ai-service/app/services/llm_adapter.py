@@ -2,12 +2,21 @@
 LLM Adapter - Provider-agnostic LLM integration layer.
 Supports Anthropic Claude, OpenAI GPT, local models (Ollama),
 and any OpenAI-compatible API (vLLM, LocalAI, text-generation-webui, etc.).
+
+Tool-use / function-calling is supported across providers:
+- Anthropic: native tool_use blocks
+- OpenAI: function calling via tools parameter
+- Ollama: tool calling (Ollama 0.4+) or graceful degradation to no-tools
 """
 
 import os
+import json
 import httpx
 from typing import Optional, List
-from models.schemas import LLMRequest, LLMResponse, AIProvider, LLMMessage
+from models.schemas import (
+    LLMRequest, LLMResponse, AIProvider, LLMMessage,
+    LLMToolDef, LLMToolCall,
+)
 from shared.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -38,7 +47,6 @@ def get_available_providers() -> list:
         providers.append(AIProvider.ANTHROPIC)
     if OPENAI_API_KEY:
         providers.append(AIProvider.OPENAI)
-    # Local is always potentially available
     providers.append(AIProvider.LOCAL)
     return providers
 
@@ -56,7 +64,6 @@ def get_default_provider() -> AIProvider:
     except ValueError:
         pass
 
-    # Fallback order: local first for air-gapped environments
     if DEFAULT_PROVIDER == "local":
         return AIProvider.LOCAL
     if ANTHROPIC_API_KEY:
@@ -78,7 +85,6 @@ async def check_local_llm_status() -> dict:
                     result["reachable"] = True
                     result["models"] = [m["name"] for m in data.get("models", [])]
             else:
-                # OpenAI-compatible API
                 resp = await client.get(f"{LOCAL_LLM_URL}/v1/models")
                 if resp.status_code == 200:
                     data = resp.json()
@@ -94,8 +100,7 @@ async def check_local_llm_status() -> dict:
 async def call_llm(request: LLMRequest) -> LLMResponse:
     """Route LLM call to the appropriate provider"""
     provider = request.provider or get_default_provider()
-
-    logger.info(f"LLM call using provider: {provider.value}, model: {_get_model_for_provider(provider)}")
+    logger.info(f"LLM call using provider: {provider.value}, model: {_get_model_for_provider(provider)}, tools: {len(request.tools) if request.tools else 0}")
 
     if provider == AIProvider.ANTHROPIC:
         return await _call_anthropic(request)
@@ -115,18 +120,110 @@ def _get_model_for_provider(provider: AIProvider) -> str:
     return LOCAL_MODEL
 
 
-def _build_messages(request: LLMRequest) -> list:
-    """Build the messages list for chat APIs. If request.messages is set,
-    use those (multi-turn). Otherwise fall back to a single user message."""
-    if request.messages:
-        return [{"role": m.role, "content": m.content} for m in request.messages]
-    return [{"role": "user", "content": request.user_prompt}]
+# ============================================================================
+# Message Building
+# ============================================================================
 
+def _build_messages_anthropic(request: LLMRequest) -> list:
+    """Build messages for Anthropic API format.
+    Anthropic uses content blocks for tool results."""
+    if not request.messages:
+        return [{"role": "user", "content": request.user_prompt}]
+
+    messages = []
+    for m in request.messages:
+        if m.role == "tool":
+            # Tool result → Anthropic format
+            messages.append({
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": m.tool_call_id,
+                    "content": m.content if isinstance(m.content, str) else json.dumps(m.content),
+                }]
+            })
+        elif m.role == "assistant" and isinstance(m.content, list):
+            # Raw content blocks (tool_use + text) from previous response
+            messages.append({"role": "assistant", "content": m.content})
+        else:
+            messages.append({"role": m.role, "content": m.content})
+    return messages
+
+
+def _build_messages_openai(request: LLMRequest) -> list:
+    """Build messages for OpenAI-compatible API format."""
+    if not request.messages:
+        return [{"role": "user", "content": request.user_prompt}]
+
+    messages = []
+    for m in request.messages:
+        if m.role == "tool":
+            messages.append({
+                "role": "tool",
+                "tool_call_id": m.tool_call_id,
+                "content": m.content if isinstance(m.content, str) else json.dumps(m.content),
+            })
+        elif m.role == "assistant" and isinstance(m.content, list):
+            # Reconstruct OpenAI assistant message with tool_calls
+            text_parts = [b.get("text", "") for b in m.content if b.get("type") == "text"]
+            tool_calls_raw = [b for b in m.content if b.get("type") == "tool_use"]
+            msg = {"role": "assistant", "content": " ".join(text_parts) or None}
+            if tool_calls_raw:
+                msg["tool_calls"] = [{
+                    "id": tc["id"],
+                    "type": "function",
+                    "function": {"name": tc["name"], "arguments": json.dumps(tc.get("input", {}))},
+                } for tc in tool_calls_raw]
+            messages.append(msg)
+        else:
+            messages.append({"role": m.role, "content": m.content})
+    return messages
+
+
+def _build_tools_anthropic(tools: List[LLMToolDef]) -> list:
+    """Convert tools to Anthropic format."""
+    return [{
+        "name": t.name,
+        "description": t.description,
+        "input_schema": t.input_schema,
+    } for t in tools]
+
+
+def _build_tools_openai(tools: List[LLMToolDef]) -> list:
+    """Convert tools to OpenAI function-calling format."""
+    return [{
+        "type": "function",
+        "function": {
+            "name": t.name,
+            "description": t.description,
+            "parameters": t.input_schema,
+        },
+    } for t in tools]
+
+
+def _build_tools_ollama(tools: List[LLMToolDef]) -> list:
+    """Convert tools to Ollama tool-calling format (same as OpenAI)."""
+    return _build_tools_openai(tools)
+
+
+# ============================================================================
+# Provider Implementations
+# ============================================================================
 
 async def _call_anthropic(request: LLMRequest) -> LLMResponse:
-    """Call Anthropic Claude API"""
+    """Call Anthropic Claude API with tool-use support"""
     if not ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY not configured")
+
+    payload = {
+        "model": ANTHROPIC_MODEL,
+        "max_tokens": request.max_tokens,
+        "temperature": request.temperature,
+        "system": request.system_prompt,
+        "messages": _build_messages_anthropic(request),
+    }
+    if request.tools:
+        payload["tools"] = _build_tools_anthropic(request.tools)
 
     async with httpx.AsyncClient(timeout=CLOUD_TIMEOUT) as client:
         response = await client.post(
@@ -136,32 +233,53 @@ async def _call_anthropic(request: LLMRequest) -> LLMResponse:
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             },
-            json={
-                "model": ANTHROPIC_MODEL,
-                "max_tokens": request.max_tokens,
-                "temperature": request.temperature,
-                "system": request.system_prompt,
-                "messages": _build_messages(request),
-            },
+            json=payload,
         )
         response.raise_for_status()
         data = response.json()
 
-        content = data["content"][0]["text"] if data.get("content") else ""
         tokens = data.get("usage", {}).get("input_tokens", 0) + data.get("usage", {}).get("output_tokens", 0)
+        content_blocks = data.get("content", [])
+
+        # Extract text and tool_use blocks
+        text_parts = []
+        tool_calls = []
+        for block in content_blocks:
+            if block.get("type") == "text":
+                text_parts.append(block["text"])
+            elif block.get("type") == "tool_use":
+                tool_calls.append(LLMToolCall(
+                    id=block["id"],
+                    name=block["name"],
+                    arguments=block.get("input", {}),
+                ))
 
         return LLMResponse(
-            content=content,
+            content="\n".join(text_parts),
             model=ANTHROPIC_MODEL,
             tokens_used=tokens,
             provider=AIProvider.ANTHROPIC,
+            tool_calls=tool_calls if tool_calls else None,
+            raw_content=content_blocks if tool_calls else None,
         )
 
 
 async def _call_openai(request: LLMRequest) -> LLMResponse:
-    """Call OpenAI API"""
+    """Call OpenAI API with function-calling support"""
     if not OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY not configured")
+
+    payload = {
+        "model": OPENAI_MODEL,
+        "max_tokens": request.max_tokens,
+        "temperature": request.temperature,
+        "messages": [
+            {"role": "system", "content": request.system_prompt},
+            *_build_messages_openai(request),
+        ],
+    }
+    if request.tools:
+        payload["tools"] = _build_tools_openai(request.tools)
 
     async with httpx.AsyncClient(timeout=CLOUD_TIMEOUT) as client:
         response = await client.post(
@@ -170,27 +288,50 @@ async def _call_openai(request: LLMRequest) -> LLMResponse:
                 "Authorization": f"Bearer {OPENAI_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": OPENAI_MODEL,
-                "max_tokens": request.max_tokens,
-                "temperature": request.temperature,
-                "messages": [
-                    {"role": "system", "content": request.system_prompt},
-                    *_build_messages(request),
-                ],
-            },
+            json=payload,
         )
         response.raise_for_status()
         data = response.json()
 
-        content = data["choices"][0]["message"]["content"] if data.get("choices") else ""
+        choice = data["choices"][0]["message"] if data.get("choices") else {}
+        content = choice.get("content") or ""
         tokens = data.get("usage", {}).get("total_tokens", 0)
+
+        # Parse tool calls
+        tool_calls = None
+        raw_content = None
+        if choice.get("tool_calls"):
+            tool_calls = []
+            # Build Anthropic-style raw_content for multi-turn
+            raw_blocks = []
+            if content:
+                raw_blocks.append({"type": "text", "text": content})
+            for tc in choice["tool_calls"]:
+                func = tc.get("function", {})
+                try:
+                    args = json.loads(func.get("arguments", "{}"))
+                except json.JSONDecodeError:
+                    args = {}
+                tool_calls.append(LLMToolCall(
+                    id=tc["id"],
+                    name=func.get("name", ""),
+                    arguments=args,
+                ))
+                raw_blocks.append({
+                    "type": "tool_use",
+                    "id": tc["id"],
+                    "name": func.get("name", ""),
+                    "input": args,
+                })
+            raw_content = raw_blocks
 
         return LLMResponse(
             content=content,
             model=OPENAI_MODEL,
             tokens_used=tokens,
             provider=AIProvider.OPENAI,
+            tool_calls=tool_calls,
+            raw_content=raw_content,
         )
 
 
@@ -202,35 +343,64 @@ async def _call_local(request: LLMRequest) -> LLMResponse:
 
 
 async def _call_local_ollama(request: LLMRequest) -> LLMResponse:
-    """Call local LLM via Ollama native API (/api/chat)"""
+    """Call local LLM via Ollama native API (/api/chat) with tool support"""
+    payload = {
+        "model": LOCAL_MODEL,
+        "messages": [
+            {"role": "system", "content": request.system_prompt},
+            *_build_messages_openai(request),  # Ollama uses OpenAI-style messages
+        ],
+        "stream": False,
+        "options": {
+            "temperature": request.temperature,
+            "num_predict": request.max_tokens,
+        },
+    }
+    if request.tools:
+        payload["tools"] = _build_tools_ollama(request.tools)
+
     async with httpx.AsyncClient(timeout=LOCAL_TIMEOUT) as client:
         try:
-            response = await client.post(
-                f"{LOCAL_LLM_URL}/api/chat",
-                json={
-                    "model": LOCAL_MODEL,
-                    "messages": [
-                        {"role": "system", "content": request.system_prompt},
-                        *_build_messages(request),
-                    ],
-                    "stream": False,
-                    "options": {
-                        "temperature": request.temperature,
-                        "num_predict": request.max_tokens,
-                    },
-                },
-            )
+            response = await client.post(f"{LOCAL_LLM_URL}/api/chat", json=payload)
             response.raise_for_status()
             data = response.json()
 
-            content = data.get("message", {}).get("content", "")
+            msg = data.get("message", {})
+            content = msg.get("content", "")
             tokens = data.get("eval_count", 0) + data.get("prompt_eval_count", 0)
+
+            # Parse Ollama tool calls
+            tool_calls = None
+            raw_content = None
+            ollama_tool_calls = msg.get("tool_calls", [])
+            if ollama_tool_calls:
+                tool_calls = []
+                raw_blocks = []
+                if content:
+                    raw_blocks.append({"type": "text", "text": content})
+                for i, tc in enumerate(ollama_tool_calls):
+                    func = tc.get("function", {})
+                    tc_id = f"ollama_{i}"
+                    tool_calls.append(LLMToolCall(
+                        id=tc_id,
+                        name=func.get("name", ""),
+                        arguments=func.get("arguments", {}),
+                    ))
+                    raw_blocks.append({
+                        "type": "tool_use",
+                        "id": tc_id,
+                        "name": func.get("name", ""),
+                        "input": func.get("arguments", {}),
+                    })
+                raw_content = raw_blocks
 
             return LLMResponse(
                 content=content,
                 model=LOCAL_MODEL,
                 tokens_used=tokens,
                 provider=AIProvider.LOCAL,
+                tool_calls=tool_calls,
+                raw_content=raw_content,
             )
         except httpx.ConnectError:
             raise ValueError(
@@ -242,34 +412,67 @@ async def _call_local_ollama(request: LLMRequest) -> LLMResponse:
 
 
 async def _call_local_openai_compat(request: LLMRequest) -> LLMResponse:
-    """Call local LLM via OpenAI-compatible API (/v1/chat/completions).
-    Works with vLLM, LocalAI, text-generation-webui, LM Studio, etc."""
+    """Call local LLM via OpenAI-compatible API (/v1/chat/completions)."""
+    payload = {
+        "model": LOCAL_MODEL,
+        "max_tokens": request.max_tokens,
+        "temperature": request.temperature,
+        "messages": [
+            {"role": "system", "content": request.system_prompt},
+            *_build_messages_openai(request),
+        ],
+    }
+    if request.tools:
+        payload["tools"] = _build_tools_openai(request.tools)
+
     async with httpx.AsyncClient(timeout=LOCAL_TIMEOUT) as client:
         try:
             response = await client.post(
                 f"{LOCAL_LLM_URL}/v1/chat/completions",
                 headers={"Content-Type": "application/json"},
-                json={
-                    "model": LOCAL_MODEL,
-                    "max_tokens": request.max_tokens,
-                    "temperature": request.temperature,
-                    "messages": [
-                        {"role": "system", "content": request.system_prompt},
-                        *_build_messages(request),
-                    ],
-                },
+                json=payload,
             )
             response.raise_for_status()
             data = response.json()
 
-            content = data["choices"][0]["message"]["content"] if data.get("choices") else ""
+            choice = data["choices"][0]["message"] if data.get("choices") else {}
+            content = choice.get("content") or ""
             tokens = data.get("usage", {}).get("total_tokens", 0)
+
+            # Parse tool calls (same as OpenAI format)
+            tool_calls = None
+            raw_content = None
+            if choice.get("tool_calls"):
+                tool_calls = []
+                raw_blocks = []
+                if content:
+                    raw_blocks.append({"type": "text", "text": content})
+                for tc in choice["tool_calls"]:
+                    func = tc.get("function", {})
+                    try:
+                        args = json.loads(func.get("arguments", "{}"))
+                    except json.JSONDecodeError:
+                        args = {}
+                    tool_calls.append(LLMToolCall(
+                        id=tc["id"],
+                        name=func.get("name", ""),
+                        arguments=args,
+                    ))
+                    raw_blocks.append({
+                        "type": "tool_use",
+                        "id": tc["id"],
+                        "name": func.get("name", ""),
+                        "input": args,
+                    })
+                raw_content = raw_blocks
 
             return LLMResponse(
                 content=content,
                 model=LOCAL_MODEL,
                 tokens_used=tokens,
                 provider=AIProvider.LOCAL,
+                tool_calls=tool_calls,
+                raw_content=raw_content,
             )
         except httpx.ConnectError:
             raise ValueError(
