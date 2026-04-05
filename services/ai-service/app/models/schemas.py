@@ -52,29 +52,48 @@ class AnomalySeverity(str, Enum):
 # ============================================================================
 
 class LLMMessage(BaseModel):
-    """A single message in a multi-turn conversation"""
-    role: str  # "user" or "assistant"
-    content: str
+    """A single message in a multi-turn conversation.
+    role: 'user', 'assistant', or 'tool'
+    For tool results: role='tool', tool_call_id set, content is the result text."""
+    role: str
+    content: Any = ""  # str or list (for Anthropic content blocks)
+    tool_call_id: Optional[str] = None  # For tool result messages
+    name: Optional[str] = None  # Tool name for tool result messages
+
+
+class LLMToolDef(BaseModel):
+    """Tool definition passed to the LLM for tool-use / function-calling."""
+    name: str
+    description: str
+    input_schema: Dict[str, Any]  # JSON Schema for tool parameters
+
+
+class LLMToolCall(BaseModel):
+    """A tool call requested by the LLM."""
+    id: str
+    name: str
+    arguments: Dict[str, Any]
 
 
 class LLMRequest(BaseModel):
-    """Internal LLM request. Supports both single-turn (user_prompt) and
-    multi-turn (messages) conversations. If messages is provided, user_prompt
-    is ignored — messages already contains the full conversation."""
+    """Internal LLM request. Supports single-turn, multi-turn, and tool-use."""
     system_prompt: str
     user_prompt: str = ""
-    messages: Optional[List[LLMMessage]] = None  # Multi-turn: overrides user_prompt
+    messages: Optional[List[LLMMessage]] = None
+    tools: Optional[List[LLMToolDef]] = None  # Tool definitions for function calling
     temperature: float = 0.3
     max_tokens: int = 4096
     provider: Optional[AIProvider] = None
 
 
 class LLMResponse(BaseModel):
-    """Internal LLM response"""
-    content: str
+    """Internal LLM response — may contain text, tool calls, or both."""
+    content: str  # Text response (empty if only tool calls)
     model: str
     tokens_used: int
     provider: AIProvider
+    tool_calls: Optional[List[LLMToolCall]] = None  # Tools the LLM wants to call
+    raw_content: Optional[Any] = None  # Raw content blocks for multi-turn tool use
 
 
 # ============================================================================
