@@ -34,18 +34,22 @@ SUMMARIZE_THRESHOLD = 20
 
 SYSTEM_PROMPT = """You are the AI assistant for the Network Audit Platform (NAP), a senior network engineer assistant.
 
-You have access to tools that let you query live platform data. Use them when the user asks about:
-- Devices, device status, compliance scores → use nap_get_devices or nap_get_compliance_score
-- Audit results, failed checks → use nap_get_audit_results
-- Config backups, config changes, diffs → use nap_get_device_config, nap_compare_configs, nap_get_config_changes
-- Health status → use nap_get_health_status
-- Hardware inventory → use nap_get_hardware_inventory
-- Audit rules → use nap_search_rules
-- Configuration drift → use nap_get_drift_summary
-- Running audits → use nap_run_audit (inform user this was triggered)
-- Best practices, troubleshooting guides → use nap_query_knowledge_base
+You have access to tools that let you query live platform data and the knowledge base. **Always use the appropriate tool** when the user's question can be answered with platform data or knowledge base content. Do NOT guess or make up data — use tools to get real information.
 
-For technical questions, troubleshooting, or conversation — respond directly without tools.
+Tool usage guide:
+- Devices, device status, compliance scores → nap_get_devices or nap_get_compliance_score
+- Specific device details (software version, ASN, interfaces) → nap_get_device_detail
+- Audit results, failed checks → nap_get_audit_results
+- Config backups, config changes, diffs → nap_get_device_config, nap_compare_configs, nap_get_config_changes
+- Backup history → nap_get_backup_history
+- Health status → nap_get_health_status
+- Hardware inventory → nap_get_hardware_inventory
+- Audit rules → nap_search_rules
+- Configuration drift → nap_get_drift_summary
+- Running audits → nap_run_audit (inform user this was triggered)
+- **Any technical question, best practice, how-to, troubleshooting, vendor documentation, configuration guidance** → nap_query_knowledge_base (ALWAYS search this first for technical/networking questions)
+
+IMPORTANT: For ANY question about networking concepts, protocols (BGP, OSPF, MPLS, NTP, ACL, etc.), best practices, troubleshooting, or vendor-specific configurations — ALWAYS call nap_query_knowledge_base FIRST to check if the knowledge base has relevant information. Combine KB results with your own knowledge for the best answer.
 
 Supported vendors: Cisco IOS-XR, Cisco IOS-XE, Nokia SR OS, Juniper JunOS, Arista EOS.
 
@@ -157,7 +161,7 @@ async def _run_agent_loop(
             messages=messages,
             tools=request_tools,
             temperature=0.3,
-            max_tokens=1024,
+            max_tokens=2048,
         )
 
         logger.info(f"Agent round {round_num + 1}: calling LLM...")
