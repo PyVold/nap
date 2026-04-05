@@ -3,6 +3,8 @@ AI Service API Routes
 Handles all AI-powered features: rule builder, chat, remediation, reports, anomaly detection.
 """
 
+from typing import Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -464,12 +466,16 @@ async def submit_feedback(
     return {"status": "ok", "message": "Feedback recorded"}
 
 
+class DirectFeedbackRequest(BaseModel):
+    feature_type: str
+    rating: str
+    comment: Optional[str] = None
+    response_summary: Optional[str] = None
+
+
 @router.post("/feedback/direct")
 async def submit_direct_feedback(
-    feature_type: str,
-    rating: str,
-    comment: str = None,
-    response_summary: str = None,
+    feedback: DirectFeedbackRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -478,12 +484,12 @@ async def submit_direct_feedback(
 
     # Create a feedback-specific interaction record
     interaction = AIInteractionDB(
-        interaction_type=feature_type,
-        input_prompt=comment or f"Feedback for {feature_type}",
-        ai_response={"response_summary": (response_summary or "")[:500]},
+        interaction_type=feedback.feature_type,
+        input_prompt=feedback.comment or f"Feedback for {feedback.feature_type}",
+        ai_response={"response_summary": (feedback.response_summary or "")[:500]},
         model_used="feedback",
         tokens_used=0,
-        feedback=rating,
+        feedback=feedback.rating,
     )
     db.add(interaction)
     db.commit()

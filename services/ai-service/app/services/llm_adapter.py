@@ -369,6 +369,11 @@ async def _call_local_ollama(request: LLMRequest) -> LLMResponse:
             content = msg.get("content", "")
             tokens = data.get("eval_count", 0) + data.get("prompt_eval_count", 0)
 
+            # Log response details for debugging
+            logger.info(f"Ollama response keys: {list(data.keys())}, message keys: {list(msg.keys())}")
+            if request.tools:
+                logger.info(f"Ollama tools sent: {len(request.tools)}, response has tool_calls: {'tool_calls' in msg}, content length: {len(content)}")
+
             # Parse Ollama tool calls
             tool_calls = None
             raw_content = None

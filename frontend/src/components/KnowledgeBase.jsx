@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Paper, Typography, TextField, Button, Grid,
   Chip, Alert, CircularProgress, IconButton, FormControl, InputLabel,
   Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
-  Accordion, AccordionSummary, AccordionDetails,
+  Accordion, AccordionSummary, AccordionDetails, LinearProgress,
 } from '@mui/material';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import PublishIcon from '@mui/icons-material/Publish';
-import BackupIcon from '@mui/icons-material/Backup';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import {
+  MenuBook as MenuBookIcon,
+  Search as SearchIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  CloudUpload as CloudUploadIcon,
+  AttachFile as AttachFileIcon,
+} from '@mui/icons-material';
 import { aiAPI } from '../api/api';
 import { VENDOR_CONFIG, getVendorLabel } from '../utils/vendorConfig';
 import { useCanModify } from './RoleBasedAccess';
@@ -41,6 +42,7 @@ const KnowledgeBase = () => {
   const [adding, setAdding] = useState(false);
 
   // Upload dialog
+  const fileInputRef = useRef(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadCategory, setUploadCategory] = useState('general');
@@ -264,7 +266,7 @@ const KnowledgeBase = () => {
         <Box sx={{ flex: 1 }} />
         {canModify && (
           <>
-            <Button variant="outlined" startIcon={<PublishIcon />} onClick={() => setUploadOpen(true)}>
+            <Button variant="outlined" startIcon={<CloudUploadIcon />} onClick={() => setUploadOpen(true)}>
               Upload Document
             </Button>
             <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
@@ -380,7 +382,7 @@ const KnowledgeBase = () => {
       {/* Upload Document Dialog */}
       <Dialog open={uploadOpen} onClose={handleUploadClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <BackupIcon color="primary" />
+          <CloudUploadIcon color="primary" />
           Upload Document to Knowledge Base
         </DialogTitle>
         <DialogContent>
@@ -396,10 +398,10 @@ const KnowledgeBase = () => {
               bgcolor: uploadFile ? 'primary.50' : 'transparent',
               cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
             }}
-            onClick={() => document.getElementById('kb-upload-input').click()}
+            onClick={() => fileInputRef.current?.click()}
           >
             <input
-              id="kb-upload-input"
+              ref={fileInputRef}
               type="file"
               hidden
               accept=".pdf,.docx,.doc,.txt,.md,.csv,.json,.yaml,.yml,.conf,.cfg,.log,.xml"
@@ -409,7 +411,7 @@ const KnowledgeBase = () => {
             />
             {uploadFile ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                <InsertDriveFileIcon color="primary" />
+                <AttachFileIcon color="primary" />
                 <Typography variant="body1" fontWeight="bold">{uploadFile.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   ({(uploadFile.size / 1024).toFixed(1)} KB)
@@ -417,7 +419,7 @@ const KnowledgeBase = () => {
               </Box>
             ) : (
               <>
-                <BackupIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                <CloudUploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
                 <Typography variant="body1" color="text.secondary">
                   Click to select a file
                 </Typography>
@@ -482,7 +484,7 @@ const KnowledgeBase = () => {
           {!uploadResult && (
             <Button
               variant="contained"
-              startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <BackupIcon />}
+              startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
               onClick={handleUpload}
               disabled={!uploadFile || uploading}
             >
