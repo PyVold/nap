@@ -10,6 +10,7 @@ from models.enums import VendorType
 from connectors import NetconfConnector, NokiaSROSConnector
 from models.device import Device
 from shared.logger import setup_logger
+from utils.crypto import decrypt_password
 
 logger = setup_logger(__name__)
 
@@ -288,6 +289,7 @@ class RemediationService:
                 from models.device import Device
                 import asyncio
 
+                decrypted_pwd = decrypt_password(device.password) if device.password else None
                 device_model = Device(
                     id=device.id,
                     hostname=device.hostname,
@@ -295,7 +297,7 @@ class RemediationService:
                     ip=device.ip,
                     port=device.port,
                     username=device.username,
-                    password=device.password
+                    password=decrypted_pwd
                 )
 
                 ssh_connector = SSHConnector(device_model)
@@ -357,7 +359,8 @@ class RemediationService:
     @staticmethod
     def _get_connector(device: DeviceDB):
         """Get appropriate connector for device vendor"""
-        # Convert DeviceDB to Device model
+        # Convert DeviceDB to Device model — decrypt password from DB
+        decrypted_pwd = decrypt_password(device.password) if device.password else None
         device_model = Device(
             id=device.id,
             hostname=device.hostname,
@@ -365,7 +368,7 @@ class RemediationService:
             ip=device.ip,
             port=device.port or 830,
             username=device.username,
-            password=device.password,
+            password=decrypted_pwd,
             status=device.status
         )
 
